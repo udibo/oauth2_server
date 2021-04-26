@@ -1,0 +1,36 @@
+import { User } from "./user.ts";
+
+export interface Client {
+  /** A unique identifier. */
+  id: string;
+  /** Grant types allowed for the client. */
+  grants: string[];
+  /** Redirect URIs allowed for the client. Required for the `authorization_code` grant type. */
+  redirectUris?: string[];
+  /** Client specific lifetime of access tokens in seconds. */
+  accessTokenLifetime?: number;
+  /** Client specific lifetime of refresh tokens in seconds. */
+  refreshTokenLifetime?: number;
+  // deno-lint-ignore no-explicit-any
+  [key: string]: any;
+}
+
+export interface ClientServiceInterface {
+  /** Retrieves a client. */
+  get(clientId: string, clientSecret?: string): Promise<Client | void>;
+  /** Retrieves a user associated with a client. */
+  getUser(client: Client): Promise<User | void>;
+}
+
+export abstract class ClientService implements ClientServiceInterface {
+  /** Retrieves a client. */
+  abstract get(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<Client | void>;
+
+  /** Retrieves a user associated with a client. */
+  getUser(_client: Client): Promise<User | void> {
+    throw new Error("not implemented");
+  }
+}
