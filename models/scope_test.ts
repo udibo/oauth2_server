@@ -5,6 +5,7 @@ import {
   assertStrictEquals,
   assertThrows,
 } from "../deps/std/testing/asserts.ts";
+import { InvalidScope } from "../errors.ts";
 
 test("SCOPE", () => {
   assertStrictEquals(SCOPE.test(""), true);
@@ -58,18 +59,18 @@ test(scopeTests, "validate", () => {
 
 test(scopeTests, "constructor validation", () => {
   new Scope("a");
-  assertThrows(() => new Scope(" "), Error, "invalid scope");
-  assertThrows(() => new Scope(" a"), Error, "invalid scope");
-  assertThrows(() => new Scope("a "), Error, "invalid scope");
-  assertThrows(() => new Scope("a  b"), Error, "invalid scope");
+  assertThrows(() => new Scope(" "), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope(" a"), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope("a "), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope("a  b"), InvalidScope, "invalid scope");
   new Scope("a b a c");
   new Scope("!#0A[]a~ !#1B[]b~ !#0A[]a~ !#2C[]c~");
-  assertThrows(() => new Scope('"'), Error, "invalid scope");
-  assertThrows(() => new Scope('a"b'), Error, "invalid scope");
-  assertThrows(() => new Scope('a b"ca d'), Error, "invalid scope");
-  assertThrows(() => new Scope("\\"), Error, "invalid scope");
-  assertThrows(() => new Scope("a\\b"), Error, "invalid scope");
-  assertThrows(() => new Scope("a b\\c a d"), Error, "invalid scope");
+  assertThrows(() => new Scope('"'), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope('a"b'), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope('a b"ca d'), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope("\\"), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope("a\\b"), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope("a b\\c a d"), InvalidScope, "invalid scope");
 });
 
 test(scopeTests, "toString", () => {

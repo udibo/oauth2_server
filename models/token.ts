@@ -1,5 +1,6 @@
 import { v4 } from "../deps/std/uuid/mod.ts";
 import { ScopeInterface } from "./scope.ts";
+import { ServerError } from "../errors.ts";
 import type { Client } from "./client.ts";
 import type { User } from "./user.ts";
 
@@ -14,6 +15,8 @@ export interface AccessToken {
   user: User;
   /** The scope granted to the token. */
   scope?: ScopeInterface;
+  /** The authorization code used to issue the token. */
+  code?: string;
 }
 
 export interface Token extends AccessToken {
@@ -65,6 +68,8 @@ export interface TokenServiceInterface {
   save<T extends AccessToken>(token: T): Promise<T>;
   /** Revokes a token. */
   revoke(token: Token): Promise<boolean>;
+  /** Revokes all tokens for an authorization code. */
+  revokeCode(code: string): Promise<boolean>;
 }
 
 export abstract class AccessTokenService implements TokenServiceInterface {
@@ -88,7 +93,9 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     _user: User,
     _scope?: ScopeInterface,
   ): Promise<string> {
-    return Promise.reject(new Error("not implemented"));
+    return Promise.reject(
+      new ServerError("generateRefreshToken not implemented"),
+    );
   }
 
   /** Gets the date that a new access token would expire at. */
@@ -110,7 +117,9 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     _user: User,
     _scope?: ScopeInterface,
   ): Promise<Date> {
-    return Promise.reject(new Error("not implemented"));
+    return Promise.reject(
+      new ServerError("refreshTokenExpiresAt not implemented"),
+    );
   }
 
   /** Retrieves an existing token. */
@@ -118,7 +127,7 @@ export abstract class AccessTokenService implements TokenServiceInterface {
 
   /** Retrieves an existing refresh token. Not implemented by default. */
   getRefreshToken(_refreshToken: string): Promise<RefreshToken | void> {
-    return Promise.reject(new Error("not implemented"));
+    return Promise.reject(new ServerError("getRefreshToken not implemented"));
   }
 
   /** Saves a token. */
@@ -126,6 +135,9 @@ export abstract class AccessTokenService implements TokenServiceInterface {
 
   /** Revokes a token. */
   abstract revoke(token: Token): Promise<boolean>;
+
+  /** Revokes all tokens generated from an authorization code. */
+  abstract revokeCode(code: string): Promise<boolean>;
 }
 
 export abstract class RefreshTokenService extends AccessTokenService

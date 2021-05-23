@@ -1,19 +1,26 @@
-import type { TokenServiceInterface } from "../models/token.ts";
+import { Client } from "../models/client.ts";
+import type { Token, TokenServiceInterface } from "../models/token.ts";
+import { OAuth2Request } from "../context.ts";
 
 export interface GrantServices {
-  token: TokenServiceInterface;
+  tokenService: TokenServiceInterface;
 }
 
 export interface GrantOptions {
   services: GrantServices;
 }
 
-export abstract class Grant {
-  protected services: GrantServices;
+export interface GrantInterface {
+  services: GrantServices;
+  handle(request: OAuth2Request, client: Client): Promise<Token>;
+}
+
+export abstract class Grant implements GrantInterface {
+  services: GrantServices;
 
   constructor(options: GrantOptions) {
-    this.services = {
-      token: options.services.token,
-    };
+    this.services = { ...options.services };
   }
+
+  abstract handle(request: OAuth2Request, client: Client): Promise<Token>;
 }

@@ -18,6 +18,7 @@ import {
 } from "../deps/std/testing/asserts.ts";
 import { v4 } from "../deps/std/uuid/mod.ts";
 import { FakeTime } from "../deps/udibo/mock/mod.ts";
+import { ServerError } from "../errors.ts";
 
 const client: Client = {
   id: "1",
@@ -43,6 +44,11 @@ export class ExampleAccessTokenService extends AccessTokenService {
 
   /** Revokes a token. */
   revoke(_token: Token): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  /** Revokes all tokens generated from an authorization code. */
+  revokeCode(_code: string): Promise<boolean> {
     return Promise.resolve(true);
   }
 }
@@ -79,11 +85,15 @@ test(
       scope,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(() => result, Error, "not implemented");
+    await assertThrowsAsync(
+      () => result,
+      ServerError,
+      "generateRefreshToken not implemented",
+    );
     await assertThrowsAsync(
       () => accessTokenService.generateRefreshToken(client, user, scope),
-      Error,
-      "not implemented",
+      ServerError,
+      "generateRefreshToken not implemented",
     );
   },
 );
@@ -153,11 +163,15 @@ test(
       scope,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(() => result, Error, "not implemented");
+    await assertThrowsAsync(
+      () => result,
+      ServerError,
+      "refreshTokenExpiresAt not implemented",
+    );
     await assertThrowsAsync(
       () => accessTokenService.refreshTokenExpiresAt(client, user, scope),
-      Error,
-      "not implemented",
+      ServerError,
+      "refreshTokenExpiresAt not implemented",
     );
   },
 );
@@ -167,11 +181,15 @@ test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
     "fake",
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(() => result, Error, "not implemented");
+  await assertThrowsAsync(
+    () => result,
+    ServerError,
+    "getRefreshToken not implemented",
+  );
   await assertThrowsAsync(
     () => accessTokenService.getRefreshToken("fake"),
-    Error,
-    "not implemented",
+    ServerError,
+    "getRefreshToken not implemented",
   );
 });
 
@@ -202,6 +220,11 @@ export class ExampleRefreshTokenService extends RefreshTokenService {
 
   /** Revokes a token. */
   revoke(_token: Token): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  /** Revokes all tokens generated from an authorization code. */
+  revokeCode(_code: string): Promise<boolean> {
     return Promise.resolve(true);
   }
 }

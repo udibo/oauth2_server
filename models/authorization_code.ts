@@ -18,6 +18,10 @@ export interface AuthorizationCode {
   user: User;
   /** The scope granted to the authorization code. */
   scope?: ScopeInterface;
+  /** The code challenge used for PKCE. */
+  codeChallenge?: string;
+  /** The code challenge method used for PKCE. */
+  codeChallengeMethod?: string;
 }
 
 export interface AuthorizationCodeServiceInterface {

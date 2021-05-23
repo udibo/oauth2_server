@@ -1,37 +1,61 @@
-import { Grant, GrantServices } from "./grant.ts";
+import { Grant, GrantInterface, GrantServices } from "./grant.ts";
+import { InvalidGrant, InvalidRequest } from "../errors.ts";
 import type { RefreshToken } from "../models/token.ts";
+import { OAuth2Request } from "../context.ts";
+import { Client } from "../models/client.ts";
 
-export class RefreshTokenGrant extends Grant {
-  async handle(refreshToken: string): Promise<RefreshToken> {
-    const { token }: GrantServices = this.services;
-    const currentToken: RefreshToken | void = await token.getRefreshToken(
-      refreshToken,
-    );
-    if (!currentToken) throw new Error("refresh token not found");
+export interface RefreshTokenGrantInterface extends GrantInterface {
+  handle(request: OAuth2Request, client: Client): Promise<RefreshToken>;
+}
+export class RefreshTokenGrant extends Grant
+  implements RefreshTokenGrantInterface {
+  async handle(request: OAuth2Request, client: Client): Promise<RefreshToken> {
+    const { tokenService }: GrantServices = this.services;
 
-    const { client, user, scope }: RefreshToken = currentToken;
-    if (!client.grants.includes("refresh_token")) {
-      throw new Error("refresh_token grant type not allowed for the client");
+    if (!request.hasBody) throw new InvalidRequest("request body required");
+
+    const body: URLSearchParams = await request.body!;
+    const refreshToken: string | null = body.get("refresh_token");
+    if (!refreshToken) {
+      throw new InvalidRequest("refresh_token parameter required");
     }
 
-    const nextToken: RefreshToken = await token.save({
-      accessToken: await token.generateAccessToken(client, user, scope),
-      accessTokenExpiresAt: await token.accessTokenExpiresAt(
+    const currentToken: RefreshToken | void = await tokenService
+      .getRefreshToken(
+        refreshToken,
+      );
+    if (!currentToken) throw new InvalidGrant("invalid refresh_token");
+
+    const { client: tokenClient, user, scope, code }: RefreshToken =
+      currentToken;
+    if (client.id !== tokenClient.id) {
+      throw new InvalidGrant("refresh_token was issued to another client");
+    }
+
+    let nextToken: RefreshToken = {
+      accessToken: await tokenService.generateAccessToken(client, user, scope),
+      accessTokenExpiresAt: await tokenService.accessTokenExpiresAt(
+        tokenClient,
+        user,
+        scope,
+      ),
+      refreshToken: await tokenService.generateRefreshToken(
         client,
         user,
         scope,
       ),
-      refreshToken: await token.generateRefreshToken(client, user, scope),
-      refreshTokenExpiresAt: await token.refreshTokenExpiresAt(
-        client,
+      refreshTokenExpiresAt: await tokenService.refreshTokenExpiresAt(
+        tokenClient,
         user,
         scope,
       ),
-      client,
+      client: tokenClient,
       user,
       scope,
-    });
-    await token.revoke(currentToken);
+    };
+    if (code) nextToken.code = code;
+    nextToken = await tokenService.save(nextToken);
+    await tokenService.revoke(currentToken);
 
     return nextToken;
   }

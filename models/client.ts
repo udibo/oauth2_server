@@ -1,3 +1,4 @@
+import { ServerError } from "../errors.ts";
 import { User } from "./user.ts";
 
 export interface Client {
@@ -17,7 +18,12 @@ export interface Client {
 
 export interface ClientServiceInterface {
   /** Retrieves a client. */
-  get(clientId: string, clientSecret?: string): Promise<Client | void>;
+  get(clientId: string): Promise<Client | void>;
+  /** Retrieves an authenticted client. */
+  getAuthenticated(
+    clientId: string,
+    clientSecret?: string,
+  ): Promise<Client | void>;
   /** Retrieves a user associated with a client. */
   getUser(client: Client): Promise<User | void>;
 }
@@ -26,11 +32,16 @@ export abstract class ClientService implements ClientServiceInterface {
   /** Retrieves a client. */
   abstract get(
     clientId: string,
+  ): Promise<Client | void>;
+
+  /** Retrieves an authenticated client. */
+  abstract getAuthenticated(
+    clientId: string,
     clientSecret?: string,
   ): Promise<Client | void>;
 
   /** Retrieves a user associated with a client. */
   getUser(_client: Client): Promise<User | void> {
-    throw new Error("not implemented");
+    throw new ServerError("not implemented");
   }
 }

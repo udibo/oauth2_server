@@ -22,12 +22,12 @@ jobs:
       - name: Install deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: "1.9.2"
+          deno-version: 1.10.2
       - name: Check formatting
         if: matrix.config.kind == 'lint'
         run: |
           deno fmt --check
-          deno lint --unstable
+          deno lint
       - name: Test
         if: matrix.config.kind == 'test'
         run: |
@@ -35,11 +35,11 @@ jobs:
       - name: Test unstable
         if: matrix.config.kind == 'test'
         run: |
-          deno test --coverage=./cov --unstable
+          deno test --coverage=./cov
       - name: Test coverage
         if: matrix.config.kind == 'test'
         run: |
-          deno coverage --unstable ./cov
+          deno coverage ./cov
       - name: Release info
         if: |
           matrix.config.kind == 'test' &&
@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
-          deno coverage --unstable --lcov ./cov > cov.lcov
+          deno coverage --lcov ./cov > cov.lcov
       - name: Release
         uses: softprops/action-gh-release@v1
         if: env.RELEASE_VERSION != ''
