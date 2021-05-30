@@ -9,8 +9,6 @@ export const SCOPE_TOKEN = new RegExp(`${NQCHAR.source}+`, "g");
 /** Constructor for scope. */
 export interface ScopeConstructor {
   new (scope?: string): ScopeInterface;
-  /** Checks that the scope is valid. */
-  validate(scope: string): boolean;
   /** Creates a new scope with all scope tokens from both scopes. */
   from(scope: ScopeInterface | string): ScopeInterface;
   /** Creates a new scope with all scope tokens from both scopes. */
@@ -51,15 +49,10 @@ export class Scope implements ScopeInterface {
   private tokens: Set<string>;
 
   constructor(scope?: string) {
-    if (scope && !Scope.validate(scope)) {
+    if (scope && !SCOPE.test(scope)) {
       throw new InvalidScope("invalid scope");
     }
     this.tokens = scope ? new Set(scope.match(SCOPE_TOKEN)) : new Set();
-  }
-
-  /** Checks that the scope is valid. */
-  static validate(scope: string): boolean {
-    return SCOPE.test(scope);
   }
 
   /** Creates a new scope from a scope. */

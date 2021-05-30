@@ -6,7 +6,7 @@ import {
 } from "../deps/std/testing/asserts.ts";
 import { ServerError } from "../errors.ts";
 
-class ExampleUserService extends UserService {}
+export class ExampleUserService extends UserService {}
 
 const userService: UserServiceInterface = new ExampleUserService();
 

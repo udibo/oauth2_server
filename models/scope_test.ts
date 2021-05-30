@@ -38,25 +38,6 @@ test("SCOPE_TOKEN", () => {
 
 const scopeTests: TestSuite<void> = new TestSuite({ name: "Scope" });
 
-test(scopeTests, "validate", () => {
-  assertStrictEquals(Scope.validate("a"), true);
-  assertStrictEquals(Scope.validate(" "), false);
-  assertStrictEquals(Scope.validate(" a"), false);
-  assertStrictEquals(Scope.validate("a "), false);
-  assertStrictEquals(Scope.validate("a  b"), false);
-  assertStrictEquals(Scope.validate("a b a c"), true);
-  assertStrictEquals(
-    Scope.validate("!#0A[]a~ !#1B[]b~ !#0A[]a~ !#2C[]c~"),
-    true,
-  );
-  assertStrictEquals(Scope.validate('"'), false);
-  assertStrictEquals(Scope.validate('a"b'), false);
-  assertStrictEquals(Scope.validate('a b"c a d'), false);
-  assertStrictEquals(Scope.validate("\\"), false);
-  assertStrictEquals(Scope.validate("a\\b"), false);
-  assertStrictEquals(Scope.validate("a b\\c a d"), false);
-});
-
 test(scopeTests, "constructor validation", () => {
   new Scope("a");
   assertThrows(() => new Scope(" "), InvalidScope, "invalid scope");

@@ -47,41 +47,46 @@ test(handleTests, "not implemented for AccessTokenService", async () => {
       tokenService,
     },
   });
-  let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
-  const result: Promise<RefreshToken> = refreshTokenGrant.handle(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
-    () => result,
-    ServerError,
-    "getRefreshToken not implemented",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 1);
-  let call: SpyCall = getRefreshToken.calls[0];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example1"]);
+  try {
+    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+    const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    await assertThrowsAsync(
+      () => result,
+      ServerError,
+      "getRefreshToken not implemented",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 1);
+    let call: SpyCall = getRefreshToken.calls[0];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example1"]);
 
-  request = fakeTokenRequest("refresh_token=example2");
-  await assertThrowsAsync(
-    () => refreshTokenGrant.handle(request, client),
-    ServerError,
-    "getRefreshToken not implemented",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 2);
-  call = getRefreshToken.calls[1];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example2"]);
+    request = fakeTokenRequest("refresh_token=example2");
+    await assertThrowsAsync(
+      () => refreshTokenGrant.handle(request, client),
+      ServerError,
+      "getRefreshToken not implemented",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 2);
+    call = getRefreshToken.calls[1];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example2"]);
+  } finally {
+    getRefreshToken.restore();
+  }
+});
+
+const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
+const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
+  services: {
+    tokenService,
+  },
 });
 
 test(handleTests, "request body required", async () => {
-  const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
-  const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-    services: {
-      tokenService,
-    },
-  });
   const request: OAuth2Request = fakeTokenRequest();
   const result: Promise<RefreshToken> = refreshTokenGrant.handle(
     request,
@@ -96,12 +101,6 @@ test(handleTests, "request body required", async () => {
 });
 
 test(handleTests, "refresh_token parameter required", async () => {
-  const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
-  const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-    services: {
-      tokenService,
-    },
-  });
   let request: OAuth2Request = fakeTokenRequest("");
   const result: Promise<RefreshToken> = refreshTokenGrant.handle(
     request,
@@ -126,47 +125,44 @@ const user: User = {};
 const scope: Scope = new Scope("read");
 
 test(handleTests, "refresh token not found", async () => {
-  const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
     (_refreshToken: string) => undefined,
   );
-  const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-    services: {
-      tokenService,
-    },
-  });
-  let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
-  const result: Promise<RefreshToken> = refreshTokenGrant.handle(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
-    () => result,
-    InvalidGrant,
-    "invalid refresh_token",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 1);
-  let call: SpyCall = getRefreshToken.calls[0];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example1"]);
+  try {
+    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+    const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    await assertThrowsAsync(
+      () => result,
+      InvalidGrant,
+      "invalid refresh_token",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 1);
+    let call: SpyCall = getRefreshToken.calls[0];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example1"]);
 
-  request = fakeTokenRequest("refresh_token=example2");
-  await assertThrowsAsync(
-    () => refreshTokenGrant.handle(request, client),
-    InvalidGrant,
-    "invalid refresh_token",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 2);
-  call = getRefreshToken.calls[1];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example2"]);
+    request = fakeTokenRequest("refresh_token=example2");
+    await assertThrowsAsync(
+      () => refreshTokenGrant.handle(request, client),
+      InvalidGrant,
+      "invalid refresh_token",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 2);
+    call = getRefreshToken.calls[1];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example2"]);
+  } finally {
+    getRefreshToken.restore();
+  }
 });
 
 test(handleTests, "refresh_token was issued to another client", async () => {
-  const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
@@ -178,41 +174,39 @@ test(handleTests, "refresh_token was issued to another client", async () => {
       scope,
     }),
   );
-  const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-    services: {
-      tokenService,
-    },
-  });
-  let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
-  const result: Promise<RefreshToken> = refreshTokenGrant.handle(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
-    () => result,
-    InvalidGrant,
-    "refresh_token was issued to another client",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 1);
-  let call: SpyCall = getRefreshToken.calls[0];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example1"]);
+  try {
+    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+    const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    await assertThrowsAsync(
+      () => result,
+      InvalidGrant,
+      "refresh_token was issued to another client",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 1);
+    let call: SpyCall = getRefreshToken.calls[0];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example1"]);
 
-  request = fakeTokenRequest("refresh_token=example2");
-  await assertThrowsAsync(
-    () => refreshTokenGrant.handle(request, client),
-    InvalidGrant,
-    "refresh_token was issued to another client",
-  );
-  assertStrictEquals(getRefreshToken.calls.length, 2);
-  call = getRefreshToken.calls[1];
-  assertStrictEquals(call.self, tokenService);
-  assertEquals(call.args, ["example2"]);
+    request = fakeTokenRequest("refresh_token=example2");
+    await assertThrowsAsync(
+      () => refreshTokenGrant.handle(request, client),
+      InvalidGrant,
+      "refresh_token was issued to another client",
+    );
+    assertStrictEquals(getRefreshToken.calls.length, 2);
+    call = getRefreshToken.calls[1];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example2"]);
+  } finally {
+    getRefreshToken.restore();
+  }
 });
 
 test(handleTests, "returns new token and revokes old", async () => {
-  const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
@@ -321,28 +315,32 @@ test(handleTests, "returns new token and revokes old", async () => {
     });
   }
 
-  const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-    services: {
-      tokenService,
-    },
-  });
-  let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
-  const result: Promise<RefreshToken> = refreshTokenGrant.handle(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  assertCalls(0, "example1", await result);
+  try {
+    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+    const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    assertCalls(0, "example1", await result);
 
-  request = fakeTokenRequest("refresh_token=example2");
-  assertCalls(1, "example2", await refreshTokenGrant.handle(request, client));
+    request = fakeTokenRequest("refresh_token=example2");
+    assertCalls(1, "example2", await refreshTokenGrant.handle(request, client));
+  } finally {
+    getRefreshToken.restore();
+    generateAccessToken.restore();
+    accessTokenExpiresAt.restore();
+    generateRefreshToken.restore();
+    refreshTokenExpiresAt.restore();
+    save.restore();
+    revoke.restore();
+  }
 });
 
 test(
   handleTests,
   "returns new token with same code and revokes old",
   async () => {
-    const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
     const getRefreshToken: Stub<RefreshTokenService> = stub(
       tokenService,
       "getRefreshToken",
@@ -455,20 +453,29 @@ test(
       });
     }
 
-    const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
-      services: {
-        tokenService,
-      },
-    });
-    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
-    const result: Promise<RefreshToken> = refreshTokenGrant.handle(
-      request,
-      client,
-    );
-    assertStrictEquals(Promise.resolve(result), result);
-    assertCalls(0, "example1", await result);
+    try {
+      let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+      const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+        request,
+        client,
+      );
+      assertStrictEquals(Promise.resolve(result), result);
+      assertCalls(0, "example1", await result);
 
-    request = fakeTokenRequest("refresh_token=example2");
-    assertCalls(1, "example2", await refreshTokenGrant.handle(request, client));
+      request = fakeTokenRequest("refresh_token=example2");
+      assertCalls(
+        1,
+        "example2",
+        await refreshTokenGrant.handle(request, client),
+      );
+    } finally {
+      getRefreshToken.restore();
+      generateAccessToken.restore();
+      accessTokenExpiresAt.restore();
+      generateRefreshToken.restore();
+      refreshTokenExpiresAt.restore();
+      save.restore();
+      revoke.restore();
+    }
   },
 );

@@ -42,6 +42,6 @@ export abstract class ClientService implements ClientServiceInterface {
 
   /** Retrieves a user associated with a client. */
   getUser(_client: Client): Promise<User | void> {
-    throw new ServerError("not implemented");
+    throw new ServerError("clientService.getUser not implemented");
   }
 }

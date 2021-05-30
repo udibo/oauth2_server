@@ -7,11 +7,14 @@ import { Client } from "../models/client.ts";
 export interface RefreshTokenGrantInterface extends GrantInterface {
   handle(request: OAuth2Request, client: Client): Promise<RefreshToken>;
 }
+
+/**
+ * The refresh token grant type.
+ * https://datatracker.ietf.org/doc/html/rfc6749.html#section-6
+ */
 export class RefreshTokenGrant extends Grant
   implements RefreshTokenGrantInterface {
   async handle(request: OAuth2Request, client: Client): Promise<RefreshToken> {
-    const { tokenService }: GrantServices = this.services;
-
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;
@@ -20,6 +23,7 @@ export class RefreshTokenGrant extends Grant
       throw new InvalidRequest("refresh_token parameter required");
     }
 
+    const { tokenService }: GrantServices = this.services;
     const currentToken: RefreshToken | void = await tokenService
       .getRefreshToken(
         refreshToken,
@@ -35,7 +39,7 @@ export class RefreshTokenGrant extends Grant
     let nextToken: RefreshToken = {
       accessToken: await tokenService.generateAccessToken(client, user, scope),
       accessTokenExpiresAt: await tokenService.accessTokenExpiresAt(
-        tokenClient,
+        client,
         user,
         scope,
       ),
@@ -45,11 +49,11 @@ export class RefreshTokenGrant extends Grant
         scope,
       ),
       refreshTokenExpiresAt: await tokenService.refreshTokenExpiresAt(
-        tokenClient,
+        client,
         user,
         scope,
       ),
-      client: tokenClient,
+      client,
       user,
       scope,
     };
