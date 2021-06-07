@@ -82,9 +82,24 @@ export class OAuth2Server {
   }
 
   async getAuthenticatedClient(request: OAuth2Request): Promise<Client> {
-    const { name: clientId, pass: clientSecret }: BasicAuth = parseBasicAuth(
-      request.headers.get("authorization"),
-    );
+    let clientId: string | null = null;
+    let clientSecret: string | null = null;
+    try {
+      const authorization: BasicAuth = parseBasicAuth(
+        request.headers.get("authorization"),
+      );
+      clientId = authorization.name;
+      clientSecret = authorization.pass;
+    } catch (error) {
+      if (!request.headers.has("authorization") && request.hasBody) {
+        const body: URLSearchParams = await request.body!;
+        clientId = body.get("client_id");
+        clientSecret = body.get("client_secret");
+      }
+      if (!clientId) {
+        throw error;
+      }
+    }
     const { clientService }: OAuth2ServerServices = this.services;
     const client: Client | void = clientSecret
       ? await clientService.getAuthenticated(clientId, clientSecret)

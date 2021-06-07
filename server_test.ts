@@ -12,7 +12,14 @@ import {
   assertStrictEquals,
   assertThrowsAsync,
 } from "./deps/std/testing/asserts.ts";
-import { resolves, Spy, spy, Stub, stub } from "./deps/udibo/mock/mod.ts";
+import {
+  resolves,
+  Spy,
+  spy,
+  SpyCall,
+  Stub,
+  stub,
+} from "./deps/udibo/mock/mod.ts";
 import {
   InvalidClient,
   InvalidGrant,
@@ -188,6 +195,86 @@ test(getClientTests, "client authentication failed", async () => {
     clientServiceGetAuthenticatedStub.restore();
   }
 });
+
+test(
+  getClientTests,
+  "returns client authenticated with authorization header",
+  async () => {
+    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+      clientService,
+      "getAuthenticated",
+    );
+    try {
+      let request: OAuth2Request = fakeTokenRequest();
+      request.headers.set("authorization", `basic ${btoa("1:")}`);
+      let result: Promise<Client> = server.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      let client: Client = await result;
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      let call: SpyCall = clientServiceGetAuthenticated.calls[0];
+      assertStrictEquals(call.self, clientService);
+      assertEquals(call.args, ["1"]);
+      assertEquals(client, await call.returned);
+
+      request = fakeTokenRequest("grant_type=refresh_token");
+      request.headers.set("authorization", `BaSiC ${btoa("1:2")}`);
+      result = server.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      client = await result;
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 2);
+      call = clientServiceGetAuthenticated.calls[1];
+      assertStrictEquals(call.self, clientService);
+      assertEquals(call.args, ["1", "2"]);
+      assertEquals(client, await call.returned);
+    } finally {
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
+
+test(
+  getClientTests,
+  "returns client authenticated with request body",
+  async () => {
+    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+      clientService,
+      "getAuthenticated",
+    );
+    try {
+      let request: OAuth2Request = fakeTokenRequest(
+        "grant_type=refresh_token&client_id=1",
+      );
+      request.headers.delete("authorization");
+      let result: Promise<Client> = server.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      let client: Client = await result;
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      let call: SpyCall = clientServiceGetAuthenticated.calls[0];
+      assertStrictEquals(call.self, clientService);
+      assertEquals(call.args, ["1"]);
+      assertEquals(client, await call.returned);
+
+      request = fakeTokenRequest(
+        "grant_type=refresh_token&client_id=1&client_secret=2",
+      );
+      request.headers.delete("authorization");
+      result = server.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      client = await result;
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 2);
+      call = clientServiceGetAuthenticated.calls[1];
+      assertStrictEquals(call.self, clientService);
+      assertEquals(call.args, ["1", "2"]);
+      assertEquals(client, await call.returned);
+    } finally {
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
 
 const getTokenTests: TestSuite<void> = new TestSuite({
   name: "getToken",
