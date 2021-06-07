@@ -17,20 +17,21 @@ import { FakeTime } from "../deps/udibo/mock/mod.ts";
 
 const client: Client = {
   id: "1",
-  grants: [],
+  grants: ["authorization_code"],
 };
 const user: User = {};
-const scope: Scope = new Scope();
+const scope: Scope = new Scope("read");
 
-class ExampleAuthorizationCodeService extends AuthorizationCodeService {
+export class ExampleAuthorizationCodeService extends AuthorizationCodeService {
   /** Retrieves an existing authorization code. */
-  get(code: string): Promise<AuthorizationCode | void> {
+  get(code: string): Promise<AuthorizationCode | undefined> {
     return Promise.resolve({
       code,
-      expiresAt: new Date(),
+      expiresAt: new Date(Date.now() + 60000),
       redirectUri: "https://oauth2.example.com/code",
       client,
       user,
+      scope,
     });
   }
 

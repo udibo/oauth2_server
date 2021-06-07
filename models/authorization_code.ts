@@ -70,7 +70,7 @@ export abstract class AuthorizationCodeService
     );
   }
   /** Retrieves an existing authorization code. */
-  abstract get(code: string): Promise<AuthorizationCode | void>;
+  abstract get(code: string): Promise<AuthorizationCode | undefined>;
   /** Saves an authorization code. */
   abstract save(
     authorizationCode: AuthorizationCode,

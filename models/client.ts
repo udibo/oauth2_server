@@ -18,30 +18,30 @@ export interface Client {
 
 export interface ClientServiceInterface {
   /** Retrieves a client. */
-  get(clientId: string): Promise<Client | void>;
+  get(clientId: string): Promise<Client | undefined>;
   /** Retrieves an authenticted client. */
   getAuthenticated(
     clientId: string,
     clientSecret?: string,
-  ): Promise<Client | void>;
+  ): Promise<Client | undefined>;
   /** Retrieves a user associated with a client. */
-  getUser(client: Client): Promise<User | void>;
+  getUser(client: Client): Promise<User | undefined>;
 }
 
 export abstract class ClientService implements ClientServiceInterface {
   /** Retrieves a client. */
   abstract get(
     clientId: string,
-  ): Promise<Client | void>;
+  ): Promise<Client | undefined>;
 
   /** Retrieves an authenticated client. */
   abstract getAuthenticated(
     clientId: string,
     clientSecret?: string,
-  ): Promise<Client | void>;
+  ): Promise<Client | undefined>;
 
   /** Retrieves a user associated with a client. */
-  getUser(_client: Client): Promise<User | void> {
+  getUser(_client: Client): Promise<User | undefined> {
     throw new ServerError("clientService.getUser not implemented");
   }
 }

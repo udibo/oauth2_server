@@ -40,7 +40,7 @@ export interface ErrorBody {
 }
 
 const CREDENTIALS = /^ *(?:[Bb][Aa][Ss][Ii][Cc]) +([\w-.~+/]+=*) *$/;
-const NAME_PASS = /^([^:]+)(?::(.*))?$/;
+const NAME_PASS = /^([^:]+):(.*)$/;
 
 interface BasicAuth {
   name: string;

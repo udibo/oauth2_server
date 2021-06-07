@@ -4,22 +4,18 @@ import { ScopeInterface } from "../models/scope.ts";
 import type { User, UserServiceInterface } from "../models/user.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
-import { Token, TokenServiceInterface } from "../models/token.ts";
+import { Token } from "../models/token.ts";
 
 export interface PasswordGrantServices extends GrantServices {
-  tokenService: TokenServiceInterface;
   userService: UserServiceInterface;
 }
 
 export interface PasswordGrantOptions extends GrantOptions {
   services: PasswordGrantServices;
-  /** Include optional refresh token. Defaults to false. */
-  refreshToken?: boolean;
 }
 
 export interface PasswordGrantInterface extends GrantInterface {
   services: PasswordGrantServices;
-  refreshToken: boolean;
 
   handle(request: OAuth2Request, client: Client): Promise<Token>;
 }
@@ -32,11 +28,9 @@ export interface PasswordGrantInterface extends GrantInterface {
  */
 export class PasswordGrant extends Grant implements PasswordGrantInterface {
   declare services: PasswordGrantServices;
-  refreshToken: boolean;
 
   constructor(options: PasswordGrantOptions) {
     super(options);
-    this.refreshToken = options?.refreshToken ?? false;
   }
 
   async handle(request: OAuth2Request, client: Client): Promise<Token> {
@@ -57,30 +51,7 @@ export class PasswordGrant extends Grant implements PasswordGrantInterface {
     );
     if (!user) throw new InvalidGrant("user authentication failed");
 
-    const token: Token = {
-      accessToken: await tokenService.generateAccessToken(client, user, scope),
-      accessTokenExpiresAt: await tokenService.accessTokenExpiresAt(
-        client,
-        user,
-        scope,
-      ),
-      client,
-      user,
-      scope,
-    };
-    if (this.refreshToken) {
-      token.refreshToken = await tokenService.generateRefreshToken(
-        client,
-        user,
-        scope,
-      );
-      token.refreshTokenExpiresAt = await tokenService.refreshTokenExpiresAt(
-        client,
-        user,
-        scope,
-      );
-    }
-
+    const token: Token = await this.generateToken(client, user, scope);
     return await tokenService.save(token);
   }
 }

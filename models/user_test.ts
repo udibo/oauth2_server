@@ -15,7 +15,7 @@ const userServiceTests: TestSuite<void> = new TestSuite({
 });
 
 test(userServiceTests, "getAuthenticated not implemented", async () => {
-  const result: Promise<User | void> = userService.getAuthenticated(
+  const result: Promise<User | undefined> = userService.getAuthenticated(
     "Kyle",
     "hunter2",
   );

@@ -41,6 +41,9 @@ export interface ScopeInterface {
 
   /** Converts the scope to a JSON representation. */
   toJSON(): string;
+
+  /** Returns an iterator for retrieving tokens from the scope in insertion order. */
+  [Symbol.iterator](): IterableIterator<string>;
 }
 
 /** A basic implementation of scope. */
@@ -59,7 +62,7 @@ export class Scope implements ScopeInterface {
   static from(scope: Scope | string): Scope {
     if (typeof scope === "string") return new Scope(scope);
     const result: Scope = new Scope();
-    for (const token of scope.tokens) {
+    for (const token of scope) {
       result.tokens.add(token);
     }
     return result;
@@ -78,7 +81,7 @@ export class Scope implements ScopeInterface {
     const result: Scope = new Scope();
     if (typeof a === "string") a = new Scope(a);
     if (typeof b === "string") b = new Scope(b);
-    for (const token of a.tokens) {
+    for (const token of a) {
       if (b.tokens.has(token)) result.add(token);
     }
     return result;
@@ -94,7 +97,7 @@ export class Scope implements ScopeInterface {
   /** Adds all scope tokens in the passted in scope to this scope. */
   add(scope: Scope | string): Scope {
     if (typeof scope === "string") scope = new Scope(scope);
-    for (const token of scope.tokens) {
+    for (const token of scope) {
       this.tokens.add(token);
     }
     delete this.stringCache;
@@ -104,7 +107,7 @@ export class Scope implements ScopeInterface {
   /** Removes all scope tokens in the passed in scope from this scope. */
   remove(scope: Scope | string): Scope {
     if (typeof scope === "string") scope = new Scope(scope);
-    for (const token of scope.tokens) {
+    for (const token of scope) {
       this.tokens.delete(token);
     }
     delete this.stringCache;
@@ -114,7 +117,7 @@ export class Scope implements ScopeInterface {
   /** Checks that this scope has all scope tokens in the passed in scope. */
   has(scope: Scope | string): boolean {
     if (typeof scope === "string") scope = new Scope(scope);
-    for (const token of scope.tokens) {
+    for (const token of scope) {
       if (!this.tokens.has(token)) return false;
     }
     return true;
@@ -124,7 +127,7 @@ export class Scope implements ScopeInterface {
   equals(scope: Scope | string): boolean {
     if (typeof scope === "string") scope = new Scope(scope);
     if (this.tokens.size !== scope.tokens.size) return false;
-    for (const token of scope.tokens) {
+    for (const token of scope) {
       if (!this.tokens.has(token)) return false;
     }
     return true;
@@ -133,7 +136,7 @@ export class Scope implements ScopeInterface {
   /** Converts the scope to a string representation. */
   toString(): string {
     if (typeof this.stringCache !== "string") {
-      this.stringCache = [...this.tokens].join(" ");
+      this.stringCache = [...this].join(" ");
     }
     return this.stringCache;
   }
@@ -141,5 +144,9 @@ export class Scope implements ScopeInterface {
   /** Converts the scope to a JSON representation. */
   toJSON(): string {
     return this.toString();
+  }
+
+  *[Symbol.iterator](): IterableIterator<string> {
+    yield* this.tokens.values();
   }
 }

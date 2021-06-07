@@ -8,15 +8,15 @@ const client: Client = {
   grants: [],
 };
 
-class ExampleClientService extends ClientService {
-  get(_clientId: string): Promise<Client | void> {
+export class ExampleClientService extends ClientService {
+  get(_clientId: string): Promise<Client | undefined> {
     return Promise.resolve(client);
   }
 
   getAuthenticated(
     _clientId: string,
     _clientSecret?: string,
-  ): Promise<Client | void> {
+  ): Promise<Client | undefined> {
     return Promise.resolve(client);
   }
 }
@@ -31,6 +31,6 @@ test(clientServiceTests, "getUser", async () => {
   await assertThrowsAsync(
     () => clientService.getUser(client),
     ServerError,
-    "not implemented",
+    "clientService.getUser not implemented",
   );
 });

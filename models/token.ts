@@ -47,35 +47,35 @@ export interface TokenServiceInterface {
     client: Client,
     user: User,
     scope?: ScopeInterface,
-  ): Promise<string>;
+  ): Promise<string | undefined>;
   /** Gets the date that a new access token would expire at. */
   accessTokenExpiresAt(
     client: Client,
     user: User,
     scope?: ScopeInterface,
-  ): Promise<Date>;
+  ): Promise<Date | undefined>;
   /** Gets the date that a new refresh token would expire at. */
   refreshTokenExpiresAt(
     client: Client,
     user: User,
     scope?: ScopeInterface,
-  ): Promise<Date>;
+  ): Promise<Date | undefined>;
   /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | void>;
+  getAccessToken(accessToken: string): Promise<AccessToken | undefined>;
   /** Retrieves an existing token. */
-  getRefreshToken(refreshToken: string): Promise<RefreshToken | void>;
+  getRefreshToken(refreshToken: string): Promise<RefreshToken | undefined>;
   /** Saves a token. */
   save<T extends AccessToken>(token: T): Promise<T>;
-  /** Revokes a token. */
+  /** Revokes a token. Resolves true if a token was revoked. */
   revoke(token: Token): Promise<boolean>;
-  /** Revokes all tokens for an authorization code. */
+  /** Revokes all tokens for an authorization code. Resolves true if a token was revoked. */
   revokeCode(code: string): Promise<boolean>;
 }
 
 export abstract class AccessTokenService implements TokenServiceInterface {
   /** Lifetime of access tokens in seconds. Defaults to 1 hour. */
   accessTokenLifetime = 60 * 60;
-  /** Lifetime of access tokens in seconds. Defaults to 0. */
+  /** Lifetime of refresh tokens in seconds. Defaults to 0. */
   refreshTokenLifetime = 0;
 
   /** Generates an access token. Defaults to an RFC4122 v4 UUID (pseudo-randomly-based). */
@@ -92,7 +92,7 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     _client: Client,
     _user: User,
     _scope?: ScopeInterface,
-  ): Promise<string> {
+  ): Promise<string | undefined> {
     return Promise.reject(
       new ServerError("generateRefreshToken not implemented"),
     );
@@ -103,7 +103,7 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     client: Client,
     _user: User,
     _scope?: ScopeInterface,
-  ): Promise<Date> {
+  ): Promise<Date | undefined> {
     const lifetime: number = client.accessTokenLifetime ??
       this.accessTokenLifetime;
     return Promise.resolve(
@@ -116,27 +116,29 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     _client: Client,
     _user: User,
     _scope?: ScopeInterface,
-  ): Promise<Date> {
+  ): Promise<Date | undefined> {
     return Promise.reject(
       new ServerError("refreshTokenExpiresAt not implemented"),
     );
   }
 
   /** Retrieves an existing token. */
-  abstract getAccessToken(accessToken: string): Promise<AccessToken | void>;
+  abstract getAccessToken(
+    accessToken: string,
+  ): Promise<AccessToken | undefined>;
 
   /** Retrieves an existing refresh token. Not implemented by default. */
-  getRefreshToken(_refreshToken: string): Promise<RefreshToken | void> {
+  getRefreshToken(_refreshToken: string): Promise<RefreshToken | undefined> {
     return Promise.reject(new ServerError("getRefreshToken not implemented"));
   }
 
   /** Saves a token. */
   abstract save<T extends Token>(token: T): Promise<T>;
 
-  /** Revokes a token. */
+  /** Revokes a token. Resolves true if a token was revoked. */
   abstract revoke(token: Token): Promise<boolean>;
 
-  /** Revokes all tokens generated from an authorization code. */
+  /** Revokes all tokens generated from an authorization code. Resolves true if a token was revoked. */
   abstract revokeCode(code: string): Promise<boolean>;
 }
 
@@ -150,7 +152,7 @@ export abstract class RefreshTokenService extends AccessTokenService
     _client: Client,
     _user: User,
     _scope?: ScopeInterface,
-  ): Promise<string> {
+  ): Promise<string | undefined> {
     return Promise.resolve(v4.generate());
   }
 
@@ -159,7 +161,7 @@ export abstract class RefreshTokenService extends AccessTokenService
     client: Client,
     _user: User,
     _scope?: ScopeInterface,
-  ): Promise<Date> {
+  ): Promise<Date | undefined> {
     const lifetime: number = client.refreshTokenLifetime ??
       this.refreshTokenLifetime;
     return Promise.resolve(
@@ -168,5 +170,7 @@ export abstract class RefreshTokenService extends AccessTokenService
   }
 
   /** Retrieves an existing refresh token. */
-  abstract getRefreshToken(refreshToken: string): Promise<RefreshToken | void>;
+  abstract getRefreshToken(
+    refreshToken: string,
+  ): Promise<RefreshToken | undefined>;
 }

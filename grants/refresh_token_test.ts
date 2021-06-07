@@ -21,6 +21,7 @@ import {
 import { InvalidGrant, InvalidRequest, ServerError } from "../errors.ts";
 import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
+import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
 
 const refreshTokenGrantTests: TestSuite<void> = new TestSuite({
   name: "RefreshTokenGrant",
@@ -121,7 +122,7 @@ test(handleTests, "refresh_token parameter required", async () => {
   );
 });
 
-const user: User = {};
+const user: User = { username: "kyle" };
 const scope: Scope = new Scope("read");
 
 test(handleTests, "refresh token not found", async () => {
@@ -210,132 +211,171 @@ test(handleTests, "returns new token and revokes old", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
-    (refreshToken: string) => ({
-      accessToken: "fake",
-      refreshToken,
-      client,
-      user,
-      scope,
-    }),
-  );
-
-  const expectedExpiresAts: Date[] = [
-    new Date(Date.now() + 1000),
-    new Date(new Date(Date.now() + 2000)),
-  ];
-  const expectedAccessTokens: string[] = ["access1", "access2"];
-  const expectedRefreshTokens: string[] = ["refresh1", "refresh2"];
-
-  const generateAccessToken: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "generateAccessToken",
-    [...expectedAccessTokens],
-  );
-  const accessTokenExpiresAt: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "accessTokenExpiresAt",
-    [...expectedExpiresAts],
-  );
-  const generateRefreshToken: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "generateRefreshToken",
-    [...expectedRefreshTokens],
-  );
-  const refreshTokenExpiresAt: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "refreshTokenExpiresAt",
-    [...expectedExpiresAts],
+    (refreshToken: string) =>
+      Promise.resolve({
+        accessToken: "fake",
+        refreshToken,
+        client,
+        user,
+        scope,
+      }),
   );
   const save: Spy<RefreshTokenService> = spy(tokenService, "save");
   const revoke: Spy<RefreshTokenService> = spy(tokenService, "revoke");
-
-  function assertCalls(
-    idx: number,
-    refreshToken: string,
-    nextRefreshToken: RefreshToken,
-  ): void {
-    const length = idx + 1;
-    assertStrictEquals(getRefreshToken.calls.length, length);
-    let call: SpyCall = getRefreshToken.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [refreshToken]);
-
-    assertStrictEquals(generateAccessToken.calls.length, length);
-    call = generateAccessToken.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [client, user, scope]);
-
-    assertStrictEquals(accessTokenExpiresAt.calls.length, length);
-    call = accessTokenExpiresAt.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [client, user, scope]);
-
-    assertStrictEquals(generateRefreshToken.calls.length, length);
-    call = generateRefreshToken.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [client, user, scope]);
-
-    assertStrictEquals(refreshTokenExpiresAt.calls.length, length);
-    call = refreshTokenExpiresAt.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [client, user, scope]);
-
-    assertStrictEquals(save.calls.length, length);
-    call = save.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [{
-      accessToken: expectedAccessTokens[idx],
-      accessTokenExpiresAt: expectedExpiresAts[idx],
-      refreshToken: expectedRefreshTokens[idx],
-      refreshTokenExpiresAt: expectedExpiresAts[idx],
-      client,
-      user,
-      scope,
-    }]);
-
-    assertStrictEquals(revoke.calls.length, length);
-    call = revoke.calls[idx];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, [{
-      accessToken: "fake",
-      refreshToken,
-      client,
-      user,
-      scope,
-    }]);
-
-    assertEquals(nextRefreshToken, {
-      accessToken: expectedAccessTokens[idx],
-      accessTokenExpiresAt: expectedExpiresAts[idx],
-      refreshToken: expectedRefreshTokens[idx],
-      refreshTokenExpiresAt: expectedExpiresAts[idx],
-      client,
-      user,
-      scope,
-    });
-  }
+  const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
+  const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
+  const generateToken: Stub<RefreshTokenGrant> = stub(
+    refreshTokenGrant,
+    "generateToken",
+    (client: Client, user: User, scope: Scope) =>
+      Promise.resolve({
+        accessToken: "x",
+        refreshToken: "y",
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt,
+        client,
+        user,
+        scope,
+      }),
+  );
 
   try {
-    let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+    const request: OAuth2Request = fakeTokenRequest("refresh_token=example");
     const result: Promise<RefreshToken> = refreshTokenGrant.handle(
       request,
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    assertCalls(0, "example1", await result);
+    const token: RefreshToken = await result;
 
-    request = fakeTokenRequest("refresh_token=example2");
-    assertCalls(1, "example2", await refreshTokenGrant.handle(request, client));
+    assertStrictEquals(getRefreshToken.calls.length, 1);
+    let call: SpyCall = getRefreshToken.calls[0];
+    assertStrictEquals(call.self, tokenService);
+    assertEquals(call.args, ["example"]);
+
+    assertStrictEquals(generateToken.calls.length, 1);
+    call = generateToken.calls[0];
+    assertClientUserScopeCall(call, refreshTokenGrant, client, user, scope);
+
+    assertStrictEquals(revoke.calls.length, 1);
+    call = revoke.calls[0];
+    assertStrictEquals(call.args.length, 1);
+    assertToken(call.args[0], {
+      accessToken: "fake",
+      refreshToken: "example",
+      client,
+      user,
+      scope,
+    });
+
+    const expectedToken: RefreshToken = {
+      accessToken: "x",
+      refreshToken: "y",
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
+      client,
+      user,
+      scope,
+    };
+    assertStrictEquals(save.calls.length, 1);
+    call = save.calls[0];
+    assertStrictEquals(call.args.length, 1);
+    assertToken(call.args[0], expectedToken);
+    assertToken(token, expectedToken);
   } finally {
     getRefreshToken.restore();
-    generateAccessToken.restore();
-    accessTokenExpiresAt.restore();
-    generateRefreshToken.restore();
-    refreshTokenExpiresAt.restore();
     save.restore();
     revoke.restore();
+    generateToken.restore();
   }
 });
+
+test(
+  handleTests,
+  "returns new token with same refresh token and revokes old",
+  async () => {
+    const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
+    const getRefreshToken: Stub<RefreshTokenService> = stub(
+      tokenService,
+      "getRefreshToken",
+      (refreshToken: string) =>
+        Promise.resolve({
+          accessToken: "fake",
+          refreshToken,
+          refreshTokenExpiresAt,
+          client,
+          user,
+          scope,
+        }),
+    );
+    const save: Spy<RefreshTokenService> = spy(tokenService, "save");
+    const revoke: Spy<RefreshTokenService> = spy(tokenService, "revoke");
+    const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
+    const generateToken: Stub<RefreshTokenGrant> = stub(
+      refreshTokenGrant,
+      "generateToken",
+      (client: Client, user: User, scope: Scope) =>
+        Promise.resolve({
+          accessToken: "x",
+          accessTokenExpiresAt,
+          client,
+          user,
+          scope,
+        }),
+    );
+
+    try {
+      const request: OAuth2Request = fakeTokenRequest("refresh_token=example");
+      const result: Promise<RefreshToken> = refreshTokenGrant.handle(
+        request,
+        client,
+      );
+      assertStrictEquals(Promise.resolve(result), result);
+      const token: RefreshToken = await result;
+
+      assertStrictEquals(getRefreshToken.calls.length, 1);
+      let call: SpyCall = getRefreshToken.calls[0];
+      assertStrictEquals(call.self, tokenService);
+      assertEquals(call.args, ["example"]);
+
+      assertStrictEquals(generateToken.calls.length, 1);
+      call = generateToken.calls[0];
+      assertClientUserScopeCall(call, refreshTokenGrant, client, user, scope);
+
+      assertStrictEquals(revoke.calls.length, 1);
+      call = revoke.calls[0];
+      assertStrictEquals(call.args.length, 1);
+      assertToken(call.args[0], {
+        accessToken: "fake",
+        refreshToken: "example",
+        refreshTokenExpiresAt,
+        client,
+        user,
+        scope,
+      });
+
+      const expectedToken: RefreshToken = {
+        accessToken: "x",
+        refreshToken: "example",
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt,
+        client,
+        user,
+        scope,
+      };
+      assertStrictEquals(save.calls.length, 1);
+      call = save.calls[0];
+      assertStrictEquals(call.args.length, 1);
+      assertToken(call.args[0], expectedToken);
+      assertToken(token, expectedToken);
+    } finally {
+      getRefreshToken.restore();
+      save.restore();
+      revoke.restore();
+      generateToken.restore();
+    }
+  },
+);
 
 test(
   handleTests,
@@ -344,138 +384,85 @@ test(
     const getRefreshToken: Stub<RefreshTokenService> = stub(
       tokenService,
       "getRefreshToken",
-      (refreshToken: string) => ({
-        accessToken: "fake",
-        refreshToken,
-        client,
-        user,
-        scope,
-        code: "foo",
-      }),
-    );
-
-    const expectedExpiresAts: Date[] = [
-      new Date(Date.now() + 1000),
-      new Date(new Date(Date.now() + 2000)),
-    ];
-    const expectedAccessTokens: string[] = ["access1", "access2"];
-    const expectedRefreshTokens: string[] = ["refresh1", "refresh2"];
-
-    const generateAccessToken: Stub<RefreshTokenService> = stub(
-      tokenService,
-      "generateAccessToken",
-      [...expectedAccessTokens],
-    );
-    const accessTokenExpiresAt: Stub<RefreshTokenService> = stub(
-      tokenService,
-      "accessTokenExpiresAt",
-      [...expectedExpiresAts],
-    );
-    const generateRefreshToken: Stub<RefreshTokenService> = stub(
-      tokenService,
-      "generateRefreshToken",
-      [...expectedRefreshTokens],
-    );
-    const refreshTokenExpiresAt: Stub<RefreshTokenService> = stub(
-      tokenService,
-      "refreshTokenExpiresAt",
-      [...expectedExpiresAts],
+      (refreshToken: string) =>
+        Promise.resolve({
+          accessToken: "fake",
+          refreshToken,
+          code: "z",
+          client,
+          user,
+          scope,
+        }),
     );
     const save: Spy<RefreshTokenService> = spy(tokenService, "save");
     const revoke: Spy<RefreshTokenService> = spy(tokenService, "revoke");
-
-    function assertCalls(
-      idx: number,
-      refreshToken: string,
-      nextRefreshToken: RefreshToken,
-    ): void {
-      const length = idx + 1;
-      assertStrictEquals(getRefreshToken.calls.length, length);
-      let call: SpyCall = getRefreshToken.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [refreshToken]);
-
-      assertStrictEquals(generateAccessToken.calls.length, length);
-      call = generateAccessToken.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [client, user, scope]);
-
-      assertStrictEquals(accessTokenExpiresAt.calls.length, length);
-      call = accessTokenExpiresAt.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [client, user, scope]);
-
-      assertStrictEquals(generateRefreshToken.calls.length, length);
-      call = generateRefreshToken.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [client, user, scope]);
-
-      assertStrictEquals(refreshTokenExpiresAt.calls.length, length);
-      call = refreshTokenExpiresAt.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [client, user, scope]);
-
-      assertStrictEquals(save.calls.length, length);
-      call = save.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [{
-        accessToken: expectedAccessTokens[idx],
-        accessTokenExpiresAt: expectedExpiresAts[idx],
-        refreshToken: expectedRefreshTokens[idx],
-        refreshTokenExpiresAt: expectedExpiresAts[idx],
-        client,
-        user,
-        scope,
-        code: "foo",
-      }]);
-
-      assertStrictEquals(revoke.calls.length, length);
-      call = revoke.calls[idx];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, [{
-        accessToken: "fake",
-        refreshToken,
-        client,
-        user,
-        scope,
-        code: "foo",
-      }]);
-
-      assertEquals(nextRefreshToken, {
-        accessToken: expectedAccessTokens[idx],
-        accessTokenExpiresAt: expectedExpiresAts[idx],
-        refreshToken: expectedRefreshTokens[idx],
-        refreshTokenExpiresAt: expectedExpiresAts[idx],
-        client,
-        user,
-        scope,
-        code: "foo",
-      });
-    }
+    const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
+    const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
+    const generateToken: Stub<RefreshTokenGrant> = stub(
+      refreshTokenGrant,
+      "generateToken",
+      (client: Client, user: User, scope: Scope) =>
+        Promise.resolve({
+          accessToken: "x",
+          refreshToken: "y",
+          accessTokenExpiresAt,
+          refreshTokenExpiresAt,
+          client,
+          user,
+          scope,
+        }),
+    );
 
     try {
-      let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
+      const request: OAuth2Request = fakeTokenRequest("refresh_token=example");
       const result: Promise<RefreshToken> = refreshTokenGrant.handle(
         request,
         client,
       );
       assertStrictEquals(Promise.resolve(result), result);
-      assertCalls(0, "example1", await result);
+      const token: RefreshToken = await result;
 
-      request = fakeTokenRequest("refresh_token=example2");
-      assertCalls(
-        1,
-        "example2",
-        await refreshTokenGrant.handle(request, client),
-      );
+      assertStrictEquals(getRefreshToken.calls.length, 1);
+      let call: SpyCall = getRefreshToken.calls[0];
+      assertStrictEquals(call.self, tokenService);
+      assertEquals(call.args, ["example"]);
+
+      assertStrictEquals(generateToken.calls.length, 1);
+      call = generateToken.calls[0];
+      assertClientUserScopeCall(call, refreshTokenGrant, client, user, scope);
+
+      assertStrictEquals(revoke.calls.length, 1);
+      call = revoke.calls[0];
+      assertStrictEquals(call.args.length, 1);
+      assertToken(call.args[0], {
+        accessToken: "fake",
+        refreshToken: "example",
+        client,
+        user,
+        scope,
+        code: "z",
+      });
+
+      const expectedToken: RefreshToken = {
+        accessToken: "x",
+        refreshToken: "y",
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt,
+        client,
+        user,
+        scope,
+        code: "z",
+      };
+      assertStrictEquals(save.calls.length, 1);
+      call = save.calls[0];
+      assertStrictEquals(call.args.length, 1);
+      assertToken(call.args[0], expectedToken);
+      assertToken(token, expectedToken);
     } finally {
       getRefreshToken.restore();
-      generateAccessToken.restore();
-      accessTokenExpiresAt.restore();
-      generateRefreshToken.restore();
-      refreshTokenExpiresAt.restore();
       save.restore();
       revoke.restore();
+      generateToken.restore();
     }
   },
 );

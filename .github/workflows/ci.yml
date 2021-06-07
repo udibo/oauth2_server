@@ -22,7 +22,7 @@ jobs:
       - name: Install deno
         uses: denoland/setup-deno@main
         with:
-          deno-version: 1.10.2
+          deno-version: 1.10.3
       - name: Check formatting
         if: matrix.config.kind == 'lint'
         run: |

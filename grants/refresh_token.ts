@@ -1,8 +1,12 @@
 import { Grant, GrantInterface, GrantServices } from "./grant.ts";
 import { InvalidGrant, InvalidRequest } from "../errors.ts";
-import type { RefreshToken } from "../models/token.ts";
+import type { RefreshToken, Token } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
+
+export interface RefreshTokenGrantOptions {
+  services: GrantServices;
+}
 
 export interface RefreshTokenGrantInterface extends GrantInterface {
   handle(request: OAuth2Request, client: Client): Promise<RefreshToken>;
@@ -14,6 +18,13 @@ export interface RefreshTokenGrantInterface extends GrantInterface {
  */
 export class RefreshTokenGrant extends Grant
   implements RefreshTokenGrantInterface {
+  constructor(options: RefreshTokenGrantOptions) {
+    super({
+      allowRefreshToken: true,
+      ...options,
+    });
+  }
+
   async handle(request: OAuth2Request, client: Client): Promise<RefreshToken> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
@@ -36,31 +47,15 @@ export class RefreshTokenGrant extends Grant
       throw new InvalidGrant("refresh_token was issued to another client");
     }
 
-    let nextToken: RefreshToken = {
-      accessToken: await tokenService.generateAccessToken(client, user, scope),
-      accessTokenExpiresAt: await tokenService.accessTokenExpiresAt(
-        client,
-        user,
-        scope,
-      ),
-      refreshToken: await tokenService.generateRefreshToken(
-        client,
-        user,
-        scope,
-      ),
-      refreshTokenExpiresAt: await tokenService.refreshTokenExpiresAt(
-        client,
-        user,
-        scope,
-      ),
-      client,
-      user,
-      scope,
-    };
+    const nextToken: Token = (await this.generateToken(client, user, scope));
+    if (!nextToken.refreshToken) {
+      nextToken.refreshToken = currentToken.refreshToken;
+      if (currentToken.refreshTokenExpiresAt) {
+        nextToken.refreshTokenExpiresAt = currentToken.refreshTokenExpiresAt;
+      }
+    }
     if (code) nextToken.code = code;
-    nextToken = await tokenService.save(nextToken);
     await tokenService.revoke(currentToken);
-
-    return nextToken;
+    return await tokenService.save(nextToken as RefreshToken);
   }
 }

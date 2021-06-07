@@ -22,14 +22,14 @@ import { ServerError } from "../errors.ts";
 
 const client: Client = {
   id: "1",
-  grants: [],
+  grants: ["refresh_token"],
 };
-const user: User = {};
-const scope: Scope = new Scope();
+const user: User = { username: "kyle" };
+const scope: Scope = new Scope("read");
 
 export class ExampleAccessTokenService extends AccessTokenService {
   /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | void> {
+  getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
     return Promise.resolve({
       accessToken,
       client,
@@ -49,7 +49,7 @@ export class ExampleAccessTokenService extends AccessTokenService {
 
   /** Revokes all tokens generated from an authorization code. */
   revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(true);
+    return Promise.resolve(false);
   }
 }
 
@@ -79,11 +79,12 @@ test(
   accessTokenServiceTests,
   "generateRefreshToken not implemented",
   async () => {
-    const result: Promise<string> = accessTokenService.generateRefreshToken(
-      client,
-      user,
-      scope,
-    );
+    const result: Promise<string | undefined> = accessTokenService
+      .generateRefreshToken(
+        client,
+        user,
+        scope,
+      );
     assertStrictEquals(Promise.resolve(result), result);
     await assertThrowsAsync(
       () => result,
@@ -157,11 +158,12 @@ test(
   accessTokenServiceTests,
   "refreshTokenExpiresAt not implemented",
   async () => {
-    const result: Promise<Date> = accessTokenService.refreshTokenExpiresAt(
-      client,
-      user,
-      scope,
-    );
+    const result: Promise<Date | undefined> = accessTokenService
+      .refreshTokenExpiresAt(
+        client,
+        user,
+        scope,
+      );
     assertStrictEquals(Promise.resolve(result), result);
     await assertThrowsAsync(
       () => result,
@@ -195,7 +197,7 @@ test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
 
 export class ExampleRefreshTokenService extends RefreshTokenService {
   /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | void> {
+  getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
     return Promise.resolve({
       accessToken,
       client,
@@ -204,7 +206,7 @@ export class ExampleRefreshTokenService extends RefreshTokenService {
   }
 
   /** Retrieves an existing token. */
-  getRefreshToken(refreshToken: string): Promise<RefreshToken | void> {
+  getRefreshToken(refreshToken: string): Promise<RefreshToken | undefined> {
     return Promise.resolve({
       accessToken: "fake",
       refreshToken,
@@ -225,7 +227,7 @@ export class ExampleRefreshTokenService extends RefreshTokenService {
 
   /** Revokes all tokens generated from an authorization code. */
   revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(true);
+    return Promise.resolve(false);
   }
 }
 
@@ -255,11 +257,12 @@ test(refreshTokenServiceTests, "accessTokenExpiresAt", async () => {
   const time: FakeTime = new FakeTime();
   try {
     const hour: number = 60 * 60 * 1000;
-    const result: Promise<Date> = refreshTokenService.accessTokenExpiresAt(
-      client,
-      user,
-      scope,
-    );
+    const result: Promise<Date | undefined> = refreshTokenService
+      .accessTokenExpiresAt(
+        client,
+        user,
+        scope,
+      );
     assertStrictEquals(Promise.resolve(result), result);
     assertEquals(await result, new Date(Date.now() + hour));
     assertEquals(
@@ -289,11 +292,12 @@ test(
         refreshTokenLifetime: 24 * 60 * 60,
       };
       const fiveMinutes = 5 * 60 * 1000;
-      const result: Promise<Date> = refreshTokenService.accessTokenExpiresAt(
-        client,
-        user,
-        scope,
-      );
+      const result: Promise<Date | undefined> = refreshTokenService
+        .accessTokenExpiresAt(
+          client,
+          user,
+          scope,
+        );
       assertStrictEquals(Promise.resolve(result), result);
       assertEquals(await result, new Date(Date.now() + fiveMinutes));
       assertEquals(
@@ -312,16 +316,21 @@ test(
 );
 
 test(refreshTokenServiceTests, "generateRefreshToken", async () => {
-  const result: Promise<string> = refreshTokenService.generateRefreshToken(
-    client,
-    user,
-    scope,
-  );
+  const result: Promise<string | undefined> = refreshTokenService
+    .generateRefreshToken(
+      client,
+      user,
+      scope,
+    );
   assertStrictEquals(Promise.resolve(result), result);
-  assert(v4.validate(await result));
+  assert(v4.validate((await result) as string));
   assert(
     v4.validate(
-      await refreshTokenService.generateRefreshToken(client, user, scope),
+      (await refreshTokenService.generateRefreshToken(
+        client,
+        user,
+        scope,
+      )) as string,
     ),
   );
 });
@@ -330,11 +339,12 @@ test(refreshTokenServiceTests, "refreshTokenExpiresAt", async () => {
   const time: FakeTime = new FakeTime();
   try {
     const twoWeeks: number = 14 * 24 * 60 * 60 * 1000;
-    const result: Promise<Date> = refreshTokenService.refreshTokenExpiresAt(
-      client,
-      user,
-      scope,
-    );
+    const result: Promise<Date | undefined> = refreshTokenService
+      .refreshTokenExpiresAt(
+        client,
+        user,
+        scope,
+      );
     assertStrictEquals(Promise.resolve(result), result);
     assertEquals(await result, new Date(Date.now() + twoWeeks));
     assertEquals(
@@ -364,11 +374,12 @@ test(
         refreshTokenLifetime: 24 * 60 * 60,
       };
       const day = 24 * 60 * 60 * 1000;
-      const result: Promise<Date> = refreshTokenService.refreshTokenExpiresAt(
-        client,
-        user,
-        scope,
-      );
+      const result: Promise<Date | undefined> = refreshTokenService
+        .refreshTokenExpiresAt(
+          client,
+          user,
+          scope,
+        );
       assertStrictEquals(Promise.resolve(result), result);
       assertEquals(await result, new Date(Date.now() + day));
       assertEquals(

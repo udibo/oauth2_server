@@ -12,7 +12,7 @@ export function fakeTokenRequest(
     method: "POST",
     hasBody: !!params,
   };
-  request.headers.set("authorization", `basic ${btoa("1")}`);
+  request.headers.set("authorization", `basic ${btoa("1:")}`);
   request.headers.set("Content-Type", "application/x-www-form-urlencoded");
   if (params) request.body = Promise.resolve(params);
   return request;

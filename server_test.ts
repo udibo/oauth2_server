@@ -2,13 +2,7 @@ import {
   RefreshTokenGrant,
   RefreshTokenGrantInterface,
 } from "./grants/refresh_token.ts";
-import {
-  AccessToken,
-  RefreshToken,
-  RefreshTokenService,
-  Token,
-  TokenServiceInterface,
-} from "./models/token.ts";
+import { RefreshToken, TokenServiceInterface } from "./models/token.ts";
 import { Client, ClientService } from "./models/client.ts";
 import type { User } from "./models/user.ts";
 import { Scope } from "./models/scope.ts";
@@ -35,6 +29,7 @@ import {
 } from "./server.ts";
 import { fakeTokenRequest, fakeTokenResponse } from "./test_context.ts";
 import { delay } from "./deps/std/async/delay.ts";
+import { ExampleRefreshTokenService } from "./models/token_test.ts";
 
 const serverTests: TestSuite<void> = new TestSuite({
   name: "OAuth2Server",
@@ -45,57 +40,23 @@ const client: Client = {
   grants: ["refresh_token"],
 };
 class FakeClientService extends ClientService {
-  get(_clientId: string): Promise<Client | void> {
+  get(_clientId: string): Promise<Client | undefined> {
     return Promise.resolve({ ...client });
   }
 
   getAuthenticated(
     _clientId: string,
     _clientSecret?: string,
-  ): Promise<Client | void> {
+  ): Promise<Client | undefined> {
     return Promise.resolve({ ...client });
   }
 }
 const clientService: ClientService = new FakeClientService();
 
 const user: User = {};
-export class FakeRefreshTokenService extends RefreshTokenService {
-  /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | void> {
-    return Promise.resolve({
-      accessToken,
-      client,
-      user,
-    });
-  }
 
-  /** Retrieves an existing token. */
-  getRefreshToken(refreshToken: string): Promise<RefreshToken | void> {
-    return Promise.resolve({
-      accessToken: "fake",
-      refreshToken,
-      client,
-      user,
-    });
-  }
-
-  /** Saves a token. */
-  save<T extends Token>(token: T): Promise<T> {
-    return Promise.resolve(token);
-  }
-
-  /** Revokes a token. */
-  revoke(_token: Token): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
-  /** Revokes all tokens generated from an authorization code. */
-  revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-}
 const refreshTokenService: TokenServiceInterface =
-  new FakeRefreshTokenService();
+  new ExampleRefreshTokenService();
 const services: OAuth2ServerServices = {
   clientService,
   tokenService: refreshTokenService,
@@ -197,7 +158,7 @@ test(getClientTests, "client authentication failed", async () => {
   );
   try {
     let request: OAuth2Request = fakeTokenRequest();
-    request.headers.set("authorization", `basic ${btoa("1")}`);
+    request.headers.set("authorization", `basic ${btoa("1:")}`);
     await assertThrowsAsync(
       () => server.getAuthenticatedClient(request),
       InvalidClient,
