@@ -2,7 +2,7 @@ import {
   RefreshTokenGrant,
   RefreshTokenGrantInterface,
 } from "./grants/refresh_token.ts";
-import { RefreshToken, TokenServiceInterface } from "./models/token.ts";
+import { RefreshToken, RefreshTokenService } from "./models/token.ts";
 import { Client, ClientService } from "./models/client.ts";
 import type { User } from "./models/user.ts";
 import { Scope } from "./models/scope.ts";
@@ -12,14 +12,7 @@ import {
   assertStrictEquals,
   assertThrowsAsync,
 } from "./deps/std/testing/asserts.ts";
-import {
-  resolves,
-  Spy,
-  spy,
-  SpyCall,
-  Stub,
-  stub,
-} from "./deps/udibo/mock/mod.ts";
+import { resolves, Spy, spy, Stub, stub } from "./deps/udibo/mock/mod.ts";
 import {
   InvalidClient,
   InvalidGrant,
@@ -29,252 +22,33 @@ import {
   UnsupportedGrantType,
 } from "./errors.ts";
 import { OAuth2Request, OAuth2Response } from "./context.ts";
-import {
-  OAuth2Server,
-  OAuth2ServerGrants,
-  OAuth2ServerServices,
-} from "./server.ts";
+import { OAuth2Server, OAuth2ServerGrants } from "./server.ts";
 import { fakeTokenRequest, fakeTokenResponse } from "./test_context.ts";
 import { delay } from "./deps/std/async/delay.ts";
 import { ExampleRefreshTokenService } from "./models/token_test.ts";
+import { GrantServices } from "./grants/grant.ts";
+import { ExampleClientService } from "./models/client_test.ts";
 
 const serverTests: TestSuite<void> = new TestSuite({
   name: "OAuth2Server",
 });
 
+const user: User = {};
 const client: Client = {
   id: "1",
   grants: ["refresh_token"],
 };
-class FakeClientService extends ClientService {
-  get(_clientId: string): Promise<Client | undefined> {
-    return Promise.resolve({ ...client });
-  }
+const clientService: ClientService = new ExampleClientService({ client });
+const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
+const services: GrantServices = { clientService, tokenService };
 
-  getAuthenticated(
-    _clientId: string,
-    _clientSecret?: string,
-  ): Promise<Client | undefined> {
-    return Promise.resolve({ ...client });
-  }
-}
-const clientService: ClientService = new FakeClientService();
-
-const user: User = {};
-
-const refreshTokenService: TokenServiceInterface =
-  new ExampleRefreshTokenService();
-const services: OAuth2ServerServices = {
-  clientService,
-  tokenService: refreshTokenService,
-};
 const refreshTokenGrant: RefreshTokenGrantInterface = new RefreshTokenGrant({
   services,
 });
 const grants: OAuth2ServerGrants = {
   "refresh_token": refreshTokenGrant,
 };
-const server: OAuth2Server = new OAuth2Server({ services, grants });
-
-const getClientTests: TestSuite<void> = new TestSuite({
-  name: "getClient",
-  suite: serverTests,
-});
-
-test(getClientTests, "authorization header required", async () => {
-  let request: OAuth2Request = fakeTokenRequest();
-  request.headers.delete("authorization");
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "authorization header required",
-  );
-
-  request = fakeTokenRequest();
-  request.headers.set("authorization", "");
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "authorization header required",
-  );
-});
-
-test(getClientTests, "unsupported authorization header", async () => {
-  let request: OAuth2Request = fakeTokenRequest();
-  request.headers.set("authorization", "Bearer mF_9.B5f-4.1JqM");
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "unsupported authorization header",
-  );
-
-  request = fakeTokenRequest();
-  request.headers.set("authorization", "bearer mF_9.B5f-4.1JqM");
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "unsupported authorization header",
-  );
-});
-
-test(
-  getClientTests,
-  "authorization header is not correctly encoded",
-  async () => {
-    let request: OAuth2Request = fakeTokenRequest();
-    request.headers.set("authorization", "basic x");
-    await assertThrowsAsync(
-      () => server.getAuthenticatedClient(request),
-      InvalidClient,
-      "authorization header is not correctly encoded",
-    );
-
-    request = fakeTokenRequest();
-    request.headers.set("authorization", "BaSiC x");
-    await assertThrowsAsync(
-      () => server.getAuthenticatedClient(request),
-      InvalidClient,
-      "authorization header is not correctly encoded",
-    );
-  },
-);
-
-test(getClientTests, "authorization header is malformed", async () => {
-  let request: OAuth2Request = fakeTokenRequest();
-  request.headers.set("authorization", `basic ${btoa(":")}`);
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "authorization header is malformed",
-  );
-
-  request = fakeTokenRequest();
-  request.headers.set("authorization", `BaSiC ${btoa(":a")}`);
-  await assertThrowsAsync(
-    () => server.getAuthenticatedClient(request),
-    InvalidClient,
-    "authorization header is malformed",
-  );
-});
-
-test(getClientTests, "client authentication failed", async () => {
-  const clientServiceGetAuthenticatedStub: Stub<ClientService> = stub(
-    clientService,
-    "getAuthenticated",
-    resolves(undefined),
-  );
-  try {
-    let request: OAuth2Request = fakeTokenRequest();
-    request.headers.set("authorization", `basic ${btoa("1:")}`);
-    await assertThrowsAsync(
-      () => server.getAuthenticatedClient(request),
-      InvalidClient,
-      "client authentication failed",
-    );
-    assertEquals(clientServiceGetAuthenticatedStub.calls.length, 1);
-    assertEquals(clientServiceGetAuthenticatedStub.calls[0].args, ["1"]);
-    assertStrictEquals(
-      clientServiceGetAuthenticatedStub.calls[0].self,
-      clientService,
-    );
-
-    request = fakeTokenRequest("grant_type=refresh_token");
-    request.headers.set("authorization", `BaSiC ${btoa("1:2")}`);
-    await assertThrowsAsync(
-      () => server.getAuthenticatedClient(request),
-      InvalidClient,
-      "client authentication failed",
-    );
-    assertEquals(clientServiceGetAuthenticatedStub.calls.length, 2);
-    assertEquals(clientServiceGetAuthenticatedStub.calls[1].args, ["1", "2"]);
-    assertStrictEquals(
-      clientServiceGetAuthenticatedStub.calls[1].self,
-      clientService,
-    );
-  } finally {
-    clientServiceGetAuthenticatedStub.restore();
-  }
-});
-
-test(
-  getClientTests,
-  "returns client authenticated with authorization header",
-  async () => {
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
-      clientService,
-      "getAuthenticated",
-    );
-    try {
-      let request: OAuth2Request = fakeTokenRequest();
-      request.headers.set("authorization", `basic ${btoa("1:")}`);
-      let result: Promise<Client> = server.getAuthenticatedClient(request);
-      assertStrictEquals(Promise.resolve(result), result);
-      let client: Client = await result;
-
-      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      let call: SpyCall = clientServiceGetAuthenticated.calls[0];
-      assertStrictEquals(call.self, clientService);
-      assertEquals(call.args, ["1"]);
-      assertEquals(client, await call.returned);
-
-      request = fakeTokenRequest("grant_type=refresh_token");
-      request.headers.set("authorization", `BaSiC ${btoa("1:2")}`);
-      result = server.getAuthenticatedClient(request);
-      assertStrictEquals(Promise.resolve(result), result);
-      client = await result;
-
-      assertEquals(clientServiceGetAuthenticated.calls.length, 2);
-      call = clientServiceGetAuthenticated.calls[1];
-      assertStrictEquals(call.self, clientService);
-      assertEquals(call.args, ["1", "2"]);
-      assertEquals(client, await call.returned);
-    } finally {
-      clientServiceGetAuthenticated.restore();
-    }
-  },
-);
-
-test(
-  getClientTests,
-  "returns client authenticated with request body",
-  async () => {
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
-      clientService,
-      "getAuthenticated",
-    );
-    try {
-      let request: OAuth2Request = fakeTokenRequest(
-        "grant_type=refresh_token&client_id=1",
-      );
-      request.headers.delete("authorization");
-      let result: Promise<Client> = server.getAuthenticatedClient(request);
-      assertStrictEquals(Promise.resolve(result), result);
-      let client: Client = await result;
-
-      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      let call: SpyCall = clientServiceGetAuthenticated.calls[0];
-      assertStrictEquals(call.self, clientService);
-      assertEquals(call.args, ["1"]);
-      assertEquals(client, await call.returned);
-
-      request = fakeTokenRequest(
-        "grant_type=refresh_token&client_id=1&client_secret=2",
-      );
-      request.headers.delete("authorization");
-      result = server.getAuthenticatedClient(request);
-      assertStrictEquals(Promise.resolve(result), result);
-      client = await result;
-
-      assertEquals(clientServiceGetAuthenticated.calls.length, 2);
-      call = clientServiceGetAuthenticated.calls[1];
-      assertStrictEquals(call.self, clientService);
-      assertEquals(call.args, ["1", "2"]);
-      assertEquals(client, await call.returned);
-    } finally {
-      clientServiceGetAuthenticated.restore();
-    }
-  },
-);
+const server: OAuth2Server = new OAuth2Server({ grants });
 
 const getTokenTests: TestSuite<void> = new TestSuite({
   name: "getToken",
@@ -360,8 +134,8 @@ test(getTokenTests, "invalid grant_type", async () => {
 });
 
 test(getTokenTests, "client authentication failed", async () => {
-  const getAuthenticatedClientStub: Stub<OAuth2Server> = stub(
-    server,
+  const getAuthenticatedClientStub: Stub<RefreshTokenGrant> = stub(
+    refreshTokenGrant,
     "getAuthenticatedClient",
     () => Promise.reject(new InvalidClient("client authentication failed")),
   );
@@ -377,7 +151,7 @@ test(getTokenTests, "client authentication failed", async () => {
     assertStrictEquals(getAuthenticatedClientStub.calls[0].args[0], request);
     assertStrictEquals(
       getAuthenticatedClientStub.calls[0].self,
-      server,
+      refreshTokenGrant,
     );
   } finally {
     getAuthenticatedClientStub.restore();
@@ -388,8 +162,8 @@ test(
   getTokenTests,
   "client is not authorized to use this grant_type",
   async () => {
-    const getAuthenticatedClientStub: Stub<OAuth2Server> = stub(
-      server,
+    const getAuthenticatedClientStub: Stub<RefreshTokenGrant> = stub(
+      refreshTokenGrant,
       "getAuthenticatedClient",
       resolves({
         ...client,
@@ -410,7 +184,7 @@ test(
       assertStrictEquals(getAuthenticatedClientStub.calls[0].args[0], request);
       assertStrictEquals(
         getAuthenticatedClientStub.calls[0].self,
-        server,
+        refreshTokenGrant,
       );
     } finally {
       getAuthenticatedClientStub.restore();

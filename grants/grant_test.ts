@@ -1,7 +1,7 @@
-import { Grant } from "./grant.ts";
+import { ClientCredentials, Grant } from "./grant.ts";
 import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
 import { OAuth2Request } from "../context.ts";
-import { Client } from "../models/client.ts";
+import { Client, ClientService } from "../models/client.ts";
 import { RefreshTokenService, Token } from "../models/token.ts";
 import {
   assertClientUserScopeCall,
@@ -11,20 +11,40 @@ import {
 import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { Scope } from "../models/scope.ts";
 import { User } from "../models/user.ts";
-import { assertStrictEquals } from "../deps/std/testing/asserts.ts";
-import { SpyCall, Stub, stub } from "../deps/udibo/mock/mod.ts";
+import {
+  assertEquals,
+  assertStrictEquals,
+  assertThrowsAsync,
+} from "../deps/std/testing/asserts.ts";
+import {
+  resolves,
+  Spy,
+  spy,
+  SpyCall,
+  Stub,
+  stub,
+} from "../deps/udibo/mock/mod.ts";
+import { fakeTokenRequest } from "../test_context.ts";
+import { InvalidClient } from "../errors.ts";
+import { ExampleClientService } from "../models/client_test.ts";
 
 const grantTests: TestSuite<void> = new TestSuite({ name: "Grant" });
+
+const clientService: ClientService = new ExampleClientService();
+const client: Client = (clientService as ExampleClientService).client;
+const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 
 class ExampleGrant extends Grant {
   handle(_request: OAuth2Request, _client: Client): Promise<Token> {
     throw new Error("not implemented");
   }
 }
-const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
-const grant: ExampleGrant = new ExampleGrant({ services: { tokenService } });
+const grant: ExampleGrant = new ExampleGrant({
+  services: { clientService, tokenService },
+});
+
 const refreshTokenGrant: ExampleGrant = new ExampleGrant({
-  services: { tokenService },
+  services: { clientService, tokenService },
   allowRefreshToken: true,
 });
 
@@ -36,11 +56,288 @@ test(grantTests, "parseScope", () => {
   assertScope(grant.parseScope("read write"), new Scope("read write"));
 });
 
+const getClientCredentialsTests: TestSuite<void> = new TestSuite({
+  name: "getClientCredentials",
+});
+
+test(
+  getClientCredentialsTests,
+  "authorization header required if credentials not in body",
+  async () => {
+    const request: OAuth2Request = fakeTokenRequest();
+    request.headers.delete("authorization");
+    await assertThrowsAsync(
+      () => grant.getClientCredentials(request),
+      InvalidClient,
+      "authorization header required",
+    );
+  },
+);
+
+test(
+  getClientCredentialsTests,
+  "from request body without secret",
+  async () => {
+    const request: OAuth2Request = fakeTokenRequest("client_id=1");
+    request.headers.delete("authorization");
+    const result: Promise<ClientCredentials> = grant.getClientCredentials(
+      request,
+    );
+    assertEquals(result, Promise.resolve(result));
+    assertEquals(await result, { clientId: "1" });
+  },
+);
+
+test(getClientCredentialsTests, "from request body with secret", async () => {
+  const request: OAuth2Request = fakeTokenRequest(
+    "client_id=1&client_secret=2",
+  );
+  request.headers.delete("authorization");
+  const result: Promise<ClientCredentials> = grant.getClientCredentials(
+    request,
+  );
+  assertEquals(result, Promise.resolve(result));
+  assertEquals(await result, { clientId: "1", clientSecret: "2" });
+});
+
+test(
+  getClientCredentialsTests,
+  "from authorization header without secret",
+  async () => {
+    const request: OAuth2Request = fakeTokenRequest();
+    request.headers.set("authorization", `basic ${btoa("1:")}`);
+    const result: Promise<ClientCredentials> = grant.getClientCredentials(
+      request,
+    );
+    assertEquals(result, Promise.resolve(result));
+    assertEquals(await result, { clientId: "1" });
+  },
+);
+
+test(
+  getClientCredentialsTests,
+  "from authorization header with secret",
+  async () => {
+    const request: OAuth2Request = fakeTokenRequest();
+    request.headers.set("authorization", `basic ${btoa("1:2")}`);
+    const result: Promise<ClientCredentials> = grant.getClientCredentials(
+      request,
+    );
+    assertEquals(result, Promise.resolve(result));
+    assertEquals(await result, { clientId: "1", clientSecret: "2" });
+  },
+);
+
+test(
+  getClientCredentialsTests,
+  "ignores request body when authorization header is present",
+  async () => {
+    const request: OAuth2Request = fakeTokenRequest(
+      "client_id=1&client_secret=2",
+    );
+    request.headers.set("authorization", `basic ${btoa("3:")}`);
+    const result: Promise<ClientCredentials> = grant.getClientCredentials(
+      request,
+    );
+    assertEquals(result, Promise.resolve(result));
+    assertEquals(await result, { clientId: "3" });
+  },
+);
+
+const getAuthenticatedClientTests: TestSuite<void> = new TestSuite({
+  name: "getAuthenticatedClient",
+});
+
+test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
+  const getClientCredentials: Spy<ExampleGrant> = spy(
+    grant,
+    "getClientCredentials",
+  );
+  const clientServiceGetAuthenticated: Stub<ClientService> = stub(
+    clientService,
+    "getAuthenticated",
+    resolves(undefined),
+  );
+  try {
+    const request: OAuth2Request = fakeTokenRequest();
+    request.headers.delete("authorization");
+    await assertThrowsAsync(
+      () => grant.getAuthenticatedClient(request),
+      InvalidClient,
+      "authorization header required",
+    );
+
+    assertEquals(getClientCredentials.calls.length, 1);
+    const call: SpyCall = getClientCredentials.calls[0];
+    assertEquals(call.args.length, 1);
+    assertStrictEquals(call.args[0], request);
+    assertStrictEquals(call.self, grant);
+
+    assertEquals(clientServiceGetAuthenticated.calls.length, 0);
+  } finally {
+    getClientCredentials.restore();
+    clientServiceGetAuthenticated.restore();
+  }
+});
+
+test(
+  getAuthenticatedClientTests,
+  "client authentication failed without secret",
+  async () => {
+    const getClientCredentials: Spy<ExampleGrant> = spy(
+      grant,
+      "getClientCredentials",
+    );
+    const clientServiceGetAuthenticated: Stub<ClientService> = stub(
+      clientService,
+      "getAuthenticated",
+      resolves(undefined),
+    );
+    try {
+      const request: OAuth2Request = fakeTokenRequest();
+      request.headers.set("authorization", `basic ${btoa("1:")}`);
+      await assertThrowsAsync(
+        () => grant.getAuthenticatedClient(request),
+        InvalidClient,
+        "client authentication failed",
+      );
+
+      assertEquals(getClientCredentials.calls.length, 1);
+      let call: SpyCall = getClientCredentials.calls[0];
+      assertEquals(call.args.length, 1);
+      assertStrictEquals(call.args[0], request);
+      assertStrictEquals(call.self, grant);
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      call = clientServiceGetAuthenticated.calls[0];
+      assertEquals(call.args, ["1"]);
+      assertStrictEquals(call.self, clientService);
+    } finally {
+      getClientCredentials.restore();
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
+
+test(
+  getAuthenticatedClientTests,
+  "client authentication failed with secret",
+  async () => {
+    const getClientCredentials: Spy<ExampleGrant> = spy(
+      grant,
+      "getClientCredentials",
+    );
+    const clientServiceGetAuthenticated: Stub<ClientService> = stub(
+      clientService,
+      "getAuthenticated",
+      resolves(undefined),
+    );
+    try {
+      const request: OAuth2Request = fakeTokenRequest();
+      request.headers.set("authorization", `basic ${btoa("1:2")}`);
+      await assertThrowsAsync(
+        () => grant.getAuthenticatedClient(request),
+        InvalidClient,
+        "client authentication failed",
+      );
+
+      assertEquals(getClientCredentials.calls.length, 1);
+      let call: SpyCall = getClientCredentials.calls[0];
+      assertEquals(call.args.length, 1);
+      assertStrictEquals(call.args[0], request);
+      assertStrictEquals(call.self, grant);
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      call = clientServiceGetAuthenticated.calls[0];
+      assertEquals(call.args, ["1", "2"]);
+      assertStrictEquals(call.self, clientService);
+    } finally {
+      getClientCredentials.restore();
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
+
+test(
+  getAuthenticatedClientTests,
+  "returns client authenticated without secret",
+  async () => {
+    const getClientCredentials: Spy<ExampleGrant> = spy(
+      grant,
+      "getClientCredentials",
+    );
+    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+      clientService,
+      "getAuthenticated",
+    );
+    try {
+      const request: OAuth2Request = fakeTokenRequest();
+      request.headers.set("authorization", `basic ${btoa("1:")}`);
+      const result: Promise<Client> = grant.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      const client: Client = await result;
+
+      assertEquals(getClientCredentials.calls.length, 1);
+      let call: SpyCall = getClientCredentials.calls[0];
+      assertEquals(call.args.length, 1);
+      assertStrictEquals(call.args[0], request);
+      assertStrictEquals(call.self, grant);
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      call = clientServiceGetAuthenticated.calls[0];
+      assertEquals(call.args, ["1"]);
+      assertStrictEquals(call.self, clientService);
+
+      assertEquals(client, await call.returned);
+    } finally {
+      getClientCredentials.restore();
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
+
+test(
+  getAuthenticatedClientTests,
+  "returns client authenticated with secret",
+  async () => {
+    const getClientCredentials: Spy<ExampleGrant> = spy(
+      grant,
+      "getClientCredentials",
+    );
+    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+      clientService,
+      "getAuthenticated",
+    );
+    try {
+      const request: OAuth2Request = fakeTokenRequest();
+      request.headers.set("authorization", `basic ${btoa("1:2")}`);
+      const result: Promise<Client> = grant.getAuthenticatedClient(request);
+      assertStrictEquals(Promise.resolve(result), result);
+      const client: Client = await result;
+
+      assertEquals(getClientCredentials.calls.length, 1);
+      let call: SpyCall = getClientCredentials.calls[0];
+      assertEquals(call.args.length, 1);
+      assertStrictEquals(call.args[0], request);
+      assertStrictEquals(call.self, grant);
+
+      assertEquals(clientServiceGetAuthenticated.calls.length, 1);
+      call = clientServiceGetAuthenticated.calls[0];
+      assertEquals(call.args, ["1", "2"]);
+      assertStrictEquals(call.self, clientService);
+
+      assertEquals(client, await call.returned);
+    } finally {
+      getClientCredentials.restore();
+      clientServiceGetAuthenticated.restore();
+    }
+  },
+);
+
 const generateTokenTests: TestSuite<void> = new TestSuite({
   name: "generateToken",
 });
 
-const client: Client = { id: "1", grants: [] };
 const user: User = { username: "kyle" };
 
 test(

@@ -4,7 +4,7 @@ import {
   RefreshToken,
   RefreshTokenService,
 } from "../models/token.ts";
-import type { Client } from "../models/client.ts";
+import type { Client, ClientService } from "../models/client.ts";
 import type { User } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
 import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
@@ -22,6 +22,7 @@ import { InvalidGrant, InvalidRequest, ServerError } from "../errors.ts";
 import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
+import { ExampleClientService } from "../models/client_test.ts";
 
 const refreshTokenGrantTests: TestSuite<void> = new TestSuite({
   name: "RefreshTokenGrant",
@@ -36,6 +37,7 @@ const client: Client = {
   id: "1",
   grants: ["refresh_token"],
 };
+const clientService: ClientService = new ExampleClientService({ client });
 
 test(handleTests, "not implemented for AccessTokenService", async () => {
   const tokenService: AccessTokenService = new ExampleAccessTokenService();
@@ -45,6 +47,7 @@ test(handleTests, "not implemented for AccessTokenService", async () => {
   );
   const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
     services: {
+      clientService,
       tokenService,
     },
   });
@@ -83,6 +86,7 @@ test(handleTests, "not implemented for AccessTokenService", async () => {
 const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 const refreshTokenGrant: RefreshTokenGrant = new RefreshTokenGrant({
   services: {
+    clientService,
     tokenService,
   },
 });

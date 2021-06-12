@@ -231,3 +231,7 @@ test(scopeTests, "intersection", () => {
   assertStrictEquals(scopes[0].toString(), "a b c e");
   assertStrictEquals(scopes[1].toString(), "b d e f");
 });
+
+test(scopeTests, "iterator", () => {
+  assertEquals([...(new Scope("a c b d"))].sort(), ["a", "b", "c", "d"]);
+});

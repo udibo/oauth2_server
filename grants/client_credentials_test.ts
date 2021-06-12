@@ -25,6 +25,7 @@ import { fakeTokenRequest } from "../test_context.ts";
 import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { assertClientUserScopeCall } from "../asserts.ts";
 import { assertToken } from "../asserts.ts";
+import { ExampleClientService } from "../models/client_test.ts";
 
 const clientCredentialsGrantTests: TestSuite<void> = new TestSuite({
   name: "ClientCredentialsGrant",
@@ -39,19 +40,7 @@ const client: Client = {
   id: "1",
   grants: ["client_credentials"],
 };
-class FakeClientService extends ClientService {
-  get(_clientId: string): Promise<Client | undefined> {
-    return Promise.resolve({ ...client });
-  }
-
-  getAuthenticated(
-    _clientId: string,
-    _clientSecret?: string,
-  ): Promise<Client | undefined> {
-    return Promise.resolve({ ...client });
-  }
-}
-const clientService: ClientService = new FakeClientService();
+const clientService: ClientService = new ExampleClientService({ client });
 const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 const services: ClientCredentialsGrantServices = {
   tokenService,

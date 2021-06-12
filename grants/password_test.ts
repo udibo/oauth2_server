@@ -1,6 +1,6 @@
 import { PasswordGrant, PasswordGrantServices } from "./password.ts";
 import { RefreshTokenService, Token } from "../models/token.ts";
-import type { Client } from "../models/client.ts";
+import type { Client, ClientService } from "../models/client.ts";
 import type { User, UserService } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
 import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
@@ -21,6 +21,7 @@ import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
+import { ExampleClientService } from "../models/client_test.ts";
 
 const passwordGrantTests: TestSuite<void> = new TestSuite({
   name: "PasswordGrant",
@@ -35,10 +36,11 @@ const client: Client = {
   id: "1",
   grants: ["password"],
 };
-
+const clientService: ClientService = new ExampleClientService({ client });
 const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 const userService: UserService = new ExampleUserService();
 const services: PasswordGrantServices = {
+  clientService,
   tokenService,
   userService,
 };

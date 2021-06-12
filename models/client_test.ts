@@ -8,16 +8,27 @@ const client: Client = {
   grants: [],
 };
 
+interface ExampleClientServiceOptions {
+  client: Client;
+}
+
 export class ExampleClientService extends ClientService {
+  client: Client;
+
+  constructor(options?: ExampleClientServiceOptions) {
+    super();
+    this.client = { ...client, ...options?.client };
+  }
+
   get(_clientId: string): Promise<Client | undefined> {
-    return Promise.resolve(client);
+    return Promise.resolve({ ...this.client });
   }
 
   getAuthenticated(
     _clientId: string,
     _clientSecret?: string,
   ): Promise<Client | undefined> {
-    return Promise.resolve(client);
+    return Promise.resolve({ ...this.client });
   }
 }
 

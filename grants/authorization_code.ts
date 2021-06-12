@@ -25,6 +25,9 @@ export interface AuthorizationCodeGrantInterface extends GrantInterface {
 /**
  * The authorization code grant type.
  * https://datatracker.ietf.org/doc/html/rfc6749.html#section-4.1
+ * Clients must use PKCE in order to detect and prevent attempts to
+ * inject (replay) authorization codes in the authorization response.
+ * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-13#section-3.1.1
  */
 export class AuthorizationCodeGrant extends Grant
   implements AuthorizationCodeGrantInterface {

@@ -3,7 +3,7 @@ import {
   AuthorizationCodeGrantServices,
 } from "./authorization_code.ts";
 import { RefreshTokenService, Token } from "../models/token.ts";
-import type { Client } from "../models/client.ts";
+import type { Client, ClientService } from "../models/client.ts";
 import type {
   AuthorizationCode,
   AuthorizationCodeService,
@@ -23,6 +23,7 @@ import { fakeTokenRequest } from "../test_context.ts";
 import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { User } from "../models/user.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
+import { ExampleClientService } from "../models/client_test.ts";
 
 const authorizationCodeGrantTests: TestSuite<void> = new TestSuite({
   name: "AuthorizationCodeGrant",
@@ -37,11 +38,12 @@ const client: Client = {
   id: "1",
   grants: ["authorization_code"],
 };
-
+const clientService: ClientService = new ExampleClientService({ client });
 const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 const authorizationCodeService: AuthorizationCodeService =
   new ExampleAuthorizationCodeService();
 const services: AuthorizationCodeGrantServices = {
+  clientService,
   tokenService,
   authorizationCodeService,
 };
