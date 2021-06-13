@@ -1,6 +1,5 @@
 import { assertScope, assertToken } from "./asserts.ts";
-import { AssertionError, assertThrows } from "./deps/std/testing/asserts.ts";
-import { test, TestSuite } from "./deps/udibo/test_suite/mod.ts";
+import { AssertionError, assertThrows, test, TestSuite } from "./test_deps.ts";
 import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
 import { Token } from "./models/token.ts";

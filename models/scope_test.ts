@@ -1,10 +1,11 @@
 import { SCOPE, Scope, SCOPE_TOKEN } from "./scope.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
 import {
   assertEquals,
   assertStrictEquals,
   assertThrows,
-} from "../deps/std/testing/asserts.ts";
+  test,
+  TestSuite,
+} from "../test_deps.ts";
 import { InvalidScope } from "../errors.ts";
 
 test("SCOPE", () => {

@@ -2,8 +2,8 @@ import {
   assert,
   assertEquals,
   assertStrictEquals,
-} from "./deps/std/testing/asserts.ts";
-import { SpyCall } from "./deps/udibo/mock/mod.ts";
+  SpyCall,
+} from "./test_deps.ts";
 import { Client } from "./models/client.ts";
 import { ScopeInterface } from "./models/scope.ts";
 import { Token } from "./models/token.ts";

@@ -6,13 +6,19 @@ import { RefreshToken, RefreshTokenService } from "./models/token.ts";
 import { Client, ClientService } from "./models/client.ts";
 import type { User } from "./models/user.ts";
 import { Scope } from "./models/scope.ts";
-import { test, TestSuite } from "./deps/udibo/test_suite/mod.ts";
 import {
   assertEquals,
   assertStrictEquals,
   assertThrowsAsync,
-} from "./deps/std/testing/asserts.ts";
-import { resolves, Spy, spy, Stub, stub } from "./deps/udibo/mock/mod.ts";
+  delay,
+  resolves,
+  Spy,
+  spy,
+  Stub,
+  stub,
+  test,
+  TestSuite,
+} from "./test_deps.ts";
 import {
   InvalidClient,
   InvalidGrant,
@@ -24,7 +30,6 @@ import {
 import { OAuth2Request, OAuth2Response } from "./context.ts";
 import { OAuth2Server, OAuth2ServerGrants } from "./server.ts";
 import { fakeTokenRequest, fakeTokenResponse } from "./test_context.ts";
-import { delay } from "./deps/std/async/delay.ts";
 import { ExampleRefreshTokenService } from "./models/token_test.ts";
 import { GrantServices } from "./grants/grant.ts";
 import { ExampleClientService } from "./models/client_test.ts";

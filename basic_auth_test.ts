@@ -1,6 +1,5 @@
 import { BasicAuth, parseBasicAuth } from "./basic_auth.ts";
-import { assertEquals, assertThrows } from "./deps/std/testing/asserts.ts";
-import { test, TestSuite } from "./deps/udibo/test_suite/mod.ts";
+import { assertEquals, assertThrows, test, TestSuite } from "./test_deps.ts";
 import { InvalidClient } from "./errors.ts";
 
 const parseBasicAuthTests: TestSuite<void> = new TestSuite({

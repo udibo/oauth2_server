@@ -1,5 +1,4 @@
 import { ClientCredentials, Grant } from "./grant.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client, ClientService } from "../models/client.ts";
 import { RefreshTokenService, Token } from "../models/token.ts";
@@ -15,15 +14,15 @@ import {
   assertEquals,
   assertStrictEquals,
   assertThrowsAsync,
-} from "../deps/std/testing/asserts.ts";
-import {
   resolves,
   Spy,
   spy,
   SpyCall,
   Stub,
   stub,
-} from "../deps/udibo/mock/mod.ts";
+  test,
+  TestSuite,
+} from "../test_deps.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { InvalidClient } from "../errors.ts";
 import { ExampleClientService } from "../models/client_test.ts";

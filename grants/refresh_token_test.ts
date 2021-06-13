@@ -7,13 +7,18 @@ import {
 import type { Client, ClientService } from "../models/client.ts";
 import type { User } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
 import {
   assertEquals,
   assertStrictEquals,
   assertThrowsAsync,
-} from "../deps/std/testing/asserts.ts";
-import { Spy, spy, SpyCall, Stub, stub } from "../deps/udibo/mock/mod.ts";
+  Spy,
+  spy,
+  SpyCall,
+  Stub,
+  stub,
+  test,
+  TestSuite,
+} from "../test_deps.ts";
 import {
   ExampleAccessTokenService,
   ExampleRefreshTokenService,

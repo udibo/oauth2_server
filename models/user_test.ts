@@ -1,9 +1,10 @@
 import { User, UserService, UserServiceInterface } from "./user.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
 import {
   assertStrictEquals,
   assertThrowsAsync,
-} from "../deps/std/testing/asserts.ts";
+  test,
+  TestSuite,
+} from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 
 export class ExampleUserService extends UserService {}

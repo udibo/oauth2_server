@@ -1,6 +1,5 @@
 import { camelCase, snakeCase } from "./common.ts";
-import { test, TestSuite } from "./deps/udibo/test_suite/mod.ts";
-import { assertStrictEquals } from "./deps/std/testing/asserts.ts";
+import { assertStrictEquals, test, TestSuite } from "./test_deps.ts";
 
 const commonTests: TestSuite<void> = new TestSuite({
   name: "common",

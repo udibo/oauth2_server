@@ -1,6 +1,5 @@
 import { Client, ClientService, ClientServiceInterface } from "./client.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
-import { assertThrowsAsync } from "../deps/std/testing/asserts.ts";
+import { assertThrowsAsync, test, TestSuite } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 
 const client: Client = {

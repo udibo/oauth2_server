@@ -4,7 +4,6 @@ export type {
   ErrorBody,
   OAuth2ServerGrants,
   OAuth2ServerOptions,
-  OAuth2ServerServices,
 } from "./server.ts";
 
 export type { Context, OAuth2Request, OAuth2Response } from "./context.ts";

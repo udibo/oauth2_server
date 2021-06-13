@@ -1,4 +1,4 @@
-import { assertObjectMatch } from "./deps/std/testing/asserts.ts";
+import { assertObjectMatch, test } from "./test_deps.ts";
 import {
   AccessDenied,
   InvalidClient,
@@ -12,7 +12,6 @@ import {
   UnsupportedGrantType,
   UnsupportedResponseType,
 } from "./errors.ts";
-import { test } from "./deps/udibo/test_suite/mod.ts";
 
 test("OAuth2Error", () => {
   class CustomError extends OAuth2Error {}

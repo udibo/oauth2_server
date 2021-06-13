@@ -6,14 +6,15 @@ import {
 import { User } from "./user.ts";
 import { Client } from "./client.ts";
 import { Scope } from "./scope.ts";
-import { test, TestSuite } from "../deps/udibo/test_suite/mod.ts";
+import { v4 } from "../deps.ts";
 import {
   assert,
   assertEquals,
   assertStrictEquals,
-} from "../deps/std/testing/asserts.ts";
-import { v4 } from "../deps/std/uuid/mod.ts";
-import { FakeTime } from "../deps/udibo/mock/mod.ts";
+  FakeTime,
+  test,
+  TestSuite,
+} from "../test_deps.ts";
 
 const client: Client = {
   id: "1",

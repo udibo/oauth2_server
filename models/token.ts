@@ -1,4 +1,4 @@
-import { v4 } from "../deps/std/uuid/mod.ts";
+import { v4 } from "../deps.ts";
 import { ScopeInterface } from "./scope.ts";
 import { ServerError } from "../errors.ts";
 import type { Client } from "./client.ts";
