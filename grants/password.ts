@@ -24,7 +24,7 @@ export interface PasswordGrantInterface extends GrantInterface {
  * The resource owner password credentials grant type.
  * https://datatracker.ietf.org/doc/html/rfc6749.html#section-4.3
  * Usage of this grant type is not recommended.
- * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-13#section-3.4
+ * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-2.4
  */
 export class PasswordGrant extends Grant implements PasswordGrantInterface {
   declare services: PasswordGrantServices;

@@ -43,7 +43,7 @@ export abstract class Grant implements GrantInterface {
 
   constructor(options: GrantOptions) {
     this.services = { ...options.services };
-    this.allowRefreshToken = options?.allowRefreshToken ?? false;
+    this.allowRefreshToken = options.allowRefreshToken ?? false;
   }
 
   parseScope(scopeText?: string | null): ScopeInterface | undefined {

@@ -3,8 +3,6 @@ import { ScopeInterface } from "./scope.ts";
 import type { Client } from "./client.ts";
 import type { User } from "./user.ts";
 
-//  return Promise.resolve(v4.generate());
-
 export interface AuthorizationCode {
   /** The authorization code. */
   code: string;
@@ -19,9 +17,9 @@ export interface AuthorizationCode {
   /** The scope granted to the authorization code. */
   scope?: ScopeInterface;
   /** The code challenge used for PKCE. */
-  codeChallenge?: string;
+  challenge?: string;
   /** The code challenge method used for PKCE. */
-  codeChallengeMethod?: string;
+  challengeMethod?: string;
 }
 
 export interface AuthorizationCodeServiceInterface {

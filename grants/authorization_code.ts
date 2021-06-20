@@ -1,5 +1,16 @@
-import { Grant, GrantInterface, GrantOptions, GrantServices } from "./grant.ts";
-import { InvalidGrant, InvalidRequest } from "../errors.ts";
+import {
+  ClientCredentials,
+  Grant,
+  GrantInterface,
+  GrantOptions,
+  GrantServices,
+} from "./grant.ts";
+import {
+  InvalidClient,
+  InvalidGrant,
+  InvalidRequest,
+  ServerError,
+} from "../errors.ts";
 import type { Token } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
@@ -7,6 +18,11 @@ import {
   AuthorizationCode,
   AuthorizationCodeServiceInterface,
 } from "../models/authorization_code.ts";
+import {
+  ChallengeMethod,
+  ChallengeMethods,
+  challengeMethods,
+} from "../pkce.ts";
 
 export interface AuthorizationCodeGrantServices extends GrantServices {
   authorizationCodeService: AuthorizationCodeServiceInterface;
@@ -14,30 +30,98 @@ export interface AuthorizationCodeGrantServices extends GrantServices {
 
 export interface AuthorizationCodeGrantOptions extends GrantOptions {
   services: AuthorizationCodeGrantServices;
+  challengeMethods?: ChallengeMethods;
 }
 
 export interface AuthorizationCodeGrantInterface extends GrantInterface {
   services: AuthorizationCodeGrantServices;
+  challengeMethods: ChallengeMethods;
 
+  getChallengeMethod(challengeMethod?: string): ChallengeMethod | undefined;
+  validateChallengeMethod(challengeMethod?: string): boolean;
+  verifyCode(code: AuthorizationCode, verifier: string): void;
   handle(request: OAuth2Request, client: Client): Promise<Token>;
+}
+
+export interface PKCEClientCredentials extends ClientCredentials {
+  codeVerifier?: string;
 }
 
 /**
  * The authorization code grant type.
  * https://datatracker.ietf.org/doc/html/rfc6749.html#section-4.1
+ * This grant supports PKCE.
+ * https://datatracker.ietf.org/doc/html/rfc7636#page-9
  * Clients must use PKCE in order to detect and prevent attempts to
  * inject (replay) authorization codes in the authorization response.
- * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-13#section-3.1.1
+ * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-2.1.1
  */
 export class AuthorizationCodeGrant extends Grant
   implements AuthorizationCodeGrantInterface {
   declare services: AuthorizationCodeGrantServices;
+  challengeMethods: ChallengeMethods;
 
   constructor(options: AuthorizationCodeGrantOptions) {
     super(options);
+    this.challengeMethods = options.challengeMethods ?? challengeMethods;
   }
 
-  // add PKCE support after finishing basic implementation
+  async getClientCredentials(
+    request: OAuth2Request,
+  ): Promise<PKCEClientCredentials> {
+    const clientCredentials: PKCEClientCredentials = await super
+      .getClientCredentials(request);
+    if (request.hasBody) {
+      const body: URLSearchParams = await request.body!;
+      const codeVerifier: string | null = body.get("code_verifier");
+      if (codeVerifier) {
+        clientCredentials.codeVerifier = codeVerifier;
+        delete clientCredentials.clientSecret;
+      }
+    }
+    return clientCredentials;
+  }
+
+  async getAuthenticatedClient(request: OAuth2Request): Promise<Client> {
+    const { clientId, clientSecret, codeVerifier }: PKCEClientCredentials =
+      await this
+        .getClientCredentials(request);
+    const { clientService }: GrantServices = this.services;
+    const client: Client | void = codeVerifier
+      ? await clientService.get(clientId)
+      : clientSecret
+      ? await clientService.getAuthenticated(clientId, clientSecret)
+      : await clientService.getAuthenticated(clientId);
+    if (!client) throw new InvalidClient("client authentication failed");
+    return client;
+  }
+
+  /** Gets the challenge method if it is allowed. */
+  getChallengeMethod(challengeMethod?: string): ChallengeMethod | undefined {
+    return this.challengeMethods[challengeMethod || "plain"];
+  }
+
+  /** Checks that the challenge method is allowed. */
+  validateChallengeMethod(challengeMethod?: string): boolean {
+    return !!this.getChallengeMethod(challengeMethod);
+  }
+
+  /**
+   * Checks if the verifier matches the authorization code.
+   * https://datatracker.ietf.org/doc/html/rfc7636#section-4.6
+   */
+  verifyCode(code: AuthorizationCode, verifier: string): boolean {
+    if (!code.challenge) return false;
+    const challengeMethod = this.getChallengeMethod(code.challengeMethod);
+    if (challengeMethod) {
+      const challenge: string = challengeMethod(verifier);
+      if (challenge !== code.challenge) return false;
+    } else {
+      throw new ServerError("code_challenge_method not implemented");
+    }
+    return true;
+  }
+
   async handle(request: OAuth2Request, client: Client): Promise<Token> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
@@ -58,6 +142,16 @@ export class AuthorizationCodeGrant extends Grant
     if (!authorizationCode) throw new InvalidGrant("invalid code");
     await authorizationCodeService.revoke(authorizationCode);
 
+    const codeVerifier: string | null = body.get("code_verifier");
+    if (codeVerifier) {
+      if (!this.verifyCode(authorizationCode, codeVerifier)) {
+        throw new InvalidClient("client authentication failed");
+      }
+    } else if (authorizationCode.challenge) {
+      // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-4.8.2
+      throw new InvalidClient("client authentication failed");
+    }
+
     const {
       client: authorizationCodeClient,
       user,
@@ -65,7 +159,7 @@ export class AuthorizationCodeGrant extends Grant
       redirectUri: expectedRedirectUri,
     }: AuthorizationCode = authorizationCode;
     if (client.id !== authorizationCodeClient.id) {
-      throw new InvalidGrant("code was issued to another client");
+      throw new InvalidClient("code was issued to another client");
     }
 
     const redirectUri: string | null = body.get("redirect_uri");

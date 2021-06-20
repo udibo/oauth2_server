@@ -1,5 +1,5 @@
 import { Grant, GrantInterface, GrantServices } from "./grant.ts";
-import { InvalidGrant, InvalidRequest } from "../errors.ts";
+import { InvalidClient, InvalidGrant, InvalidRequest } from "../errors.ts";
 import type { RefreshToken, Token } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
@@ -44,7 +44,7 @@ export class RefreshTokenGrant extends Grant
     const { client: tokenClient, user, scope, code }: RefreshToken =
       currentToken;
     if (client.id !== tokenClient.id) {
-      throw new InvalidGrant("refresh_token was issued to another client");
+      throw new InvalidClient("refresh_token was issued to another client");
     }
 
     const nextToken: Token = (await this.generateToken(client, user, scope));

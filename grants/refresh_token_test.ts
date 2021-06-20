@@ -23,7 +23,12 @@ import {
   ExampleAccessTokenService,
   ExampleRefreshTokenService,
 } from "../models/token_test.ts";
-import { InvalidGrant, InvalidRequest, ServerError } from "../errors.ts";
+import {
+  InvalidClient,
+  InvalidGrant,
+  InvalidRequest,
+  ServerError,
+} from "../errors.ts";
 import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
@@ -193,7 +198,7 @@ test(handleTests, "refresh_token was issued to another client", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertThrowsAsync(
       () => result,
-      InvalidGrant,
+      InvalidClient,
       "refresh_token was issued to another client",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
@@ -204,7 +209,7 @@ test(handleTests, "refresh_token was issued to another client", async () => {
     request = fakeTokenRequest("refresh_token=example2");
     await assertThrowsAsync(
       () => refreshTokenGrant.handle(request, client),
-      InvalidGrant,
+      InvalidClient,
       "refresh_token was issued to another client",
     );
     assertStrictEquals(getRefreshToken.calls.length, 2);
