@@ -36,6 +36,12 @@ export interface TokenServiceInterface {
   accessTokenLifetime: number;
   /** Lifetime of refresh tokens in seconds. */
   refreshTokenLifetime: number;
+  /** Validates scope for a client and user. */
+  validateScope(
+    client: Client,
+    user: User,
+    scope?: ScopeInterface,
+  ): Promise<boolean>;
   /** Generates an access token. */
   generateAccessToken(
     client: Client,
@@ -77,6 +83,15 @@ export abstract class AccessTokenService implements TokenServiceInterface {
   accessTokenLifetime = 60 * 60;
   /** Lifetime of refresh tokens in seconds. Defaults to 0. */
   refreshTokenLifetime = 0;
+
+  /** Validates scope for a client and user. */
+  validateScope(
+    _client: Client,
+    _user: User,
+    _scope?: ScopeInterface,
+  ): Promise<boolean> {
+    return Promise.resolve(true);
+  }
 
   /** Generates an access token. Defaults to an RFC4122 v4 UUID (pseudo-randomly-based). */
   generateAccessToken(

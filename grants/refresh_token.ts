@@ -3,13 +3,15 @@ import { InvalidClient, InvalidGrant, InvalidRequest } from "../errors.ts";
 import type { RefreshToken, Token } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
+import { ScopeConstructor } from "../models/scope.ts";
 
 export interface RefreshTokenGrantOptions {
   services: GrantServices;
+  Scope?: ScopeConstructor;
 }
 
 export interface RefreshTokenGrantInterface extends GrantInterface {
-  handle(request: OAuth2Request, client: Client): Promise<RefreshToken>;
+  token(request: OAuth2Request, client: Client): Promise<RefreshToken>;
 }
 
 /**
@@ -25,7 +27,7 @@ export class RefreshTokenGrant extends Grant
     });
   }
 
-  async handle(request: OAuth2Request, client: Client): Promise<RefreshToken> {
+  async token(request: OAuth2Request, client: Client): Promise<RefreshToken> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;

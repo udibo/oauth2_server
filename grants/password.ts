@@ -16,8 +16,6 @@ export interface PasswordGrantOptions extends GrantOptions {
 
 export interface PasswordGrantInterface extends GrantInterface {
   services: PasswordGrantServices;
-
-  handle(request: OAuth2Request, client: Client): Promise<Token>;
 }
 
 /**
@@ -33,7 +31,7 @@ export class PasswordGrant extends Grant implements PasswordGrantInterface {
     super(options);
   }
 
-  async handle(request: OAuth2Request, client: Client): Promise<Token> {
+  async token(request: OAuth2Request, client: Client): Promise<Token> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;

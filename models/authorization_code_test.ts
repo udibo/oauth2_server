@@ -23,14 +23,25 @@ const client: Client = {
 const user: User = {};
 const scope: Scope = new Scope("read");
 
+export interface ExampleAuthorizationCodeServiceOptions {
+  client: Client;
+}
+
 export class ExampleAuthorizationCodeService extends AuthorizationCodeService {
+  client: Client;
+
+  constructor(options?: ExampleAuthorizationCodeServiceOptions) {
+    super();
+    this.client = { ...client, ...options?.client };
+  }
+
   /** Retrieves an existing authorization code. */
   get(code: string): Promise<AuthorizationCode | undefined> {
     return Promise.resolve({
       code,
       expiresAt: new Date(Date.now() + 60000),
-      redirectUri: "https://oauth2.example.com/code",
-      client,
+      redirectUri: "https://client.example.com/cb",
+      client: { ...this.client },
       user,
       scope,
     });

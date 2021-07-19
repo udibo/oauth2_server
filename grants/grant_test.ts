@@ -12,6 +12,7 @@ import { Scope } from "../models/scope.ts";
 import { User } from "../models/user.ts";
 import {
   assertEquals,
+  assertSpyCalls,
   assertStrictEquals,
   assertThrowsAsync,
   resolves,
@@ -34,7 +35,7 @@ const client: Client = (clientService as ExampleClientService).client;
 const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
 
 class ExampleGrant extends Grant {
-  handle(_request: OAuth2Request, _client: Client): Promise<Token> {
+  token(_request: OAuth2Request, _client: Client): Promise<Token> {
     throw new Error("not implemented");
   }
 }
@@ -358,9 +359,14 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       const token: Token = await result;
 
-      assertStrictEquals(accessTokenExpiresAt.calls.length, 1);
-      const call: SpyCall = accessTokenExpiresAt.calls[0];
-      assertClientUserScopeCall(call, tokenService, client, user);
+      assertClientUserScopeCall(
+        accessTokenExpiresAt,
+        0,
+        tokenService,
+        client,
+        user,
+      );
+      assertSpyCalls(accessTokenExpiresAt, 1);
 
       assertToken(token, {
         accessToken: "x",
@@ -391,15 +397,15 @@ test(generateTokenTests, "access token with optional properties", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     const token: Token = await result;
 
-    assertStrictEquals(accessTokenExpiresAt.calls.length, 1);
-    const call: SpyCall = accessTokenExpiresAt.calls[0];
     assertClientUserScopeCall(
-      call,
+      accessTokenExpiresAt,
+      0,
       tokenService,
       client,
       user,
       new Scope("read"),
     );
+    assertSpyCalls(accessTokenExpiresAt, 1);
 
     assertToken(token, {
       accessToken: "x",
@@ -443,9 +449,14 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       const token: Token = await result;
 
-      assertStrictEquals(accessTokenExpiresAt.calls.length, 1);
-      const call: SpyCall = accessTokenExpiresAt.calls[0];
-      assertClientUserScopeCall(call, tokenService, client, user);
+      assertClientUserScopeCall(
+        accessTokenExpiresAt,
+        0,
+        tokenService,
+        client,
+        user,
+      );
+      assertSpyCalls(accessTokenExpiresAt, 1);
 
       assertToken(token, {
         accessToken: "x",
@@ -496,15 +507,15 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       const token: Token = await result;
 
-      assertStrictEquals(accessTokenExpiresAt.calls.length, 1);
-      const call: SpyCall = accessTokenExpiresAt.calls[0];
       assertClientUserScopeCall(
-        call,
+        accessTokenExpiresAt,
+        0,
         tokenService,
         client,
         user,
         new Scope("read"),
       );
+      assertSpyCalls(accessTokenExpiresAt, 1);
 
       assertToken(token, {
         accessToken: "x",

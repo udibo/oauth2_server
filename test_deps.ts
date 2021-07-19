@@ -7,11 +7,12 @@ export {
   assertStrictEquals,
   assertThrows,
   assertThrowsAsync,
-} from "https://deno.land/std@0.99.0/testing/asserts.ts";
-export { delay } from "https://deno.land/std@0.99.0/async/delay.ts";
+} from "https://deno.land/std@0.100.0/testing/asserts.ts";
+export { delay } from "https://deno.land/std@0.100.0/async/delay.ts";
 
 export {
   assertSpyCall,
+  assertSpyCallAsync,
   assertSpyCalls,
   FakeTime,
   rejects,

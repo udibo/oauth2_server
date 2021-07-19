@@ -9,6 +9,7 @@ import {
   InvalidClient,
   InvalidGrant,
   InvalidRequest,
+  InvalidScope,
   ServerError,
 } from "../errors.ts";
 import type { Token } from "../models/token.ts";
@@ -23,6 +24,8 @@ import {
   ChallengeMethods,
   challengeMethods,
 } from "../pkce.ts";
+import { User } from "../models/user.ts";
+import { ScopeInterface } from "../models/scope.ts";
 
 export interface AuthorizationCodeGrantServices extends GrantServices {
   authorizationCodeService: AuthorizationCodeServiceInterface;
@@ -33,14 +36,28 @@ export interface AuthorizationCodeGrantOptions extends GrantOptions {
   challengeMethods?: ChallengeMethods;
 }
 
+export interface GenerateAuthorizationCodeOptions {
+  /** The client associated with the authorization code. */
+  client: Client;
+  /** The user associated with the authorization code. */
+  user: User;
+  /** The scope granted to the authorization code. */
+  scope?: ScopeInterface;
+  /** Redirect URI for the authorization code. */
+  redirectUri?: string | null;
+  /** The code challenge used for PKCE. */
+  challenge?: string | null;
+  /** The code challenge method used for PKCE. */
+  challengeMethod?: string | null;
+}
 export interface AuthorizationCodeGrantInterface extends GrantInterface {
   services: AuthorizationCodeGrantServices;
   challengeMethods: ChallengeMethods;
 
+  getClient(clientId: string): Promise<Client>;
   getChallengeMethod(challengeMethod?: string): ChallengeMethod | undefined;
   validateChallengeMethod(challengeMethod?: string): boolean;
   verifyCode(code: AuthorizationCode, verifier: string): void;
-  handle(request: OAuth2Request, client: Client): Promise<Token>;
 }
 
 export interface PKCEClientCredentials extends ClientCredentials {
@@ -82,6 +99,13 @@ export class AuthorizationCodeGrant extends Grant
     return clientCredentials;
   }
 
+  async getClient(clientId: string): Promise<Client> {
+    const { clientService }: GrantServices = this.services;
+    const client: Client | void = await clientService.get(clientId);
+    if (!client) throw new InvalidClient("client not found");
+    return client;
+  }
+
   async getAuthenticatedClient(request: OAuth2Request): Promise<Client> {
     const { clientId, clientSecret, codeVerifier }: PKCEClientCredentials =
       await this
@@ -97,12 +121,14 @@ export class AuthorizationCodeGrant extends Grant
   }
 
   /** Gets the challenge method if it is allowed. */
-  getChallengeMethod(challengeMethod?: string): ChallengeMethod | undefined {
-    return this.challengeMethods[challengeMethod || "plain"];
+  getChallengeMethod(
+    challengeMethod?: string | null,
+  ): ChallengeMethod | undefined {
+    return this.challengeMethods[challengeMethod ?? "plain"];
   }
 
   /** Checks that the challenge method is allowed. */
-  validateChallengeMethod(challengeMethod?: string): boolean {
+  validateChallengeMethod(challengeMethod?: string | null): boolean {
     return !!this.getChallengeMethod(challengeMethod);
   }
 
@@ -122,7 +148,38 @@ export class AuthorizationCodeGrant extends Grant
     return true;
   }
 
-  async handle(request: OAuth2Request, client: Client): Promise<Token> {
+  /** Validates scope for a client and user. */
+  async validateScope(
+    client: Client,
+    user: User,
+    scope?: ScopeInterface,
+  ): Promise<void> {
+    const { tokenService }: AuthorizationCodeGrantServices = this.services;
+    if (!scope && !(await tokenService.validateScope(client, user))) {
+      throw new InvalidScope("scope required");
+    }
+    if (scope && !(await tokenService.validateScope(client, user, scope))) {
+      throw new InvalidScope("invalid scope");
+    }
+  }
+
+  /** Generates and saves an authorization code. */
+  async generateAuthorizationCode(
+    options: Omit<AuthorizationCode, "code" | "expiresAt">,
+  ): Promise<AuthorizationCode> {
+    const { client, user, scope } = options;
+    const { authorizationCodeService }: AuthorizationCodeGrantServices =
+      this.services;
+    const authorizationCode: AuthorizationCode = {
+      code: await authorizationCodeService.generateCode(client, user, scope),
+      expiresAt: await authorizationCodeService.expiresAt(client, user, scope),
+      ...options,
+    };
+    return await authorizationCodeService.save(authorizationCode);
+  }
+
+  /** Generates and saves a token. */
+  async token(request: OAuth2Request, client: Client): Promise<Token> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;
@@ -169,6 +226,8 @@ export class AuthorizationCodeGrant extends Grant
       } else if (redirectUri !== expectedRedirectUri) {
         throw new InvalidGrant("incorrect redirect_uri");
       }
+    } else if (redirectUri) {
+      throw new InvalidGrant("did not expect redirect_uri parameter");
     }
 
     const token: Token = await this.generateToken(client, user, scope);

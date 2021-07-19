@@ -1,9 +1,14 @@
-import { assertScope, assertToken } from "./asserts.ts";
+import {
+  assertAuthorizationCode,
+  assertScope,
+  assertToken,
+} from "./asserts.ts";
 import { AssertionError, assertThrows, test, TestSuite } from "./test_deps.ts";
 import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
 import { User } from "./models/user.ts";
+import { AuthorizationCode } from "./models/authorization_code.ts";
 
 const assertsTests: TestSuite<void> = new TestSuite({
   name: "asserts",
@@ -57,6 +62,7 @@ test(assertsTests, "assertToken", () => {
     client: { id: "1", grants: [] },
     user: { username: "kyle" },
   };
+  assertToken(undefined, undefined);
   assertToken({ accessToken: "x", client, user }, { ...expectedToken });
   assertToken({ accessToken: "x", client, user, scope: new Scope() }, {
     ...expectedToken,
@@ -78,6 +84,17 @@ test(assertsTests, "assertToken", () => {
     user,
     scope: new Scope("read write"),
   }, { ...expectedToken, scope: new Scope("write read") });
+
+  assertThrows(
+    () => assertToken({ accessToken: "x", client, user }, undefined),
+    AssertionError,
+    "did not expect token",
+  );
+  assertThrows(
+    () => assertToken(undefined, { ...expectedToken }),
+    AssertionError,
+    "expected token",
+  );
 
   assertThrows(
     () =>
@@ -145,6 +162,142 @@ test(assertsTests, "assertToken", () => {
         scope: new Scope("read write"),
       }, {
         ...expectedToken,
+        scope: new Scope("read"),
+      }),
+    AssertionError,
+    "Values are not equal",
+  );
+});
+
+test(assertsTests, "assertAuthorizationCode", () => {
+  const expiresAt = new Date(Date.now() + 60000);
+  const expectedAuthorizationCode: AuthorizationCode = {
+    code: "x",
+    expiresAt,
+    client: { id: "1", grants: [] },
+    user: { username: "kyle" },
+  };
+  assertAuthorizationCode(undefined, undefined);
+  assertAuthorizationCode({ code: "x", expiresAt, client, user }, {
+    ...expectedAuthorizationCode,
+  });
+  assertAuthorizationCode({
+    code: "x",
+    expiresAt,
+    client,
+    user,
+    scope: new Scope(),
+  }, {
+    ...expectedAuthorizationCode,
+    scope: new Scope(),
+  });
+  assertAuthorizationCode({
+    code: "x",
+    expiresAt,
+    client,
+    user,
+    scope: new Scope("read"),
+  }, {
+    ...expectedAuthorizationCode,
+    scope: new Scope("read"),
+  });
+  assertAuthorizationCode({
+    code: "x",
+    expiresAt,
+    client,
+    user,
+    scope: new Scope("read write"),
+  }, { ...expectedAuthorizationCode, scope: new Scope("read write") });
+  assertAuthorizationCode({
+    code: "x",
+    expiresAt,
+    client,
+    user,
+    scope: new Scope("read write"),
+  }, { ...expectedAuthorizationCode, scope: new Scope("write read") });
+
+  assertThrows(
+    () =>
+      assertAuthorizationCode(
+        { code: "x", expiresAt, client, user },
+        undefined,
+      ),
+    AssertionError,
+    "did not expect authorization code",
+  );
+  assertThrows(
+    () => assertAuthorizationCode(undefined, { ...expectedAuthorizationCode }),
+    AssertionError,
+    "expected authorization code",
+  );
+
+  assertThrows(
+    () =>
+      assertAuthorizationCode({ code: "x", expiresAt, client, user }, {
+        ...expectedAuthorizationCode,
+        code: "y",
+      }),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode({ code: "x", expiresAt, client, user }, {
+        ...expectedAuthorizationCode,
+        scope: new Scope(),
+      }),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode(
+        { code: "x", expiresAt, client, user, scope: new Scope() },
+        expectedAuthorizationCode,
+      ),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode({ code: "x", expiresAt, client, user }, {
+        ...expectedAuthorizationCode,
+        scope: new Scope("read"),
+      }),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode(
+        { code: "x", expiresAt, client, user, scope: new Scope("read") },
+        expectedAuthorizationCode,
+      ),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode(
+        { code: "x", expiresAt, client, user, scope: new Scope("read") },
+        {
+          ...expectedAuthorizationCode,
+          scope: new Scope("read write"),
+        },
+      ),
+    AssertionError,
+    "Values are not equal",
+  );
+  assertThrows(
+    () =>
+      assertAuthorizationCode({
+        code: "x",
+        expiresAt,
+        client,
+        user,
+        scope: new Scope("read write"),
+      }, {
+        ...expectedAuthorizationCode,
         scope: new Scope("read"),
       }),
     AssertionError,

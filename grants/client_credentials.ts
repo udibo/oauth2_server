@@ -1,6 +1,6 @@
 import { Grant, GrantInterface, GrantServices } from "./grant.ts";
 import { InvalidGrant, InvalidRequest } from "../errors.ts";
-import { ScopeInterface } from "../models/scope.ts";
+import { ScopeConstructor, ScopeInterface } from "../models/scope.ts";
 import type { User } from "../models/user.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client, ClientServiceInterface } from "../models/client.ts";
@@ -12,12 +12,11 @@ export interface ClientCredentialsGrantServices extends GrantServices {
 
 export interface ClientCredentialsGrantOptions {
   services: ClientCredentialsGrantServices;
+  Scope?: ScopeConstructor;
 }
 
 export interface ClientCredentialsGrantInterface extends GrantInterface {
   services: ClientCredentialsGrantServices;
-
-  handle(request: OAuth2Request, client: Client): Promise<Token>;
 }
 
 /**
@@ -35,7 +34,7 @@ export class ClientCredentialsGrant extends Grant
     });
   }
 
-  async handle(request: OAuth2Request, client: Client): Promise<Token> {
+  async token(request: OAuth2Request, client: Client): Promise<Token> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;

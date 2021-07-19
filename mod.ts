@@ -1,7 +1,6 @@
 export { OAuth2Server } from "./server.ts";
 export type {
   BearerToken,
-  ErrorBody,
   OAuth2ServerGrants,
   OAuth2ServerOptions,
 } from "./server.ts";

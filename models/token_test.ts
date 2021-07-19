@@ -23,18 +23,30 @@ import { ServerError } from "../errors.ts";
 
 const client: Client = {
   id: "1",
-  grants: ["refresh_token"],
+  grants: ["refresh_token", "authorization_code"],
 };
 const user: User = { username: "kyle" };
-const scope: Scope = new Scope("read");
+const scope: Scope = new Scope("read write");
+
+export interface ExampleTokenServiceOptions {
+  client: Client;
+}
 
 export class ExampleAccessTokenService extends AccessTokenService {
+  client: Client;
+
+  constructor(options?: ExampleTokenServiceOptions) {
+    super();
+    this.client = { ...client, ...options?.client };
+  }
+
   /** Retrieves an existing token. */
   getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
     return Promise.resolve({
       accessToken,
-      client,
+      client: { ...this.client },
       user,
+      scope,
     });
   }
 
@@ -197,12 +209,20 @@ test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
 });
 
 export class ExampleRefreshTokenService extends RefreshTokenService {
+  client: Client;
+
+  constructor(options?: ExampleTokenServiceOptions) {
+    super();
+    this.client = { ...client, ...options?.client };
+  }
+
   /** Retrieves an existing token. */
   getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
     return Promise.resolve({
       accessToken,
-      client,
+      client: { ...this.client },
       user,
+      scope,
     });
   }
 
@@ -211,8 +231,9 @@ export class ExampleRefreshTokenService extends RefreshTokenService {
     return Promise.resolve({
       accessToken: "fake",
       refreshToken,
-      client,
+      client: { ...this.client },
       user,
+      scope,
     });
   }
 
