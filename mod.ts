@@ -2,15 +2,12 @@ export { OAuth2Server } from "./server.ts";
 export type {
   BearerToken,
   OAuth2ServerGrants,
-  OAuth2ServerServices,
   OAuth2ServerOptions,
+  OAuth2ServerServices,
 } from "./server.ts";
 
 export { challengeMethods, generateCodeVerifier } from "./pkce.ts";
-export type {
-  ChallengeMethod,
-  ChallengeMethods,
-} from "./pkce.ts";
+export type { ChallengeMethod, ChallengeMethods } from "./pkce.ts";
 
 export { AuthorizationCodeService } from "./models/authorization_code.ts";
 export type {
@@ -37,11 +34,13 @@ export type { User, UserServiceInterface } from "./models/user.ts";
 
 export { errorHandler, getAccessToken } from "./context.ts";
 export type {
-  Context, OAuth2Request, OAuth2Response,
-  OAuth2State,
+  Authenticator,
+  Context,
   ErrorBody,
   ErrorHandler,
-  Authenticator,
+  OAuth2Request,
+  OAuth2Response,
+  OAuth2State,
 } from "./context.ts";
 
 export {
@@ -58,10 +57,10 @@ export type { BasicAuth } from "./basic_auth.ts";
 
 export { Grant } from "./grants/grant.ts";
 export type {
+  ClientCredentials,
   GrantInterface,
   GrantOptions,
   GrantServices,
-  ClientCredentials,
 } from "./grants/grant.ts";
 
 export { AuthorizationCodeGrant } from "./grants/authorization_code.ts";

@@ -183,14 +183,15 @@ test(tokenTests, "expired refresh_token", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
-    (refreshToken: string) => Promise.resolve({
-      accessToken: "fake",
-      refreshToken,
-      refreshTokenExpiresAt: new Date(Date.now() - 60000),
-      client,
-      user,
-      scope,
-    }),
+    (refreshToken: string) =>
+      Promise.resolve({
+        accessToken: "fake",
+        refreshToken,
+        refreshTokenExpiresAt: new Date(Date.now() - 60000),
+        client,
+        user,
+        scope,
+      }),
   );
   try {
     const request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
@@ -207,7 +208,7 @@ test(tokenTests, "expired refresh_token", async () => {
     assertSpyCall(getRefreshToken, 0, {
       self: tokenService,
       args: ["example1"],
-    })
+    });
     assertSpyCalls(getRefreshToken, 1);
   } finally {
     getRefreshToken.restore();
@@ -218,13 +219,14 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
-    (refreshToken: string) => Promise.resolve({
-      accessToken: "fake",
-      refreshToken,
-      client: { ...client, id: "2" },
-      user,
-      scope,
-    }),
+    (refreshToken: string) =>
+      Promise.resolve({
+        accessToken: "fake",
+        refreshToken,
+        client: { ...client, id: "2" },
+        user,
+        scope,
+      }),
   );
   try {
     let request: OAuth2Request = fakeTokenRequest("refresh_token=example1");
@@ -262,13 +264,14 @@ test(tokenTests, "returns new token and revokes old", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
-    (refreshToken: string) => Promise.resolve({
-      accessToken: "fake",
-      refreshToken,
-      client,
-      user,
-      scope,
-    }),
+    (refreshToken: string) =>
+      Promise.resolve({
+        accessToken: "fake",
+        refreshToken,
+        client,
+        user,
+        scope,
+      }),
   );
   const save: Spy<RefreshTokenService> = spy(tokenService, "save");
   const revoke: Spy<RefreshTokenService> = spy(tokenService, "revoke");

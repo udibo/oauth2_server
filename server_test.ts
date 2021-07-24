@@ -486,13 +486,14 @@ test(authenticateTests, "expired access_token", async () => {
   const getAccessToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getAccessToken",
-    () => Promise.resolve({
-      accessToken: "123",
-      accessTokenExpiresAt: new Date(Date.now() - 60000),
-      client,
-      user,
-      scope,
-    }),
+    () =>
+      Promise.resolve({
+        accessToken: "123",
+        accessTokenExpiresAt: new Date(Date.now() - 60000),
+        client,
+        user,
+        scope,
+      }),
   );
 
   try {
