@@ -47,10 +47,6 @@ export interface BearerToken {
   scope?: string;
 }
 
-export interface AuthenticatorOptions {
-  scope?: ScopeInterface | string;
-}
-
 export class OAuth2Server {
   grants: OAuth2ServerGrants;
   services: OAuth2ServerServices;
