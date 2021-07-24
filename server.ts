@@ -160,8 +160,15 @@ export class OAuth2Server {
       : await tokenService.getAccessToken(
         accessToken,
       );
-    state.token = token;
-    if (!token) throw new AccessDenied("invalid access_token");
+    if (
+      !token ||
+      (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())
+    ) {
+      state.token = undefined;
+      throw new AccessDenied("invalid access_token");
+    } else {
+      state.token = token;
+    }
 
     const { headers }: OAuth2Response = response;
     headers.set("X-OAuth-Scopes", token.scope?.toString() ?? "");

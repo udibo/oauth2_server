@@ -696,6 +696,39 @@ test(tokenTests, "invalid code", async () => {
   }
 });
 
+test(tokenTests, "expired code", async () => {
+  const originalGet = authorizationCodeService.get;
+  const get: Stub<AuthorizationCodeService> = stub(
+    authorizationCodeService,
+    "get",
+    async (code: string) => ({
+      ...await originalGet.call(authorizationCodeService, code),
+      expiresAt: new Date(Date.now() - 60000),
+    }),
+  );
+  try {
+    const request: OAuth2Request = fakeTokenRequest("code=1");
+    const result: Promise<Token> = authorizationCodeGrant.token(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    await assertThrowsAsync(
+      () => result,
+      InvalidGrant,
+      "invalid code",
+    );
+
+    assertSpyCall(get, 0, {
+      self: authorizationCodeService,
+      args: ["1"],
+    });
+    assertSpyCalls(get, 1);
+  } finally {
+    get.restore();
+  }
+});
+
 test(tokenTests, "code was issued to another client", async () => {
   const originalGet = authorizationCodeService.get;
   const get: Stub<AuthorizationCodeService> = stub(

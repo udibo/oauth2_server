@@ -196,7 +196,9 @@ export class AuthorizationCodeGrant extends Grant
 
     const authorizationCode: AuthorizationCode | void =
       await authorizationCodeService.get(code);
-    if (!authorizationCode) throw new InvalidGrant("invalid code");
+    if (!authorizationCode || authorizationCode.expiresAt < new Date()) {
+      throw new InvalidGrant("invalid code");
+    }
     await authorizationCodeService.revoke(authorizationCode);
 
     const codeVerifier: string | null = body.get("code_verifier");

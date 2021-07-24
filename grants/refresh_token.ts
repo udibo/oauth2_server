@@ -41,7 +41,13 @@ export class RefreshTokenGrant extends Grant
       .getRefreshToken(
         refreshToken,
       );
-    if (!currentToken) throw new InvalidGrant("invalid refresh_token");
+    if (
+      !currentToken ||
+      (currentToken.refreshTokenExpiresAt &&
+        currentToken.refreshTokenExpiresAt < new Date())
+    ) {
+      throw new InvalidGrant("invalid refresh_token");
+    }
 
     const { client: tokenClient, user, scope, code }: RefreshToken =
       currentToken;

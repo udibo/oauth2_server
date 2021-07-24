@@ -466,6 +466,48 @@ test(authenticateTests, "invalid access_token", async () => {
     );
 
     assertSpyCall(getAccessToken, 0, {
+      self: tokenService,
+      args: ["123"],
+    });
+    assertSpyCalls(getAccessToken, 1);
+
+    assertEquals(response.status, undefined);
+    assertEquals([...response.headers.entries()], []);
+    assertEquals(response.body, undefined);
+
+    assert("token" in state);
+    assertToken(state.token, undefined);
+  } finally {
+    getAccessToken.restore();
+  }
+});
+
+test(authenticateTests, "expired access_token", async () => {
+  const getAccessToken: Stub<RefreshTokenService> = stub(
+    tokenService,
+    "getAccessToken",
+    () => Promise.resolve({
+      accessToken: "123",
+      accessTokenExpiresAt: new Date(Date.now() - 60000),
+      client,
+      user,
+      scope,
+    }),
+  );
+
+  try {
+    const request = fakeResourceRequest("123");
+    const response = fakeResponse();
+    const state: OAuth2State = {};
+    const context: Context = { request, response, state };
+    await assertThrowsAsync(
+      () => server.authenticate(context),
+      AccessDenied,
+      "invalid access_token",
+    );
+
+    assertSpyCall(getAccessToken, 0, {
+      self: tokenService,
       args: ["123"],
     });
     assertSpyCalls(getAccessToken, 1);
