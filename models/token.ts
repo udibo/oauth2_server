@@ -1,4 +1,3 @@
-import { v4 } from "../deps.ts";
 import { ScopeInterface } from "./scope.ts";
 import { ServerError } from "../errors.ts";
 import type { Client } from "./client.ts";
@@ -99,7 +98,7 @@ export abstract class AccessTokenService implements TokenServiceInterface {
     _user: User,
     _scope?: ScopeInterface,
   ): Promise<string> {
-    return Promise.resolve(v4.generate());
+    return Promise.resolve(crypto.randomUUID());
   }
 
   /** Generates a refresh token. Not implemented by default. */
@@ -168,7 +167,7 @@ export abstract class RefreshTokenService extends AccessTokenService
     _user: User,
     _scope?: ScopeInterface,
   ): Promise<string | undefined> {
-    return Promise.resolve(v4.generate());
+    return Promise.resolve(crypto.randomUUID());
   }
 
   /** Gets the date that a new refresh token would expire at. */

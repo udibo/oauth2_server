@@ -1,4 +1,3 @@
-import { v4 } from "../deps.ts";
 import { ScopeInterface } from "./scope.ts";
 import type { Client } from "./client.ts";
 import type { User } from "./user.ts";
@@ -55,7 +54,7 @@ export abstract class AuthorizationCodeService
     _user: User,
     _scope?: ScopeInterface,
   ): Promise<string> {
-    return Promise.resolve(v4.generate());
+    return Promise.resolve(crypto.randomUUID());
   }
   /** Gets the date that a new authorization code would expire at. */
   expiresAt(

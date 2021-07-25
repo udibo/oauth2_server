@@ -6,7 +6,6 @@ import {
 import { User } from "./user.ts";
 import { Client } from "./client.ts";
 import { Scope } from "./scope.ts";
-import { v4 } from "../deps.ts";
 import {
   assert,
   assertEquals,
@@ -14,6 +13,7 @@ import {
   FakeTime,
   test,
   TestSuite,
+  v4,
 } from "../test_deps.ts";
 
 const client: Client = {

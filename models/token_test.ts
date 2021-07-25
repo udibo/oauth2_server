@@ -9,7 +9,6 @@ import {
 import type { Client } from "./client.ts";
 import type { User } from "./user.ts";
 import { Scope } from "./scope.ts";
-import { v4 } from "../deps.ts";
 import {
   assert,
   assertEquals,
@@ -18,6 +17,7 @@ import {
   FakeTime,
   test,
   TestSuite,
+  v4,
 } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 
