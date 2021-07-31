@@ -23,7 +23,7 @@ export interface OAuth2State {
   [key: string]: any;
 }
 
-export interface Context {
+export interface OAuth2Context {
   request: OAuth2Request;
   response: OAuth2Response;
   state: OAuth2State;
@@ -90,4 +90,4 @@ export async function getAccessToken(
   return accessToken;
 }
 
-export type Authenticator = (context: Context) => Promise<Token | null>;
+export type Authenticator = (context: OAuth2Context) => Promise<Token | null>;

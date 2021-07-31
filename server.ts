@@ -10,10 +10,10 @@ import { Client } from "./models/client.ts";
 import { Token, TokenServiceInterface } from "./models/token.ts";
 import {
   Authenticator,
-  Context,
   ErrorHandler,
   errorHandler,
   getAccessToken,
+  OAuth2Context,
   OAuth2Request,
   OAuth2Response,
 } from "./context.ts";
@@ -45,6 +45,16 @@ export interface BearerToken {
   "refresh_token"?: string;
   "refresh_token_expires_at"?: string;
   scope?: string;
+}
+
+export interface AuthorizeParameters {
+  responseType: string | null;
+  clientId: string | null;
+  redirectUri: string | null;
+  state: string | null;
+  scope: string | null;
+  challenge: string | null;
+  challengeMethod: string | null;
 }
 
 export class OAuth2Server {
@@ -120,15 +130,16 @@ export class OAuth2Server {
   }
 
   /** Handles a token request. */
-  async token(context: Context): Promise<void> {
-    const { request, response }: Context = context;
+  async token(context: OAuth2Context): Promise<Token> {
+    const { request, response }: OAuth2Context = context;
     const { headers }: OAuth2Response = response;
     headers.set("Content-Type", "application/json;charset=UTF-8");
     headers.set("Cache-Control", "no-store");
     headers.set("Pragma", "no-cache");
 
+    let token: Token | undefined = undefined;
     try {
-      const token: Token = await this.generateToken(request);
+      token = await this.generateToken(request);
       const bearerToken: BearerToken = this.bearerToken(token);
 
       response.status = 200;
@@ -137,17 +148,18 @@ export class OAuth2Server {
       await this.errorHandler(response, error, this.realm);
       throw error;
     }
+    return token;
   }
 
   /** Authenticates a request and verifies the token has the required scope. */
   async authenticate(
-    context: Context,
+    context: OAuth2Context,
     scope?: ScopeInterface,
   ): Promise<Token> {
     const { tokenService }: OAuth2ServerServices = this.services;
     if (!tokenService) throw new ServerError("token service required");
 
-    const { request, response, state }: Context = context;
+    const { request, response, state }: OAuth2Context = context;
     const accessToken: string | null = await getAccessToken(request);
     if (!accessToken) throw new AccessDenied("authentication required");
 
@@ -183,7 +195,7 @@ export class OAuth2Server {
     const scopeClone: ScopeInterface | undefined = scope
       ? this.Scope.from(scope)
       : undefined;
-    return async (context: Context) => {
+    return async (context: OAuth2Context) => {
       let token: Token | null = null;
       try {
         token = await (scopeClone
@@ -197,11 +209,87 @@ export class OAuth2Server {
     };
   }
 
+  /** Gets the authorize parameters from the request. */
+  async authorizeParameters(
+    request: OAuth2Request,
+  ): Promise<AuthorizeParameters> {
+    let responseType: string | null = null;
+    let clientId: string | null = null;
+    let redirectUri: string | null = null;
+    let state: string | null = null;
+    let scope: string | null = null;
+    let challenge: string | null = null;
+    let challengeMethod: string | null = null;
+
+    if (request.method === "POST") {
+      const contentType: string | null = request.headers.get("content-type");
+      if (
+        contentType === "application/x-www-form-urlencoded" && request.hasBody
+      ) {
+        const body: URLSearchParams = await request.body!;
+        responseType = body.get("response_type");
+        clientId = body.get("client_id");
+        redirectUri = body.get("redirect_uri");
+        state = body.get("state");
+        scope = body.get("scope");
+        challenge = body.get("code_challenge");
+        challengeMethod = body.get("code_challenge_method");
+      }
+    }
+
+    const url: URL = request.url;
+    const { searchParams } = url;
+
+    if (!responseType) responseType = searchParams.get("response_type");
+    if (!clientId) clientId = searchParams.get("client_id");
+    if (!redirectUri) redirectUri = searchParams.get("redirect_uri");
+    if (!state) state = searchParams.get("state");
+    if (!scope) scope = searchParams.get("scope");
+    if (!challenge) challenge = searchParams.get("code_challenge");
+    if (!challengeMethod) {
+      challengeMethod = searchParams.get("code_challenge_method");
+    }
+
+    return {
+      responseType,
+      clientId,
+      redirectUri,
+      state,
+      scope,
+      challenge,
+      challengeMethod,
+    };
+  }
+
+  /** Generate url for authorize get request. */
+  async authorizeUrl(request: OAuth2Request): Promise<URL> {
+    const url = new URL(request.url.toString());
+    url.search = "";
+    const { searchParams } = url;
+    const {
+      responseType,
+      clientId,
+      redirectUri,
+      state,
+      scope,
+      challenge,
+      challengeMethod,
+    } = await this.authorizeParameters(request);
+    if (responseType) searchParams.set("response_type", responseType);
+    if (clientId) searchParams.set("client_id", clientId);
+    if (redirectUri) searchParams.set("redirect_uri", redirectUri);
+    if (state) searchParams.set("state", state);
+    if (scope) searchParams.set("scope", scope);
+    if (challenge) searchParams.set("challenge", challenge);
+    if (challengeMethod) searchParams.set("challenge_method", challengeMethod);
+    return url;
+  }
+
   /**
    * Authorizes a token request for the authorization code grant type.
    */
   async authorize(
-    context: Context,
+    context: OAuth2Context,
     user?: User | null,
   ): Promise<AuthorizationCode> {
     let authorizationCode: AuthorizationCode | null = null;
@@ -209,32 +297,15 @@ export class OAuth2Server {
     const { request, response } = context;
 
     try {
-      let responseType: string | null = null;
-      let clientId: string | null = null;
-      let redirectUri: string | null = null;
-      let state: string | null = null;
-      let scopeText: string | null = null;
-      let challenge: string | null = null;
-      let challengeMethod: string | null = null;
-
-      if (request.method === "POST") {
-        const contentType: string | null = request.headers.get("content-type");
-        if (
-          contentType === "application/x-www-form-urlencoded" && request.hasBody
-        ) {
-          const body: URLSearchParams = await request.body!;
-          responseType = body.get("response_type");
-          clientId = body.get("client_id");
-          redirectUri = body.get("redirect_uri");
-          state = body.get("state");
-          scopeText = body.get("scope");
-          challenge = body.get("code_challenge");
-          challengeMethod = body.get("code_challenge_method");
-        }
-      }
-
-      const url: URL = request.url;
-      const { searchParams } = url;
+      const {
+        responseType,
+        clientId,
+        redirectUri,
+        state,
+        scope: scopeText,
+        challenge,
+        challengeMethod,
+      } = await this.authorizeParameters(request);
 
       const grantType = "authorization_code";
       if (!this.grants[grantType]) {
@@ -245,7 +316,6 @@ export class OAuth2Server {
       const grant: AuthorizationCodeGrant = this
         .grants[grantType] as AuthorizationCodeGrant;
 
-      if (!clientId) clientId = searchParams.get("client_id");
       if (!clientId) throw new InvalidRequest("client_id parameter required");
 
       const client: Client = await grant.getClient(clientId);
@@ -258,7 +328,6 @@ export class OAuth2Server {
         throw new UnauthorizedClient("no authorized redirect_uri");
       }
 
-      if (!redirectUri) redirectUri = searchParams.get("redirect_uri");
       if (redirectUri && !client.redirectUris.includes(redirectUri)) {
         throw new UnauthorizedClient("redirect_uri not authorized");
       }
@@ -266,13 +335,11 @@ export class OAuth2Server {
       redirectUrl = new URL(redirectUri ?? client.redirectUris![0]);
       const redirectSearchParams: URLSearchParams = redirectUrl.searchParams;
 
-      if (!state) state = searchParams.get("state");
       if (!state) throw new InvalidRequest("state required");
       redirectSearchParams.set("state", state);
 
-      if (!user) throw new AccessDenied("authentication required");
+      const scope: ScopeInterface | undefined = grant.parseScope(scopeText);
 
-      if (!responseType) responseType = searchParams.get("response_type");
       if (!responseType) {
         throw new InvalidRequest("response_type parameter required");
       }
@@ -280,15 +347,6 @@ export class OAuth2Server {
         throw new InvalidRequest("response_type not supported");
       }
 
-      if (!scopeText) scopeText = searchParams.get("scope");
-      const scope: ScopeInterface | undefined = grant.parseScope(scopeText);
-      await grant.validateScope(client, user, scope);
-
-      if (!challenge) challenge = searchParams.get("code_challenge");
-
-      if (!challengeMethod) {
-        challengeMethod = searchParams.get("code_challenge_method");
-      }
       if (challengeMethod && !challenge) {
         throw new InvalidRequest(
           "code_challenge required when code_challenge_method is set",
@@ -297,6 +355,8 @@ export class OAuth2Server {
       if (challenge && !grant.validateChallengeMethod(challengeMethod)) {
         throw new InvalidRequest("unsupported code_challenge_method");
       }
+
+      if (!user) throw new AccessDenied("authentication required");
 
       const options: Omit<AuthorizationCode, "code" | "expiresAt"> = {
         client,
@@ -308,7 +368,6 @@ export class OAuth2Server {
       if (challengeMethod) {
         options.challengeMethod = challengeMethod;
       }
-
       authorizationCode = await grant.generateAuthorizationCode(options);
       redirectSearchParams.set("code", authorizationCode.code);
       response.redirect(redirectUrl);

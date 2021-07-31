@@ -9,7 +9,6 @@ import {
   InvalidClient,
   InvalidGrant,
   InvalidRequest,
-  InvalidScope,
   ServerError,
 } from "../errors.ts";
 import type { Token } from "../models/token.ts";
@@ -146,21 +145,6 @@ export class AuthorizationCodeGrant extends Grant
       throw new ServerError("code_challenge_method not implemented");
     }
     return true;
-  }
-
-  /** Validates scope for a client and user. */
-  async validateScope(
-    client: Client,
-    user: User,
-    scope?: ScopeInterface,
-  ): Promise<void> {
-    const { tokenService }: AuthorizationCodeGrantServices = this.services;
-    if (!scope && !(await tokenService.validateScope(client, user))) {
-      throw new InvalidScope("scope required");
-    }
-    if (scope && !(await tokenService.validateScope(client, user, scope))) {
-      throw new InvalidScope("invalid scope");
-    }
   }
 
   /** Generates and saves an authorization code. */

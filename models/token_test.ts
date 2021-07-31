@@ -8,7 +8,7 @@ import {
 } from "./token.ts";
 import type { Client } from "./client.ts";
 import type { User } from "./user.ts";
-import { Scope } from "./scope.ts";
+import { Scope, ScopeInterface } from "./scope.ts";
 import {
   assert,
   assertEquals,
@@ -207,6 +207,20 @@ test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
     "getRefreshToken not implemented",
   );
 });
+
+test(
+  accessTokenServiceTests,
+  "acceptedScope defaults to always passing",
+  async () => {
+    let result: Promise<ScopeInterface | undefined | false> = accessTokenService
+      .acceptedScope(client, user);
+    assertStrictEquals(Promise.resolve(result), result);
+    assertStrictEquals(await result, undefined);
+    result = accessTokenService.acceptedScope(client, user, scope);
+    assertStrictEquals(Promise.resolve(result), result);
+    assertStrictEquals(await result, scope);
+  },
+);
 
 export class ExampleRefreshTokenService extends RefreshTokenService {
   client: Client;

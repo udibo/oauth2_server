@@ -35,9 +35,9 @@ export type { User, UserServiceInterface } from "./models/user.ts";
 export { errorHandler, getAccessToken } from "./context.ts";
 export type {
   Authenticator,
-  Context,
   ErrorBody,
   ErrorHandler,
+  OAuth2Context,
   OAuth2Request,
   OAuth2Response,
   OAuth2State,

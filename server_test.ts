@@ -34,7 +34,6 @@ import {
   InvalidClient,
   InvalidGrant,
   InvalidRequest,
-  InvalidScope,
   OAuth2Error,
   ServerError,
   UnauthorizedClient,
@@ -42,7 +41,7 @@ import {
 } from "./errors.ts";
 import {
   Authenticator,
-  Context,
+  OAuth2Context,
   OAuth2Request,
   OAuth2Response,
   OAuth2State,
@@ -57,11 +56,7 @@ import {
 import { ExampleRefreshTokenService } from "./models/token_test.ts";
 import { GrantServices } from "./grants/grant.ts";
 import { ExampleClientService } from "./models/client_test.ts";
-import {
-  assertAuthorizationCode,
-  assertClientUserScopeCall,
-  assertToken,
-} from "./asserts.ts";
+import { assertAuthorizationCode, assertToken } from "./asserts.ts";
 import {
   AuthorizationCodeGrant,
   AuthorizationCodeGrantInterface,
@@ -347,7 +342,12 @@ test(tokenTests, "without optional token properties", async () => {
   const generateTokenStub: Stub<OAuth2Server> = stub(
     server,
     "generateToken",
-    () => Promise.resolve({ accessToken: "foo" }),
+    () =>
+      Promise.resolve({
+        accessToken: "foo",
+        client,
+        user,
+      }),
   );
   const handleErrorSpy: Spy<OAuth2Server> = spy(server, "handleError");
   const response: OAuth2Response = fakeResponse();
@@ -355,9 +355,13 @@ test(tokenTests, "without optional token properties", async () => {
   try {
     const request: OAuth2Request = fakeTokenRequest("grant_type=refresh_token");
     const state: OAuth2State = {};
-    assertEquals(
+    assertToken(
       await server.token({ request, response, state }),
-      undefined,
+      {
+        accessToken: "foo",
+        client,
+        user,
+      },
     );
     assertEquals(handleErrorSpy.calls.length, 0);
     assertEquals(response.status, 200);
@@ -381,6 +385,10 @@ test(tokenTests, "with optional token properties", async () => {
         refreshToken: "bar",
         accessTokenExpiresAt: new Date(now.valueOf() + 120000),
         refreshTokenExpiresAt: new Date(now.valueOf() + 600000),
+        client,
+        user,
+        scope,
+        code: "xyz",
       }),
   );
   const handleErrorSpy: Spy<OAuth2Server> = spy(server, "handleError");
@@ -389,7 +397,16 @@ test(tokenTests, "with optional token properties", async () => {
   try {
     const request: OAuth2Request = fakeTokenRequest("grant_type=refresh_token");
     const state: OAuth2State = {};
-    assertEquals(await server.token({ request, response, state }), undefined);
+    assertToken(await server.token({ request, response, state }), {
+      accessToken: "foo",
+      refreshToken: "bar",
+      accessTokenExpiresAt: new Date(now.valueOf() + 120000),
+      refreshTokenExpiresAt: new Date(now.valueOf() + 600000),
+      client,
+      user,
+      scope,
+      code: "xyz",
+    });
     assertEquals(handleErrorSpy.calls.length, 0);
     assertEquals(response.status, 200);
     assertEquals(response.body, {
@@ -397,6 +414,7 @@ test(tokenTests, "with optional token properties", async () => {
       refresh_token: "bar",
       access_token_expires_at: "2021-05-15T13:11:05.000Z",
       refresh_token_expires_at: "2021-05-15T13:19:05.000Z",
+      scope: "read write",
       token_type: "Bearer",
     });
     assertEquals(redirectSpy.calls.length, 0);
@@ -417,7 +435,7 @@ test(authenticateTests, "token service required", async () => {
   const request = fakeResourceRequest("");
   const response = fakeResponse();
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   await assertThrowsAsync(
     () => server.authenticate(context),
     ServerError,
@@ -435,7 +453,7 @@ test(authenticateTests, "authentication required", async () => {
   const request = fakeResourceRequest("");
   const response = fakeResponse();
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   await assertThrowsAsync(
     () => server.authenticate(context),
     AccessDenied,
@@ -458,7 +476,7 @@ test(authenticateTests, "invalid access_token", async () => {
     const request = fakeResourceRequest("123");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await assertThrowsAsync(
       () => server.authenticate(context),
       AccessDenied,
@@ -500,7 +518,7 @@ test(authenticateTests, "expired access_token", async () => {
     const request = fakeResourceRequest("123");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await assertThrowsAsync(
       () => server.authenticate(context),
       AccessDenied,
@@ -534,7 +552,7 @@ test(authenticateTests, "insufficient scope", async () => {
     const request = fakeResourceRequest("123");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     const acceptedScope: Scope = new Scope("read write delete");
     await assertThrowsAsync(
       () => server.authenticate(context, acceptedScope),
@@ -575,7 +593,7 @@ test(authenticateTests, "without scope", async () => {
     const request = fakeResourceRequest("123");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await server.authenticate(context);
 
     assertSpyCall(getAccessToken, 0, {
@@ -611,7 +629,7 @@ test(authenticateTests, "with scope", async () => {
     const request = fakeResourceRequest("123");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await server.authenticate(context, scope);
 
     assertSpyCall(getAccessToken, 0, {
@@ -653,7 +671,7 @@ test(authenticateTests, "re-uses token stored in state", async () => {
       scope,
     };
     const state: OAuth2State = { token };
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await server.authenticate(context);
 
     assertSpyCalls(getAccessToken, 0);
@@ -692,7 +710,7 @@ test(authenticatorFactoryTests, "authenticator error", async () => {
     const request = fakeResourceRequest("");
     const response = fakeResponse();
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     await assertThrowsAsync(
       () => authenticator(context),
       AccessDenied,
@@ -734,7 +752,7 @@ test(
       const request = fakeResourceRequest("123");
       const response = fakeResponse();
       const state: OAuth2State = {};
-      const context: Context = { request, response, state };
+      const context: OAuth2Context = { request, response, state };
       assertEquals(await authenticator(context), {
         accessToken: "123",
         client,
@@ -783,7 +801,7 @@ test(
       const request = fakeResourceRequest("123");
       const response = fakeResponse();
       const state: OAuth2State = {};
-      const context: Context = { request, response, state };
+      const context: OAuth2Context = { request, response, state };
       assertEquals(await authenticator(context), {
         accessToken: "123",
         client,
@@ -849,7 +867,7 @@ test(
     const response = fakeResponse();
     const redirect: Spy<OAuth2Response> = spy(response, "redirect");
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     try {
       let error: Error | null = null;
       await assertThrowsAsync(
@@ -889,7 +907,7 @@ test(authorizeTests, "client_id parameter required", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     let error: Error | null = null;
     await assertThrowsAsync(
@@ -932,7 +950,7 @@ test(authorizeTests, "client not found", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     let error: Error | null = null;
     await assertThrowsAsync(
@@ -979,7 +997,7 @@ test(
     const response = fakeResponse();
     const redirect: Spy<OAuth2Response> = spy(response, "redirect");
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     try {
       let error: Error | null = null;
       await assertThrowsAsync(
@@ -1024,7 +1042,7 @@ test(authorizeTests, "no authorized redirect_uri", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     let error: Error | null = null;
     await assertThrowsAsync(
@@ -1064,7 +1082,7 @@ test(authorizeTests, "redirect_uri not authorized", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     let error: Error | null = null;
     await assertThrowsAsync(
@@ -1098,7 +1116,7 @@ test(authorizeTests, "state required", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1131,7 +1149,7 @@ test(
     const response = fakeResponse();
     const redirect: Spy<OAuth2Response> = spy(response, "redirect");
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     try {
       await assertThrowsAsync(
         () => server.authorize(context),
@@ -1192,7 +1210,7 @@ test(authorizeTests, "response_type parameter required", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1224,7 +1242,7 @@ test(authorizeTests, "response_type not supported", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1249,98 +1267,6 @@ test(authorizeTests, "response_type not supported", async () => {
   }
 });
 
-test(authorizeTests, "scope required", async () => {
-  const errorHandler: Stub<OAuth2Server> = stub(server, "errorHandler");
-  const validateScope: Stub<AuthorizationCodeGrant> = stub(
-    authorizationCodeGrant,
-    "validateScope",
-    () => Promise.reject(new InvalidScope("scope required")),
-  );
-  try {
-    const request: OAuth2Request = fakeAuthorizeRequest();
-    request.url.searchParams.delete("scope");
-    const response = fakeResponse();
-    const redirect: Spy<OAuth2Response> = spy(response, "redirect");
-    const state: OAuth2State = {};
-    const context: Context = { request, response, state };
-    await assertThrowsAsync(
-      () => server.authorize(context, user),
-      InvalidScope,
-      "scope required",
-    );
-    assertClientUserScopeCall(
-      validateScope,
-      0,
-      authorizationCodeGrant,
-      client,
-      user,
-    );
-    assertSpyCalls(validateScope, 1);
-    assertSpyCalls(errorHandler, 0);
-    assertEquals(response.status, undefined);
-    assertEquals(response.body, undefined);
-    const expectedRedirectUrl: URL = new URL("https://client.example.com/cb");
-    const { searchParams } = expectedRedirectUrl;
-    searchParams.set("state", "xyz");
-    searchParams.set("error", "invalid_scope");
-    searchParams.set("error_description", "scope required");
-    assertSpyCall(redirect, 0, {
-      self: response,
-      args: [expectedRedirectUrl],
-    });
-    assertSpyCalls(redirect, 1);
-  } finally {
-    validateScope.restore();
-    errorHandler.restore();
-  }
-});
-
-test(authorizeTests, "invalid scope", async () => {
-  const errorHandler: Stub<OAuth2Server> = stub(server, "errorHandler");
-  const validateScope: Stub<AuthorizationCodeGrant> = stub(
-    authorizationCodeGrant,
-    "validateScope",
-    () => Promise.reject(new InvalidScope("invalid scope")),
-  );
-  try {
-    const request: OAuth2Request = fakeAuthorizeRequest();
-    const response = fakeResponse();
-    const redirect: Spy<OAuth2Response> = spy(response, "redirect");
-    const state: OAuth2State = {};
-    const context: Context = { request, response, state };
-    await assertThrowsAsync(
-      () => server.authorize(context, user),
-      InvalidScope,
-      "invalid scope",
-    );
-    assertClientUserScopeCall(
-      validateScope,
-      0,
-      authorizationCodeGrant,
-      client,
-      user,
-      scope,
-    );
-    assertSpyCalls(validateScope, 1);
-    assertSpyCalls(errorHandler, 0);
-    assertEquals(response.status, undefined);
-    assertEquals(response.body, undefined);
-    const expectedRedirectUrl: URL = new URL("https://client.example.com/cb");
-    const { searchParams } = expectedRedirectUrl;
-    searchParams.set("state", "xyz");
-    searchParams.set("error", "invalid_scope");
-    searchParams.set("error_description", "invalid scope");
-    assertSpyCall(redirect, 0, {
-      self: response,
-      args: [expectedRedirectUrl],
-    });
-    assertSpyCalls(redirect, 1);
-  } finally {
-    validateScope.restore();
-    errorHandler.restore();
-  }
-});
-
 test(
   authorizeTests,
   "code_challenge required when code_challenge_method is set",
@@ -1351,7 +1277,7 @@ test(
     const response = fakeResponse();
     const redirect: Spy<OAuth2Response> = spy(response, "redirect");
     const state: OAuth2State = {};
-    const context: Context = { request, response, state };
+    const context: OAuth2Context = { request, response, state };
     try {
       await assertThrowsAsync(
         () => server.authorize(context, user),
@@ -1387,7 +1313,7 @@ test(authorizeTests, "code_challenge_method required", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1420,7 +1346,7 @@ test(authorizeTests, "unsupported code_challenge_method", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1456,7 +1382,7 @@ test(authorizeTests, "generateAuthorizationCode error", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     await assertThrowsAsync(
       () => server.authorize(context, user),
@@ -1508,7 +1434,7 @@ test(authorizeTests, "success without PKCE", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     const result: Promise<AuthorizationCode> = server.authorize(context, user);
     assertEquals(Promise.resolve(result), result);
@@ -1568,7 +1494,7 @@ test(authorizeTests, "success with PKCE", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     const result: Promise<AuthorizationCode> = server.authorize(context, user);
     assertEquals(Promise.resolve(result), result);
@@ -1639,7 +1565,7 @@ test(authorizeTests, "success with parameters from request body", async () => {
   const response = fakeResponse();
   const redirect: Spy<OAuth2Response> = spy(response, "redirect");
   const state: OAuth2State = {};
-  const context: Context = { request, response, state };
+  const context: OAuth2Context = { request, response, state };
   try {
     const result: Promise<AuthorizationCode> = server.authorize(context, user);
     assertEquals(Promise.resolve(result), result);

@@ -30,7 +30,6 @@ import {
   InvalidClient,
   InvalidGrant,
   InvalidRequest,
-  InvalidScope,
   ServerError,
 } from "../errors.ts";
 import { OAuth2Request } from "../context.ts";
@@ -1155,99 +1154,6 @@ test(
     }
   },
 );
-
-const validateScopeTests: TestSuite<void> = new TestSuite({
-  name: "validateScope",
-  suite: authorizationCodeGrantTests,
-});
-
-test(validateScopeTests, "scope required", async () => {
-  const validateScope: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "validateScope",
-    () => Promise.resolve(false),
-  );
-  try {
-    await assertThrowsAsync(
-      () => authorizationCodeGrant.validateScope(client, user),
-      InvalidScope,
-      "scope required",
-    );
-    assertClientUserScopeCall(validateScope, 0, tokenService, client, user);
-    assertSpyCalls(validateScope, 1);
-  } finally {
-    validateScope.restore();
-  }
-});
-
-test(validateScopeTests, "scope not required", async () => {
-  const validateScope: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "validateScope",
-    () => Promise.resolve(true),
-  );
-  try {
-    assertEquals(
-      await authorizationCodeGrant.validateScope(client, user),
-      undefined,
-    );
-    assertClientUserScopeCall(validateScope, 0, tokenService, client, user);
-    assertSpyCalls(validateScope, 1);
-  } finally {
-    validateScope.restore();
-  }
-});
-
-test(validateScopeTests, "invalid scope", async () => {
-  const validateScope: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "validateScope",
-    () => Promise.resolve(false),
-  );
-  try {
-    await assertThrowsAsync(
-      () => authorizationCodeGrant.validateScope(client, user, scope),
-      InvalidScope,
-      "invalid scope",
-    );
-    assertClientUserScopeCall(
-      validateScope,
-      0,
-      tokenService,
-      client,
-      user,
-      scope,
-    );
-    assertSpyCalls(validateScope, 1);
-  } finally {
-    validateScope.restore();
-  }
-});
-
-test(validateScopeTests, "valid scope", async () => {
-  const validateScope: Stub<RefreshTokenService> = stub(
-    tokenService,
-    "validateScope",
-    () => Promise.resolve(true),
-  );
-  try {
-    assertEquals(
-      await authorizationCodeGrant.validateScope(client, user, scope),
-      undefined,
-    );
-    assertClientUserScopeCall(
-      validateScope,
-      0,
-      tokenService,
-      client,
-      user,
-      scope,
-    );
-    assertSpyCalls(validateScope, 1);
-  } finally {
-    validateScope.restore();
-  }
-});
 
 const generateAuthorizationCodeTests: TestSuite<void> = new TestSuite({
   name: "generateAuthorizationCode",
