@@ -1,7 +1,7 @@
 # OAuth2 Server
 
-[![version](https://img.shields.io/badge/release-v0.1.0-success)](https://deno.land/x/oauth2_server@v0.1.0)
-[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@v0.1.0/mod.ts)
+[![version](https://img.shields.io/badge/release-0.1.1-success)](https://deno.land/x/oauth2_server@0.1.1)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@0.1.1/mod.ts)
 [![CI](https://github.com/udibo/oauth2_server/workflows/CI/badge.svg)](https://github.com/udibo/oauth2_server/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/udibo/oauth2_server/branch/main/graph/badge.svg?token=8Q7TSUFWUY)](https://codecov.io/gh/udibo/oauth2_server)
 [![license](https://img.shields.io/github/license/udibo/oauth2_server)](https://github.com/udibo/oauth2_server/blob/master/LICENSE)
@@ -35,20 +35,19 @@ also be imported directly from GitHub using raw content URLs.
 
 ```ts
 // Import from Deno's third party module registry
-import { OAuth2Server } from "https://deno.land/x/oauth2_server@v0.1.0/mod.ts";
+import { OAuth2Server } from "https://deno.land/x/oauth2_server@0.1.1/mod.ts";
 // Import from GitHub
-import { OAuth2Server } "https://raw.githubusercontent.com/udibo/test_suite/v0.1.0/mod.ts";
+import { OAuth2Server } "https://raw.githubusercontent.com/udibo/oauth2_server/0.1.1/mod.ts";
 ```
 
 ## Usage
 
 An example of how to use this module can be found
-[here](https://deno.land/x/oauth2_server@v0.1.0/examples/oak-localstorage). I
-wouldn't recommend using the example as is but it should give you an idea of how
-to use it.
+[here](examples/oak-localstorage). I wouldn't recommend using the example as is
+but it should give you an idea of how to use this module.
 
 See
-[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@v0.1.0/mod.ts)
+[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.1.1/mod.ts)
 for more information.
 
 ### Grants
