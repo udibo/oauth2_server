@@ -1,36 +1,49 @@
-import { Client, ClientServiceInterface } from "../models/client.ts";
-import type { Token, TokenServiceInterface } from "../models/token.ts";
+import { Client } from "../models/client.ts";
+import { ClientServiceInterface } from "../services/client.ts";
+import { Token } from "../models/token.ts";
+import { TokenServiceInterface } from "../services/token.ts";
 import { OAuth2Request } from "../context.ts";
-import { Scope, ScopeConstructor, ScopeInterface } from "../models/scope.ts";
+import {
+  Scope as DefaultScope,
+  ScopeConstructor,
+  ScopeInterface,
+} from "../models/scope.ts";
 import type { User } from "../models/user.ts";
-import { InvalidClient } from "../errors.ts";
+import { InvalidClient, InvalidScope, ServerError } from "../errors.ts";
 import { BasicAuth, parseBasicAuth } from "../basic_auth.ts";
 
-export interface GrantServices {
+export interface GrantServices<Scope extends ScopeInterface> {
   clientService: ClientServiceInterface;
-  tokenService: TokenServiceInterface;
+  tokenService: TokenServiceInterface<Scope>;
 }
 
-export interface GrantOptions {
-  services: GrantServices;
-  Scope?: ScopeConstructor;
+export interface GrantOptions<Scope extends ScopeInterface> {
+  services: GrantServices<Scope>;
+  Scope?: ScopeConstructor<Scope>;
   /** Allow optional refresh token. */
   allowRefreshToken?: boolean;
 }
 
-export interface GrantInterface {
-  services: GrantServices;
-  Scope: ScopeConstructor;
+export interface GrantInterface<Scope extends ScopeInterface> {
+  services: GrantServices<Scope>;
+  Scope: ScopeConstructor<Scope>;
   allowRefreshToken: boolean;
-  parseScope(scopeText?: string | null): ScopeInterface | undefined;
-  getClientCredentials(request: OAuth2Request): Promise<ClientCredentials>;
-  getAuthenticatedClient(request: OAuth2Request): Promise<Client>;
+  parseScope(scopeText?: string | null): Scope | undefined;
+  acceptedScope(
+    client: Client,
+    user: User,
+    scope?: Scope,
+  ): Promise<Scope | undefined>;
+  getClientCredentials(
+    request: OAuth2Request<Scope>,
+  ): Promise<ClientCredentials>;
+  getAuthenticatedClient(request: OAuth2Request<Scope>): Promise<Client>;
   generateToken(
     client: Client,
     user: User,
-    scope?: ScopeInterface,
-  ): Promise<Token>;
-  token(request: OAuth2Request, client: Client): Promise<Token>;
+    scope?: Scope,
+  ): Promise<Token<Scope>>;
+  token(request: OAuth2Request<Scope>, client: Client): Promise<Token<Scope>>;
 }
 
 export interface ClientCredentials {
@@ -38,24 +51,40 @@ export interface ClientCredentials {
   clientSecret?: string;
 }
 
-export abstract class Grant implements GrantInterface {
-  services: GrantServices;
-  Scope: ScopeConstructor;
+export abstract class AbstractGrant<Scope extends ScopeInterface = DefaultScope>
+  implements GrantInterface<Scope> {
+  services: GrantServices<Scope>;
+  Scope: ScopeConstructor<Scope>;
   /** Allow optional refresh token. Defaults to false. */
   allowRefreshToken: boolean;
 
-  constructor(options: GrantOptions) {
+  constructor(options: GrantOptions<Scope>) {
     this.services = { ...options.services };
     this.allowRefreshToken = options.allowRefreshToken ?? false;
-    this.Scope = options.Scope ?? Scope;
+    this.Scope = options.Scope ??
+      (DefaultScope as unknown as ScopeConstructor<Scope>);
   }
 
-  parseScope(scopeText?: string | null): ScopeInterface | undefined {
+  parseScope(scopeText?: string | null): Scope | undefined {
     return scopeText ? new this.Scope(scopeText) : undefined;
   }
 
+  async acceptedScope(
+    client: Client,
+    user: User,
+    scope?: Scope,
+  ): Promise<Scope | undefined> {
+    const { tokenService } = this.services;
+    if (!tokenService) throw new ServerError("token service required");
+    const acceptedScope = await tokenService.acceptedScope(client, user, scope);
+    if (acceptedScope === false) {
+      throw new InvalidScope(scope ? "invalid scope" : "scope required");
+    }
+    return acceptedScope;
+  }
+
   async getClientCredentials(
-    request: OAuth2Request,
+    request: OAuth2Request<Scope>,
   ): Promise<ClientCredentials> {
     let clientId: string | null = null;
     let clientSecret: string | null = null;
@@ -80,10 +109,10 @@ export abstract class Grant implements GrantInterface {
     return clientCredentials;
   }
 
-  async getAuthenticatedClient(request: OAuth2Request): Promise<Client> {
+  async getAuthenticatedClient(request: OAuth2Request<Scope>): Promise<Client> {
     const { clientId, clientSecret }: ClientCredentials = await this
       .getClientCredentials(request);
-    const { clientService }: GrantServices = this.services;
+    const { clientService } = this.services;
     const client: Client | void = clientSecret
       ? await clientService.getAuthenticated(clientId, clientSecret)
       : await clientService.getAuthenticated(clientId);
@@ -94,10 +123,10 @@ export abstract class Grant implements GrantInterface {
   async generateToken(
     client: Client,
     user: User,
-    scope?: ScopeInterface,
-  ): Promise<Token> {
-    const { tokenService }: GrantServices = this.services;
-    const token: Token = {
+    scope?: Scope,
+  ): Promise<Token<Scope>> {
+    const { tokenService } = this.services;
+    const token: Token<Scope> = {
       accessToken: await tokenService.generateAccessToken(client, user, scope),
       client,
       user,
@@ -131,5 +160,8 @@ export abstract class Grant implements GrantInterface {
   }
 
   /** Generates and saves a token. */
-  abstract token(request: OAuth2Request, client: Client): Promise<Token>;
+  abstract token(
+    request: OAuth2Request<Scope>,
+    client: Client,
+  ): Promise<Token<Scope>>;
 }

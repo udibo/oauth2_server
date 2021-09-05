@@ -57,7 +57,7 @@ const client: Client = { id: "1", grants: [] };
 const user: User = { username: "kyle" };
 
 test(assertsTests, "assertToken", () => {
-  const expectedToken: Token = {
+  const expectedToken: Token<Scope> = {
     accessToken: "x",
     client: { id: "1", grants: [] },
     user: { username: "kyle" },
@@ -171,7 +171,7 @@ test(assertsTests, "assertToken", () => {
 
 test(assertsTests, "assertAuthorizationCode", () => {
   const expiresAt = new Date(Date.now() + 60000);
-  const expectedAuthorizationCode: AuthorizationCode = {
+  const expectedAuthorizationCode: AuthorizationCode<Scope> = {
     code: "x",
     expiresAt,
     client: { id: "1", grants: [] },

@@ -6,20 +6,6 @@ export const SCOPE = new RegExp(
 );
 export const SCOPE_TOKEN = new RegExp(`${NQCHAR.source}+`, "g");
 
-/** Constructor for scope. */
-export interface ScopeConstructor {
-  new (scope?: string): ScopeInterface;
-  /** Creates a new scope with all scope tokens from both scopes. */
-  from(scope: ScopeInterface | string): ScopeInterface;
-  /** Creates a new scope with all scope tokens from both scopes. */
-  union(a: ScopeInterface | string, b: ScopeInterface | string): ScopeInterface;
-  /** Creates a new scope with all scope tokens that are present in both scopes. */
-  intersection(
-    a: ScopeInterface | string,
-    b: ScopeInterface | string,
-  ): ScopeInterface;
-}
-
 export interface ScopeInterface {
   /** Deletes all scope tokens from this scope. */
   clear(): ScopeInterface;
@@ -44,6 +30,20 @@ export interface ScopeInterface {
 
   /** Returns an iterator for retrieving tokens from the scope in insertion order. */
   [Symbol.iterator](): IterableIterator<string>;
+}
+
+/** Constructor for scope. */
+export interface ScopeConstructor<Scope extends ScopeInterface> {
+  new (scope?: string): Scope;
+  /** Creates a new scope with all scope tokens from both scopes. */
+  from(scope: Scope | string): Scope;
+  /** Creates a new scope with all scope tokens from both scopes. */
+  union(a: Scope | string, b: Scope | string): Scope;
+  /** Creates a new scope with all scope tokens that are present in both scopes. */
+  intersection(
+    a: Scope | string,
+    b: Scope | string,
+  ): Scope;
 }
 
 /** A basic implementation of scope. */

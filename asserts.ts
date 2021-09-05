@@ -3,6 +3,7 @@ import {
   assertEquals,
   assertSpyCall,
   assertStrictEquals,
+  assertThrows,
   Spy,
   SpyCall,
   Stub,
@@ -31,9 +32,9 @@ export function assertScope(
   }
 }
 
-function assertWithoutScope(
-  actual: Partial<AuthorizationCode> | Partial<Token>,
-  expected: Partial<AuthorizationCode> | Partial<Token>,
+function assertWithoutScope<Scope extends ScopeInterface>(
+  actual: Partial<AuthorizationCode<Scope>> | Partial<Token<Scope>>,
+  expected: Partial<AuthorizationCode<Scope>> | Partial<Token<Scope>>,
 ): void {
   const actualWithoutScope = { ...actual };
   delete actualWithoutScope.scope;
@@ -42,9 +43,9 @@ function assertWithoutScope(
   assertEquals(actualWithoutScope, expectedWithoutScope);
 }
 
-export function assertToken(
-  actual: Partial<Token> | undefined,
-  expected: Partial<Token> | undefined,
+export function assertToken<Scope extends ScopeInterface>(
+  actual: Partial<Token<Scope>> | undefined,
+  expected: Partial<Token<Scope>> | undefined,
 ): void {
   // add test coverage for this new assertion
   assert(
@@ -57,9 +58,9 @@ export function assertToken(
   }
 }
 
-export function assertAuthorizationCode(
-  actual: Partial<AuthorizationCode> | undefined,
-  expected: Partial<AuthorizationCode> | undefined,
+export function assertAuthorizationCode<Scope extends ScopeInterface>(
+  actual: Partial<AuthorizationCode<Scope>> | undefined,
+  expected: Partial<AuthorizationCode<Scope>> | undefined,
 ): void {
   // add test coverage for this new assertion
   assert(
@@ -89,4 +90,27 @@ export function assertClientUserScopeCall(
   assertEquals(call.args.slice(0, 2), [client, user]);
   const actualScope: ScopeInterface | undefined = call.args[2];
   assertScope(actualScope, expectedScope);
+}
+
+// replace with assertError from std if suggestion gets implemented
+// https://github.com/denoland/deno_std/issues/1182
+export interface Constructor {
+  // deno-lint-ignore no-explicit-any
+  new (...args: any[]): any;
+}
+
+export function assertError(
+  error: Error,
+  ErrorClass?: Constructor,
+  msgIncludes?: string,
+  msg?: string,
+) {
+  assertThrows(
+    () => {
+      throw error;
+    },
+    ErrorClass,
+    msgIncludes,
+    msg,
+  );
 }

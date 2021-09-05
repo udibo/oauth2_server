@@ -1,7 +1,7 @@
 import { PasswordGrant, PasswordGrantServices } from "./password.ts";
-import { RefreshTokenService, Token } from "../models/token.ts";
-import type { Client, ClientService } from "../models/client.ts";
-import type { User, UserService } from "../models/user.ts";
+import { Token } from "../models/token.ts";
+import type { Client } from "../models/client.ts";
+import type { User } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
@@ -16,18 +16,19 @@ import {
   test,
   TestSuite,
 } from "../test_deps.ts";
-import { ExampleUserService } from "../models/user_test.ts";
 import {
   InvalidGrant,
   InvalidRequest,
   InvalidScope,
   ServerError,
 } from "../errors.ts";
-import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
-import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
-import { ExampleClientService } from "../models/client_test.ts";
+import {
+  ClientService,
+  RefreshTokenService,
+  UserService,
+} from "../services/test_services.ts";
 
 const passwordGrantTests: TestSuite<void> = new TestSuite({
   name: "PasswordGrant",
@@ -42,10 +43,12 @@ const client: Client = {
   id: "1",
   grants: ["password"],
 };
-const clientService: ClientService = new ExampleClientService({ client });
-const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
-const userService: UserService = new ExampleUserService();
-const services: PasswordGrantServices = {
+const clientService = new ClientService({ client });
+const tokenService = new RefreshTokenService({
+  client,
+});
+const userService = new UserService();
+const services: PasswordGrantServices<Scope> = {
   clientService,
   tokenService,
   userService,
@@ -58,10 +61,10 @@ test(tokenTests, "not implemented for UserService", async () => {
     "getAuthenticated",
   );
   try {
-    let request: OAuth2Request = fakeTokenRequest(
+    let request = fakeTokenRequest(
       "username=kyle&password=hunter2",
     );
-    const result: Promise<Token> = passwordGrant.token(
+    const result: Promise<Token<Scope>> = passwordGrant.token(
       request,
       client,
     );
@@ -92,8 +95,8 @@ test(tokenTests, "not implemented for UserService", async () => {
 });
 
 test(tokenTests, "request body required", async () => {
-  const request: OAuth2Request = fakeTokenRequest();
-  const result: Promise<Token> = passwordGrant.token(
+  const request = fakeTokenRequest();
+  const result: Promise<Token<Scope>> = passwordGrant.token(
     request,
     client,
   );
@@ -106,8 +109,8 @@ test(tokenTests, "request body required", async () => {
 });
 
 test(tokenTests, "invalid scope", async () => {
-  let request: OAuth2Request = fakeTokenRequest("scope=\\");
-  const result: Promise<Token> = passwordGrant.token(
+  let request = fakeTokenRequest("scope=\\");
+  const result: Promise<Token<Scope>> = passwordGrant.token(
     request,
     client,
   );
@@ -127,8 +130,8 @@ test(tokenTests, "invalid scope", async () => {
 });
 
 test(tokenTests, "username parameter required", async () => {
-  let request: OAuth2Request = fakeTokenRequest("");
-  const result: Promise<Token> = passwordGrant.token(
+  let request = fakeTokenRequest("");
+  const result: Promise<Token<Scope>> = passwordGrant.token(
     request,
     client,
   );
@@ -148,8 +151,8 @@ test(tokenTests, "username parameter required", async () => {
 });
 
 test(tokenTests, "password parameter required", async () => {
-  let request: OAuth2Request = fakeTokenRequest("username=kyle");
-  const result: Promise<Token> = passwordGrant.token(
+  let request = fakeTokenRequest("username=kyle");
+  const result: Promise<Token<Scope>> = passwordGrant.token(
     request,
     client,
   );
@@ -175,10 +178,10 @@ test(tokenTests, "user authentication failed", async () => {
     (_username: string, _password: string) => Promise.resolve(undefined),
   );
   try {
-    const request: OAuth2Request = fakeTokenRequest(
+    const request = fakeTokenRequest(
       "username=Kyle&password=Hunter2",
     );
-    const result: Promise<Token> = passwordGrant.token(
+    const result: Promise<Token<Scope>> = passwordGrant.token(
       request,
       client,
     );
@@ -221,15 +224,15 @@ test(tokenTests, "returns token", async () => {
       }),
   );
   try {
-    const request: OAuth2Request = fakeTokenRequest(
+    const request = fakeTokenRequest(
       "username=Kyle&password=Hunter2&scope=read",
     );
-    const result: Promise<Token> = passwordGrant.token(
+    const result: Promise<Token<Scope>> = passwordGrant.token(
       request,
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token = await result;
+    const token: Token<Scope> = await result;
 
     assertStrictEquals(getAuthenticated.calls.length, 1);
     let call: SpyCall = getAuthenticated.calls[0];
@@ -248,7 +251,7 @@ test(tokenTests, "returns token", async () => {
     );
     assertSpyCalls(generateToken, 1);
 
-    const expectedToken: Token = {
+    const expectedToken: Token<Scope> = {
       accessToken: "x",
       refreshToken: "y",
       accessTokenExpiresAt,

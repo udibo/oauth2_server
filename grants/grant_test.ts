@@ -1,13 +1,12 @@
-import { ClientCredentials, Grant } from "./grant.ts";
+import { AbstractGrant, ClientCredentials } from "./grant.ts";
 import { OAuth2Request } from "../context.ts";
-import { Client, ClientService } from "../models/client.ts";
-import { RefreshTokenService, Token } from "../models/token.ts";
+import { Client } from "../models/client.ts";
+import { Token } from "../models/token.ts";
 import {
   assertClientUserScopeCall,
   assertScope,
   assertToken,
 } from "../asserts.ts";
-import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { Scope } from "../models/scope.ts";
 import { User } from "../models/user.ts";
 import {
@@ -26,16 +25,22 @@ import {
 } from "../test_deps.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { InvalidClient } from "../errors.ts";
-import { ExampleClientService } from "../models/client_test.ts";
+import {
+  ClientService,
+  RefreshTokenService,
+} from "../services/test_services.ts";
 
 const grantTests: TestSuite<void> = new TestSuite({ name: "Grant" });
 
-const clientService: ClientService = new ExampleClientService();
-const client: Client = (clientService as ExampleClientService).client;
-const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
+const clientService = new ClientService();
+const client: Client = (clientService as ClientService).client;
+const tokenService = new RefreshTokenService();
 
-class ExampleGrant extends Grant {
-  token(_request: OAuth2Request, _client: Client): Promise<Token> {
+class ExampleGrant extends AbstractGrant<Scope> {
+  token(
+    _request: OAuth2Request<Scope>,
+    _client: Client,
+  ): Promise<Token<Scope>> {
     throw new Error("not implemented");
   }
 }
@@ -64,7 +69,7 @@ test(
   getClientCredentialsTests,
   "authorization header required if credentials not in body",
   async () => {
-    const request: OAuth2Request = fakeTokenRequest();
+    const request = fakeTokenRequest();
     request.headers.delete("authorization");
     await assertThrowsAsync(
       () => grant.getClientCredentials(request),
@@ -78,7 +83,7 @@ test(
   getClientCredentialsTests,
   "from request body without secret",
   async () => {
-    const request: OAuth2Request = fakeTokenRequest("client_id=1");
+    const request = fakeTokenRequest("client_id=1");
     request.headers.delete("authorization");
     const result: Promise<ClientCredentials> = grant.getClientCredentials(
       request,
@@ -89,7 +94,7 @@ test(
 );
 
 test(getClientCredentialsTests, "from request body with secret", async () => {
-  const request: OAuth2Request = fakeTokenRequest(
+  const request = fakeTokenRequest(
     "client_id=1&client_secret=2",
   );
   request.headers.delete("authorization");
@@ -104,7 +109,7 @@ test(
   getClientCredentialsTests,
   "from authorization header without secret",
   async () => {
-    const request: OAuth2Request = fakeTokenRequest();
+    const request = fakeTokenRequest();
     request.headers.set("authorization", `basic ${btoa("1:")}`);
     const result: Promise<ClientCredentials> = grant.getClientCredentials(
       request,
@@ -118,7 +123,7 @@ test(
   getClientCredentialsTests,
   "from authorization header with secret",
   async () => {
-    const request: OAuth2Request = fakeTokenRequest();
+    const request = fakeTokenRequest();
     request.headers.set("authorization", `basic ${btoa("1:2")}`);
     const result: Promise<ClientCredentials> = grant.getClientCredentials(
       request,
@@ -132,7 +137,7 @@ test(
   getClientCredentialsTests,
   "ignores request body when authorization header is present",
   async () => {
-    const request: OAuth2Request = fakeTokenRequest(
+    const request = fakeTokenRequest(
       "client_id=1&client_secret=2",
     );
     request.headers.set("authorization", `basic ${btoa("3:")}`);
@@ -159,7 +164,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
     resolves(undefined),
   );
   try {
-    const request: OAuth2Request = fakeTokenRequest();
+    const request = fakeTokenRequest();
     request.headers.delete("authorization");
     await assertThrowsAsync(
       () => grant.getAuthenticatedClient(request),
@@ -194,7 +199,7 @@ test(
       resolves(undefined),
     );
     try {
-      const request: OAuth2Request = fakeTokenRequest();
+      const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:")}`);
       await assertThrowsAsync(
         () => grant.getAuthenticatedClient(request),
@@ -233,7 +238,7 @@ test(
       resolves(undefined),
     );
     try {
-      const request: OAuth2Request = fakeTokenRequest();
+      const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
       await assertThrowsAsync(
         () => grant.getAuthenticatedClient(request),
@@ -271,7 +276,7 @@ test(
       "getAuthenticated",
     );
     try {
-      const request: OAuth2Request = fakeTokenRequest();
+      const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:")}`);
       const result: Promise<Client> = grant.getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
@@ -309,7 +314,7 @@ test(
       "getAuthenticated",
     );
     try {
-      const request: OAuth2Request = fakeTokenRequest();
+      const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
       const result: Promise<Client> = grant.getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
@@ -357,7 +362,7 @@ test(
     try {
       const result = grant.generateToken(client, user);
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token = await result;
+      const token: Token<Scope> = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,
@@ -395,7 +400,7 @@ test(generateTokenTests, "access token with optional properties", async () => {
   try {
     const result = grant.generateToken(client, user, new Scope("read"));
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token = await result;
+    const token: Token<Scope> = await result;
 
     assertClientUserScopeCall(
       accessTokenExpiresAt,
@@ -447,7 +452,7 @@ test(
     try {
       const result = refreshTokenGrant.generateToken(client, user);
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token = await result;
+      const token: Token<Scope> = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,
@@ -505,7 +510,7 @@ test(
         new Scope("read"),
       );
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token = await result;
+      const token: Token<Scope> = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,

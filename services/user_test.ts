@@ -1,4 +1,4 @@
-import { User, UserService, UserServiceInterface } from "./user.ts";
+import { User } from "../models/user.ts";
 import {
   assertStrictEquals,
   assertThrowsAsync,
@@ -6,10 +6,9 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
+import { UserService } from "./test_services.ts";
 
-export class ExampleUserService extends UserService {}
-
-const userService: UserServiceInterface = new ExampleUserService();
+const userService = new UserService();
 
 const userServiceTests: TestSuite<void> = new TestSuite({
   name: "UserService",

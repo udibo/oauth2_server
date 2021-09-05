@@ -1,14 +1,6 @@
-import {
-  AccessToken,
-  AccessTokenService,
-  RefreshToken,
-  RefreshTokenService,
-  Token,
-  TokenServiceInterface,
-} from "./token.ts";
-import type { Client } from "./client.ts";
-import type { User } from "./user.ts";
-import { Scope, ScopeInterface } from "./scope.ts";
+import { Token } from "../models/token.ts";
+import { Client } from "../models/client.ts";
+import { Scope, ScopeInterface } from "../models/scope.ts";
 import {
   assert,
   assertEquals,
@@ -20,54 +12,15 @@ import {
   v4,
 } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
+import {
+  AccessTokenService,
+  client,
+  RefreshTokenService,
+  scope,
+  user,
+} from "./test_services.ts";
 
-const client: Client = {
-  id: "1",
-  grants: ["refresh_token", "authorization_code"],
-};
-const user: User = { username: "kyle" };
-const scope: Scope = new Scope("read write");
-
-export interface ExampleTokenServiceOptions {
-  client: Client;
-}
-
-export class ExampleAccessTokenService extends AccessTokenService {
-  client: Client;
-
-  constructor(options?: ExampleTokenServiceOptions) {
-    super();
-    this.client = { ...client, ...options?.client };
-  }
-
-  /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
-    return Promise.resolve({
-      accessToken,
-      client: { ...this.client },
-      user,
-      scope,
-    });
-  }
-
-  /** Saves a token. */
-  save<T extends Token>(token: T): Promise<T> {
-    return Promise.resolve(token);
-  }
-
-  /** Revokes a token. */
-  revoke(_token: Token): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
-  /** Revokes all tokens generated from an authorization code. */
-  revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-}
-
-const accessTokenService: TokenServiceInterface =
-  new ExampleAccessTokenService();
+const accessTokenService = new AccessTokenService();
 
 const accessTokenServiceTests: TestSuite<void> = new TestSuite({
   name: "AccessTokenService",
@@ -192,9 +145,10 @@ test(
 );
 
 test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
-  const result: Promise<Token | void> = accessTokenService.getRefreshToken(
-    "fake",
-  );
+  const result: Promise<Token<Scope> | void> = accessTokenService
+    .getRefreshToken(
+      "fake",
+    );
   assertStrictEquals(Promise.resolve(result), result);
   await assertThrowsAsync(
     () => result,
@@ -222,53 +176,7 @@ test(
   },
 );
 
-export class ExampleRefreshTokenService extends RefreshTokenService {
-  client: Client;
-
-  constructor(options?: ExampleTokenServiceOptions) {
-    super();
-    this.client = { ...client, ...options?.client };
-  }
-
-  /** Retrieves an existing token. */
-  getAccessToken(accessToken: string): Promise<AccessToken | undefined> {
-    return Promise.resolve({
-      accessToken,
-      client: { ...this.client },
-      user,
-      scope,
-    });
-  }
-
-  /** Retrieves an existing token. */
-  getRefreshToken(refreshToken: string): Promise<RefreshToken | undefined> {
-    return Promise.resolve({
-      accessToken: "fake",
-      refreshToken,
-      client: { ...this.client },
-      user,
-      scope,
-    });
-  }
-
-  /** Saves a token. */
-  save<T extends Token>(token: T): Promise<T> {
-    return Promise.resolve(token);
-  }
-
-  /** Revokes a token. */
-  revoke(_token: Token): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
-  /** Revokes all tokens generated from an authorization code. */
-  revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-}
-
-const refreshTokenService: TokenServiceInterface =
-  new ExampleRefreshTokenService();
+const refreshTokenService = new RefreshTokenService();
 
 const refreshTokenServiceTests: TestSuite<void> = new TestSuite({
   name: "RefreshTokenService",

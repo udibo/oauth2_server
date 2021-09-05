@@ -9,38 +9,41 @@ export type {
 export { challengeMethods, generateCodeVerifier } from "./pkce.ts";
 export type { ChallengeMethod, ChallengeMethods } from "./pkce.ts";
 
-export { AuthorizationCodeService } from "./models/authorization_code.ts";
+export type { AuthorizationCode } from "./models/authorization_code.ts";
+export { AbstractAuthorizationCodeService } from "./services/authorization_code.ts";
 export type {
-  AuthorizationCode,
   AuthorizationCodeServiceInterface,
-} from "./models/authorization_code.ts";
+} from "./services/authorization_code.ts";
 
-export { ClientService } from "./models/client.ts";
-export type { Client, ClientServiceInterface } from "./models/client.ts";
+export type { Client } from "./models/client.ts";
+export { AbstractClientService } from "./services/client.ts";
+export type { ClientServiceInterface } from "./services/client.ts";
 
 export { SCOPE, Scope, SCOPE_TOKEN } from "./models/scope.ts";
 export type { ScopeConstructor, ScopeInterface } from "./models/scope.ts";
 
-export { AccessTokenService, RefreshTokenService } from "./models/token.ts";
-export type {
-  AccessToken,
-  RefreshToken,
-  Token,
-  TokenServiceInterface,
-} from "./models/token.ts";
+export type { AccessToken, RefreshToken, Token } from "./models/token.ts";
+export {
+  AbstractAccessTokenService,
+  AbstractRefreshTokenService,
+} from "./services/token.ts";
+export type { TokenServiceInterface } from "./services/token.ts";
 
-export { UserService } from "./models/user.ts";
-export type { User, UserServiceInterface } from "./models/user.ts";
+export type { User } from "./models/user.ts";
+export { AbstractUserService } from "./services/user.ts";
+export type { UserServiceInterface } from "./services/user.ts";
 
-export { errorHandler, getAccessToken } from "./context.ts";
+export {
+  authorizeUrl,
+  getAccessToken,
+  loginRedirectFactory,
+} from "./context.ts";
 export type {
-  Authenticator,
+  AuthorizeParameters,
   ErrorBody,
-  ErrorHandler,
-  OAuth2Context,
+  LoginRedirectOptions,
   OAuth2Request,
   OAuth2Response,
-  OAuth2State,
 } from "./context.ts";
 
 export {
@@ -55,7 +58,7 @@ export {
 export { parseBasicAuth } from "./basic_auth.ts";
 export type { BasicAuth } from "./basic_auth.ts";
 
-export { Grant } from "./grants/grant.ts";
+export { AbstractGrant } from "./grants/grant.ts";
 export type {
   ClientCredentials,
   GrantInterface,
@@ -84,13 +87,6 @@ export type {
   RefreshTokenGrantInterface,
   RefreshTokenGrantOptions,
 } from "./grants/refresh_token.ts";
-
-export { PasswordGrant } from "./grants/password.ts";
-export type {
-  PasswordGrantInterface,
-  PasswordGrantOptions,
-  PasswordGrantServices,
-} from "./grants/password.ts";
 
 export {
   AccessDenied,

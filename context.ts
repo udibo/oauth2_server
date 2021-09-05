@@ -1,12 +1,38 @@
-import { OAuth2Error } from "./errors.ts";
+import { AuthorizationCode } from "./models/authorization_code.ts";
+import { ScopeInterface } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
+import { User } from "./models/user.ts";
 
-export interface OAuth2Request {
+export interface OAuth2Request<Scope extends ScopeInterface> {
   url: URL;
   headers: Headers;
   method: string;
   hasBody: boolean;
   body?: Promise<URLSearchParams>;
+  token?: Token<Scope>;
+  authorizationCode?: AuthorizationCode<Scope>;
+  authorizeParameters?: AuthorizeParameters;
+  authorizedScope?: Scope;
+  redirectUrl?: URL;
+  user?: User;
+  acceptedScope?: Scope;
+  requestedScope?: Scope;
+}
+
+export interface OAuth2AuthenticatedRequest<Scope extends ScopeInterface>
+  extends OAuth2Request<Scope> {
+  token: Token<Scope>;
+}
+
+export interface OAuth2AuthorizeRequest<Scope extends ScopeInterface>
+  extends OAuth2Request<Scope> {
+  authorizeParameters: AuthorizeParameters;
+}
+
+export interface OAuth2AuthorizedRequest<Scope extends ScopeInterface>
+  extends OAuth2AuthorizeRequest<Scope> {
+  authorizationCode: AuthorizationCode<Scope>;
+  redirectUrl: URL;
 }
 
 export interface OAuth2Response {
@@ -14,19 +40,7 @@ export interface OAuth2Response {
   headers: Headers;
   // deno-lint-ignore no-explicit-any
   body?: any | Promise<any> | (() => (any | Promise<any>));
-  redirect(url: string | URL): void;
-}
-
-export interface OAuth2State {
-  token?: Token;
-  // deno-lint-ignore no-explicit-any
-  [key: string]: any;
-}
-
-export interface OAuth2Context {
-  request: OAuth2Request;
-  response: OAuth2Response;
-  state: OAuth2State;
+  redirect(url: string | URL): Promise<void>;
 }
 
 export interface ErrorBody {
@@ -35,36 +49,10 @@ export interface ErrorBody {
   "error_uri"?: string;
 }
 
-export type ErrorHandler = (
-  response: OAuth2Response,
-  error: OAuth2Error,
-  realm?: string,
-) => void | Promise<void>;
-
-export const errorHandler: ErrorHandler = (
-  response: OAuth2Response,
-  error: OAuth2Error,
-  realm?: string,
-) => {
-  response.status = error.status ?? 500;
-  if (error.status === 401) {
-    response.headers.set(
-      "WWW-Authenticate",
-      `Basic realm="${realm ?? "Service"}"`,
-    );
-  }
-  const body: ErrorBody = {
-    error: error.code ?? "server_error",
-  };
-  if (error.message) body.error_description = error.message;
-  if (error.uri) body.error_uri = error.uri;
-  response.body = body;
-};
-
 const BEARER_TOKEN = /^ *(?:[Bb][Ee][Aa][Rr][Ee][Rr]) +([\w-.~+/]+=*) *$/;
 
-export async function getAccessToken(
-  request: OAuth2Request,
+export async function getAccessToken<Scope extends ScopeInterface>(
+  request: OAuth2Request<Scope>,
 ): Promise<string | null> {
   let accessToken: string | null = null;
 
@@ -90,4 +78,137 @@ export async function getAccessToken(
   return accessToken;
 }
 
-export type Authenticator = (context: OAuth2Context) => Promise<Token | null>;
+export interface AuthorizeParameters {
+  responseType: string | null;
+  clientId: string | null;
+  redirectUri: string | null;
+  state: string | null;
+  scope: string | null;
+  challenge: string | null;
+  challengeMethod: string | null;
+}
+
+/** Gets the authorize parameters from the request. */
+export async function authorizeParameters<Scope extends ScopeInterface>(
+  request: OAuth2Request<Scope>,
+): Promise<AuthorizeParameters> {
+  let responseType: string | null = null;
+  let clientId: string | null = null;
+  let redirectUri: string | null = null;
+  let state: string | null = null;
+  let scope: string | null = null;
+  let challenge: string | null = null;
+  let challengeMethod: string | null = null;
+
+  if (request.method === "POST") {
+    const contentType: string | null = request.headers.get("content-type");
+    if (
+      contentType === "application/x-www-form-urlencoded" && request.hasBody
+    ) {
+      const body: URLSearchParams = await request.body!;
+      responseType = body.get("response_type");
+      clientId = body.get("client_id");
+      redirectUri = body.get("redirect_uri");
+      state = body.get("state");
+      scope = body.get("scope");
+      challenge = body.get("code_challenge");
+      challengeMethod = body.get("code_challenge_method");
+    }
+  }
+
+  const url: URL = request.url;
+  const { searchParams } = url;
+
+  if (!responseType) responseType = searchParams.get("response_type");
+  if (!clientId) clientId = searchParams.get("client_id");
+  if (!redirectUri) redirectUri = searchParams.get("redirect_uri");
+  if (!state) state = searchParams.get("state");
+  if (!scope) scope = searchParams.get("scope");
+  if (!challenge) challenge = searchParams.get("code_challenge");
+  if (!challengeMethod) {
+    challengeMethod = searchParams.get("code_challenge_method");
+  }
+
+  return {
+    responseType,
+    clientId,
+    redirectUri,
+    state,
+    scope,
+    challenge,
+    challengeMethod,
+  };
+}
+
+/** Generates url for an authorization get request. */
+export function authorizeUrl<Scope extends ScopeInterface>(
+  request: OAuth2AuthorizeRequest<Scope>,
+): URL {
+  const getUrl: URL = new URL(request.url.toString());
+  getUrl.search = "";
+  const { searchParams } = getUrl;
+  const {
+    responseType,
+    clientId,
+    redirectUri,
+    state,
+    scope,
+    challenge,
+    challengeMethod,
+  } = request.authorizeParameters;
+  if (responseType) searchParams.set("response_type", responseType);
+  if (clientId) searchParams.set("client_id", clientId);
+  if (redirectUri) searchParams.set("redirect_uri", redirectUri);
+  if (state) searchParams.set("state", state);
+  if (scope) searchParams.set("scope", scope);
+  if (challenge) searchParams.set("code_challenge", challenge);
+  if (challengeMethod) {
+    searchParams.set("code_challenge_method", challengeMethod);
+  }
+  return getUrl;
+}
+
+export interface LoginRedirectOptions {
+  /** The url for logging in when unauthenticated. */
+  loginUrl: string | URL;
+  /** The search parameter key for the url to redirect to after logging in. Defaults to "redirect_url". */
+  loginRedirectKey?: string;
+}
+
+export function loginRedirectFactory<Scope extends ScopeInterface>(
+  options: LoginRedirectOptions,
+) {
+  const { loginUrl } = options;
+  const loginRedirectKey = options.loginRedirectKey ?? "redirect_uri";
+
+  return async (
+    request: OAuth2AuthorizeRequest<Scope>,
+    response: OAuth2Response,
+  ) => {
+    if (typeof loginUrl === "string") {
+      const queryIndex: number = loginUrl.indexOf("?");
+      let pathname: string;
+      let searchParams: URLSearchParams;
+      if (queryIndex === -1) {
+        pathname = loginUrl;
+        searchParams = new URLSearchParams();
+      } else {
+        pathname = loginUrl.slice(0, queryIndex);
+        searchParams = new URLSearchParams(loginUrl.slice(queryIndex));
+      }
+      searchParams.set(
+        loginRedirectKey,
+        authorizeUrl(request).toString(),
+      );
+      response.redirect(`${pathname}?${searchParams.toString()}`);
+    } else {
+      const target = new URL(loginUrl.toString());
+      const searchParams = target.searchParams;
+      searchParams.set(
+        loginRedirectKey,
+        authorizeUrl(request).toString(),
+      );
+      await response.redirect(target);
+    }
+  };
+}

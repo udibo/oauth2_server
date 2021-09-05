@@ -1,100 +1,15 @@
 import {
-  errorHandler,
+  authorizeParameters,
+  authorizeUrl,
   getAccessToken,
-  OAuth2Request,
-  OAuth2Response,
+  OAuth2AuthorizeRequest,
 } from "./context.ts";
-import { InvalidClient, InvalidGrant } from "./errors.ts";
-import { fakeResourceRequest, fakeResponse } from "./test_context.ts";
-import { assertEquals, Spy, spy, test, TestSuite } from "./test_deps.ts";
+import { Scope } from "./models/scope.ts";
+import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
+import { fakeAuthorizeRequest, fakeResourceRequest } from "./test_context.ts";
+import { assertEquals, test, TestSuite } from "./test_deps.ts";
 
 const contextTests: TestSuite<void> = new TestSuite({ name: "context" });
-
-const errorHandlerTests: TestSuite<void> = new TestSuite({
-  name: "errorHandler",
-  suite: contextTests,
-});
-
-test(errorHandlerTests, "OAuth2Error without optional properties", async () => {
-  const response: OAuth2Response = fakeResponse();
-  const redirectSpy: Spy<OAuth2Response> = spy(response, "redirect");
-  assertEquals(
-    await errorHandler(
-      response,
-      new InvalidGrant(),
-    ),
-    undefined,
-  );
-  assertEquals(response.status, 400);
-  assertEquals([...response.headers.entries()], []);
-  assertEquals(response.body, {
-    error: "invalid_grant",
-  });
-  assertEquals(redirectSpy.calls.length, 0);
-});
-
-test(errorHandlerTests, "OAuth2Error with optional properties", async () => {
-  const response: OAuth2Response = fakeResponse();
-  const redirectSpy: Spy<OAuth2Response> = spy(response, "redirect");
-  assertEquals(
-    await errorHandler(
-      response,
-      new InvalidGrant({
-        message: "invalid refresh_token",
-        uri: "https://example.com/",
-      }),
-    ),
-    undefined,
-  );
-  assertEquals(response.status, 400);
-  assertEquals([...response.headers.entries()], []);
-  assertEquals(response.body, {
-    error: "invalid_grant",
-    error_description: "invalid refresh_token",
-    error_uri: "https://example.com/",
-  });
-  assertEquals(redirectSpy.calls.length, 0);
-});
-
-test(errorHandlerTests, "OAuth2Error with 401 status", async () => {
-  const response: OAuth2Response = fakeResponse();
-  const redirectSpy: Spy<OAuth2Response> = spy(response, "redirect");
-  assertEquals(
-    await errorHandler(
-      response,
-      new InvalidClient("client authentication failed"),
-    ),
-    undefined,
-  );
-  assertEquals(response.status, 401);
-  assertEquals([...response.headers.entries()], [
-    ["www-authenticate", 'Basic realm="Service"'],
-  ]);
-  assertEquals(response.body, {
-    error: "invalid_client",
-    error_description: "client authentication failed",
-  });
-  assertEquals(redirectSpy.calls.length, 0);
-});
-
-test(errorHandlerTests, "Error", async () => {
-  const response: OAuth2Response = fakeResponse();
-  const redirectSpy: Spy<OAuth2Response> = spy(response, "redirect");
-  assertEquals(
-    await errorHandler(
-      response,
-      new Error("unknown"),
-    ),
-    undefined,
-  );
-  assertEquals(response.status, 500);
-  assertEquals([...response.headers.entries()], []);
-  assertEquals(response.body, {
-    error: "server_error",
-    error_description: "unknown",
-  });
-  assertEquals(redirectSpy.calls.length, 0);
-});
 
 const getAccessTokenTests: TestSuite<void> = new TestSuite({
   name: "getAccessToken",
@@ -102,7 +17,7 @@ const getAccessTokenTests: TestSuite<void> = new TestSuite({
 });
 
 test(getAccessTokenTests, "GET request with no access token", async () => {
-  const request: OAuth2Request = fakeResourceRequest("");
+  const request = fakeResourceRequest("");
   const result = getAccessToken(request);
   assertEquals(Promise.resolve(result), result);
   assertEquals(await result, null);
@@ -112,7 +27,7 @@ test(
   getAccessTokenTests,
   "GET request with access token in authorization header",
   async () => {
-    const request: OAuth2Request = fakeResourceRequest("abc");
+    const request = fakeResourceRequest("abc");
     const result = getAccessToken(request);
     assertEquals(Promise.resolve(result), result);
     assertEquals(await result, "abc");
@@ -120,7 +35,7 @@ test(
 );
 
 test(getAccessTokenTests, "POST request with no access token", async () => {
-  const request: OAuth2Request = fakeResourceRequest("");
+  const request = fakeResourceRequest("");
   const result = getAccessToken(request);
   assertEquals(Promise.resolve(result), result);
   assertEquals(await result, null);
@@ -130,7 +45,7 @@ test(
   getAccessTokenTests,
   "POST request with access token in authorization header",
   async () => {
-    const request: OAuth2Request = fakeResourceRequest("abc", {});
+    const request = fakeResourceRequest("abc", {});
     const result = getAccessToken(request);
     assertEquals(Promise.resolve(result), result);
     assertEquals(await result, "abc");
@@ -141,7 +56,7 @@ test(
   getAccessTokenTests,
   "POST request with access token in request body",
   async () => {
-    const request: OAuth2Request = fakeResourceRequest("", {
+    const request = fakeResourceRequest("", {
       access_token: "abc",
     });
     const result = getAccessToken(request);
@@ -154,7 +69,7 @@ test(
   getAccessTokenTests,
   "POST request with access token in authorization header and body",
   async () => {
-    const request: OAuth2Request = fakeResourceRequest("abc", {
+    const request = fakeResourceRequest("abc", {
       access_token: "def",
     });
     const result = getAccessToken(request);
@@ -162,3 +77,158 @@ test(
     assertEquals(await result, "abc");
   },
 );
+
+const authorizeParametersTests: TestSuite<void> = new TestSuite({
+  name: "authorizeParameters",
+  suite: contextTests,
+});
+
+test(authorizeParametersTests, "from search parameters", async () => {
+  const verifier: string = generateCodeVerifier();
+  const challenge: string = challengeMethods.S256(verifier);
+  const request = fakeAuthorizeRequest();
+  request.url.searchParams.set("code_challenge", challenge);
+  request.url.searchParams.set("code_challenge_method", "S256");
+  assertEquals(await authorizeParameters(request), {
+    responseType: "code",
+    clientId: "1",
+    redirectUri: "https://client.example.com/cb",
+    state: "xyz",
+    scope: "read write",
+    challenge: challenge,
+    challengeMethod: "S256",
+  });
+});
+
+test(authorizeParametersTests, "from body", async () => {
+  const verifier: string = generateCodeVerifier();
+  const challenge: string = challengeMethods.S256(verifier);
+  const request = fakeAuthorizeRequest({
+    "response_type": "code",
+    "client_id": "1",
+    "redirect_uri": "https://client.example.com/cb",
+    "scope": "read write",
+    "state": "xyz",
+    "code_challenge": challenge,
+    "code_challenge_method": "S256",
+  });
+  request.url.search = "";
+  assertEquals(await authorizeParameters(request), {
+    responseType: "code",
+    clientId: "1",
+    redirectUri: "https://client.example.com/cb",
+    state: "xyz",
+    scope: "read write",
+    challenge: challenge,
+    challengeMethod: "S256",
+  });
+});
+
+test(authorizeParametersTests, "from search parameters and body", async () => {
+  const verifier: string = generateCodeVerifier();
+  const challenge: string = challengeMethods.S256(verifier);
+  const request = fakeAuthorizeRequest({
+    "response_type": "code",
+    "redirect_uri": "https://client.example.com/cb",
+    "state": "xyz",
+    "code_challenge_method": "S256",
+  });
+  request.url.search = "";
+  request.url.searchParams.set("client_id", "1");
+  request.url.searchParams.set("scope", "read write");
+  request.url.searchParams.set("code_challenge", challenge);
+  assertEquals(await authorizeParameters(request), {
+    responseType: "code",
+    clientId: "1",
+    redirectUri: "https://client.example.com/cb",
+    state: "xyz",
+    scope: "read write",
+    challenge: challenge,
+    challengeMethod: "S256",
+  });
+});
+
+test(
+  authorizeParametersTests,
+  "prefer body over search parameters",
+  async () => {
+    const verifiers: string[] = Array(2).fill(null).map(() =>
+      generateCodeVerifier()
+    );
+    const challenges: string[] = Array(2).fill(null).map((_, i) =>
+      challengeMethods.S256(verifiers[i])
+    );
+    const request = fakeAuthorizeRequest({
+      "response_type": "code",
+      "client_id": "1",
+      "redirect_uri": "https://client.example.com/cb",
+      "state": "xyz",
+      "scope": "read write",
+      "code_challenge": challenges[0],
+      "code_challenge_method": "S256",
+    });
+    request.url.search = "";
+    request.url.searchParams.set("response_type", "token");
+    request.url.searchParams.set("client_id", "2");
+    request.url.searchParams.set(
+      "redirect_uri",
+      "https://client2.example.com/cb",
+    );
+    request.url.searchParams.set("state", "abc");
+    request.url.searchParams.set("scope", "read");
+    request.url.searchParams.set("code_challenge", challenges[1]);
+    request.url.searchParams.set("code_challenge_method", "plain");
+    assertEquals(await authorizeParameters(request), {
+      responseType: "code",
+      clientId: "1",
+      redirectUri: "https://client.example.com/cb",
+      scope: "read write",
+      state: "xyz",
+      challenge: challenges[0],
+      challengeMethod: "S256",
+    });
+  },
+);
+
+const authorizeUrlTests: TestSuite<void> = new TestSuite({
+  name: "authorizeUrl",
+  suite: contextTests,
+});
+
+test(authorizeUrlTests, "without PKCE", async () => {
+  const request = fakeAuthorizeRequest();
+  const expectedUrl = new URL("https://example.com/authorize");
+  expectedUrl.searchParams.set("response_type", "code");
+  expectedUrl.searchParams.set("client_id", "1");
+  expectedUrl.searchParams.set("redirect_uri", "https://client.example.com/cb");
+  expectedUrl.searchParams.set("state", "xyz");
+  expectedUrl.searchParams.set("scope", "read write");
+  request.authorizeParameters = await authorizeParameters(request);
+
+  assertEquals(
+    authorizeUrl(request as OAuth2AuthorizeRequest<Scope>),
+    expectedUrl,
+  );
+});
+
+test(authorizeUrlTests, "with PKCE", async () => {
+  const verifier: string = generateCodeVerifier();
+  const challenge: string = challengeMethods.S256(verifier);
+  const request = fakeAuthorizeRequest();
+  request.url.searchParams.set("code_challenge", challenge);
+  request.url.searchParams.set("code_challenge_method", "S256");
+  const expectedUrl = new URL("https://example.com/authorize");
+  expectedUrl.searchParams.set("response_type", "code");
+  expectedUrl.searchParams.set("client_id", "1");
+  expectedUrl.searchParams.set("redirect_uri", "https://client.example.com/cb");
+  expectedUrl.searchParams.set("state", "xyz");
+  expectedUrl.searchParams.set("scope", "read write");
+  expectedUrl.searchParams.set("code_challenge", challenge);
+  expectedUrl.searchParams.set("code_challenge_method", "S256");
+  request.authorizeParameters = await authorizeParameters(request);
+
+  assertEquals(
+    authorizeUrl(request as OAuth2AuthorizeRequest<Scope>),
+    expectedUrl,
+  );
+});

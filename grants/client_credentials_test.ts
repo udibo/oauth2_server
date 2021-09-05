@@ -2,8 +2,7 @@ import {
   ClientCredentialsGrant,
   ClientCredentialsGrantServices,
 } from "./client_credentials.ts";
-import { RefreshTokenService, Token } from "../models/token.ts";
-import { ClientService } from "../models/client.ts";
+import { Token } from "../models/token.ts";
 import type { Client } from "../models/client.ts";
 import type { User } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
@@ -26,12 +25,13 @@ import {
   InvalidScope,
   ServerError,
 } from "../errors.ts";
-import { OAuth2Request } from "../context.ts";
 import { fakeTokenRequest } from "../test_context.ts";
-import { ExampleRefreshTokenService } from "../models/token_test.ts";
 import { assertClientUserScopeCall } from "../asserts.ts";
 import { assertToken } from "../asserts.ts";
-import { ExampleClientService } from "../models/client_test.ts";
+import {
+  ClientService,
+  RefreshTokenService,
+} from "../services/test_services.ts";
 
 const clientCredentialsGrantTests: TestSuite<void> = new TestSuite({
   name: "ClientCredentialsGrant",
@@ -46,14 +46,15 @@ const client: Client = {
   id: "1",
   grants: ["client_credentials"],
 };
-const clientService: ClientService = new ExampleClientService({ client });
-const tokenService: RefreshTokenService = new ExampleRefreshTokenService();
-const services: ClientCredentialsGrantServices = {
+const clientService = new ClientService({ client });
+const tokenService = new RefreshTokenService({
+  client,
+});
+const services: ClientCredentialsGrantServices<Scope> = {
   tokenService,
   clientService,
 };
-const clientCredentialsGrant: ClientCredentialsGrant =
-  new ClientCredentialsGrant({ services });
+const clientCredentialsGrant = new ClientCredentialsGrant({ services });
 
 test(tokenTests, "not implemented for UserService", async () => {
   const getUser: Spy<ClientService> = spy(
@@ -61,8 +62,8 @@ test(tokenTests, "not implemented for UserService", async () => {
     "getUser",
   );
   try {
-    const request: OAuth2Request = fakeTokenRequest("");
-    const result: Promise<Token> = clientCredentialsGrant.token(
+    const request = fakeTokenRequest("");
+    const result: Promise<Token<Scope>> = clientCredentialsGrant.token(
       request,
       client,
     );
@@ -83,8 +84,8 @@ test(tokenTests, "not implemented for UserService", async () => {
 });
 
 test(tokenTests, "request body required", async () => {
-  const request: OAuth2Request = fakeTokenRequest();
-  const result: Promise<Token> = clientCredentialsGrant.token(
+  const request = fakeTokenRequest();
+  const result: Promise<Token<Scope>> = clientCredentialsGrant.token(
     request,
     client,
   );
@@ -97,8 +98,8 @@ test(tokenTests, "request body required", async () => {
 });
 
 test(tokenTests, "invalid scope", async () => {
-  let request: OAuth2Request = fakeTokenRequest("scope=\\");
-  const result: Promise<Token> = clientCredentialsGrant.token(
+  let request = fakeTokenRequest("scope=\\");
+  const result: Promise<Token<Scope>> = clientCredentialsGrant.token(
     request,
     client,
   );
@@ -124,8 +125,8 @@ test(tokenTests, "no user for client", async () => {
     () => undefined,
   );
   try {
-    const request: OAuth2Request = fakeTokenRequest("");
-    const result: Promise<Token> = clientCredentialsGrant.token(
+    const request = fakeTokenRequest("");
+    const result: Promise<Token<Scope>> = clientCredentialsGrant.token(
       request,
       client,
     );
@@ -168,13 +169,13 @@ test(tokenTests, "returns accessToken", async () => {
   );
 
   try {
-    const request: OAuth2Request = fakeTokenRequest("scope=read");
-    const result: Promise<Token> = clientCredentialsGrant.token(
+    const request = fakeTokenRequest("scope=read");
+    const result: Promise<Token<Scope>> = clientCredentialsGrant.token(
       request,
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token = await result;
+    const token: Token<Scope> = await result;
 
     assertStrictEquals(getUser.calls.length, 1);
     let call: SpyCall = getUser.calls[0];
@@ -194,7 +195,7 @@ test(tokenTests, "returns accessToken", async () => {
     );
     assertSpyCalls(generateToken, 1);
 
-    const expectedToken: Token = {
+    const expectedToken: Token<Scope> = {
       accessToken: "x",
       accessTokenExpiresAt,
       client,
