@@ -24,10 +24,11 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import { fakeTokenRequest } from "../test_context.ts";
-import { InvalidClient } from "../errors.ts";
+import { InvalidClient, InvalidScope } from "../errors.ts";
 import {
   ClientService,
   RefreshTokenService,
+  scope,
 } from "../services/test_services.ts";
 
 const grantTests: TestSuite<void> = new TestSuite({ name: "Grant" });
@@ -61,8 +62,140 @@ test(grantTests, "parseScope", () => {
   assertScope(grant.parseScope("read write"), new Scope("read write"));
 });
 
+const acceptedScopeTests: TestSuite<void> = new TestSuite({
+  name: "acceptedScope",
+  suite: grantTests,
+});
+
+test(
+  acceptedScopeTests,
+  "returns undefined if token service accepts no scope",
+  async () => {
+    const acceptedScope = stub(
+      tokenService,
+      "acceptedScope",
+      () => Promise.resolve(undefined),
+    );
+    try {
+      assertScope(await grant.acceptedScope(client, user, scope), undefined);
+
+      assertClientUserScopeCall(
+        acceptedScope,
+        0,
+        tokenService,
+        client,
+        user,
+        scope,
+      );
+      assertSpyCalls(acceptedScope, 1);
+    } finally {
+      acceptedScope.restore();
+    }
+  },
+);
+
+test(
+  acceptedScopeTests,
+  "returns scope accepted by token service without requesting scope",
+  async () => {
+    const expectedScope = new Scope("other");
+    const acceptedScope = stub(
+      tokenService,
+      "acceptedScope",
+      () => Promise.resolve(expectedScope),
+    );
+    try {
+      assertScope(await grant.acceptedScope(client, user), expectedScope);
+
+      assertClientUserScopeCall(acceptedScope, 0, tokenService, client, user);
+      assertSpyCalls(acceptedScope, 1);
+    } finally {
+      acceptedScope.restore();
+    }
+  },
+);
+
+test(
+  acceptedScopeTests,
+  "returns scope accepted by token service instead of requested scope",
+  async () => {
+    const expectedScope = new Scope("other");
+    const acceptedScope = stub(
+      tokenService,
+      "acceptedScope",
+      () => Promise.resolve(expectedScope),
+    );
+    try {
+      assertScope(
+        await grant.acceptedScope(client, user, scope),
+        expectedScope,
+      );
+
+      assertClientUserScopeCall(
+        acceptedScope,
+        0,
+        tokenService,
+        client,
+        user,
+        scope,
+      );
+      assertSpyCalls(acceptedScope, 1);
+    } finally {
+      acceptedScope.restore();
+    }
+  },
+);
+
+test(acceptedScopeTests, "invalid scope", async () => {
+  const acceptedScope = stub(
+    tokenService,
+    "acceptedScope",
+    () => Promise.resolve(false),
+  );
+  try {
+    await assertThrowsAsync(
+      () => grant.acceptedScope(client, user, scope),
+      InvalidScope,
+      "invalid scope",
+    );
+
+    assertClientUserScopeCall(
+      acceptedScope,
+      0,
+      tokenService,
+      client,
+      user,
+      scope,
+    );
+    assertSpyCalls(acceptedScope, 1);
+  } finally {
+    acceptedScope.restore();
+  }
+});
+
+test(acceptedScopeTests, "scope required", async () => {
+  const acceptedScope = stub(
+    tokenService,
+    "acceptedScope",
+    () => Promise.resolve(false),
+  );
+  try {
+    await assertThrowsAsync(
+      () => grant.acceptedScope(client, user),
+      InvalidScope,
+      "scope required",
+    );
+
+    assertClientUserScopeCall(acceptedScope, 0, tokenService, client, user);
+    assertSpyCalls(acceptedScope, 1);
+  } finally {
+    acceptedScope.restore();
+  }
+});
+
 const getClientCredentialsTests: TestSuite<void> = new TestSuite({
   name: "getClientCredentials",
+  suite: grantTests,
 });
 
 test(
@@ -151,6 +284,7 @@ test(
 
 const getAuthenticatedClientTests: TestSuite<void> = new TestSuite({
   name: "getAuthenticatedClient",
+  suite: grantTests,
 });
 
 test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
@@ -341,6 +475,7 @@ test(
 
 const generateTokenTests: TestSuite<void> = new TestSuite({
   name: "generateToken",
+  suite: grantTests,
 });
 
 const user: User = { username: "kyle" };

@@ -27,6 +27,7 @@ import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
 import {
   ClientService,
   RefreshTokenService,
+  scope,
   UserService,
 } from "../services/test_services.ts";
 
@@ -200,6 +201,48 @@ test(tokenTests, "user authentication failed", async () => {
   }
 });
 
+test(tokenTests, "scope not accepted", async () => {
+  const user = { username: "Kyle" };
+  const getAuthenticated: Stub<UserService> = stub(
+    userService,
+    "getAuthenticated",
+    (username: string, _password: string) => Promise.resolve({ username }),
+  );
+  const acceptedScope = stub(
+    passwordGrant,
+    "acceptedScope",
+    () => Promise.reject(new InvalidScope("invalid scope")),
+  );
+  try {
+    const request = fakeTokenRequest(
+      "username=Kyle&password=Hunter2&scope=read write",
+    );
+    const result: Promise<Token<Scope>> = passwordGrant.token(
+      request,
+      client,
+    );
+    assertStrictEquals(Promise.resolve(result), result);
+    await assertThrowsAsync(
+      () => result,
+      InvalidScope,
+      "invalid scope",
+    );
+
+    assertClientUserScopeCall(
+      acceptedScope,
+      0,
+      passwordGrant,
+      client,
+      user,
+      scope,
+    );
+    assertSpyCalls(acceptedScope, 1);
+  } finally {
+    getAuthenticated.restore();
+    acceptedScope.restore();
+  }
+});
+
 test(tokenTests, "returns token", async () => {
   const getAuthenticated: Stub<UserService> = stub(
     userService,
@@ -223,9 +266,15 @@ test(tokenTests, "returns token", async () => {
         scope,
       }),
   );
+  const expectedScope = new Scope("read");
+  const acceptedScope = stub(
+    passwordGrant,
+    "acceptedScope",
+    () => Promise.resolve(expectedScope),
+  );
   try {
     const request = fakeTokenRequest(
-      "username=Kyle&password=Hunter2&scope=read",
+      "username=Kyle&password=Hunter2&scope=read write",
     );
     const result: Promise<Token<Scope>> = passwordGrant.token(
       request,
@@ -240,14 +289,23 @@ test(tokenTests, "returns token", async () => {
     assertEquals(call.args, ["Kyle", "Hunter2"]);
     const user: User = await call.returned;
 
-    const scope: Scope = new Scope("read");
+    assertClientUserScopeCall(
+      acceptedScope,
+      0,
+      passwordGrant,
+      client,
+      user,
+      scope,
+    );
+    assertSpyCalls(acceptedScope, 1);
+
     assertClientUserScopeCall(
       generateToken,
       0,
       passwordGrant,
       client,
       user,
-      scope,
+      expectedScope,
     );
     assertSpyCalls(generateToken, 1);
 
@@ -258,7 +316,7 @@ test(tokenTests, "returns token", async () => {
       refreshTokenExpiresAt,
       client,
       user,
-      scope,
+      scope: expectedScope,
     };
     assertStrictEquals(save.calls.length, 1);
     call = save.calls[0];
@@ -269,5 +327,6 @@ test(tokenTests, "returns token", async () => {
     getAuthenticated.restore();
     save.restore();
     generateToken.restore();
+    acceptedScope.restore();
   }
 });

@@ -22,6 +22,7 @@ import {
   InvalidClient,
   InvalidGrant,
   InvalidRequest,
+  InvalidScope,
   ServerError,
   UnauthorizedClient,
   UnsupportedGrantType,
@@ -42,6 +43,7 @@ import {
 } from "./test_context.ts";
 import { GrantServices } from "./grants/grant.ts";
 import {
+  assertClientUserScopeCall,
   assertError,
   assertScope,
   assertToken,
@@ -1674,6 +1676,33 @@ test(
 
 test(
   authorizeTests,
+  "scope not accepted",
+  async (context) => {
+    const acceptedScope = stub(
+      authorizationCodeGrant,
+      "acceptedScope",
+      () => Promise.reject(new InvalidScope("invalid scope")),
+    );
+    try {
+      const request = fakeAuthorizeRequest();
+      const response = fakeResponse();
+      await authorizeTestErrorAuthorized(
+        context,
+        request,
+        response,
+        user,
+        undefined,
+        InvalidScope,
+        "invalid scope",
+      );
+    } finally {
+      acceptedScope.restore();
+    }
+  },
+);
+
+test(
+  authorizeTests,
   "not authorized",
   async (context) => {
     const request = fakeAuthorizeRequest();
@@ -1738,6 +1767,8 @@ async function authorizeTest(
   code: string,
   user: User,
   authorizedScope?: Scope,
+  challenge?: string,
+  challengeMethod?: string,
 ) {
   context.setAuthorization = spy((request: OAuth2Request<Scope>) => {
     request.user = user;
@@ -1756,7 +1787,27 @@ async function authorizeTest(
     consent,
   } = context;
   const redirect = spy(response, "redirect");
-  await server.authorize(request, response, setAuthorization, login, consent);
+
+  const generateAuthorizationCode: Stub<AuthorizationCodeGrant> = stub(
+    authorizationCodeGrant,
+    "generateAuthorizationCode",
+    (authorizationCode: Omit<AuthorizationCode<Scope>, "code" | "expiresAt">) =>
+      Promise.resolve({
+        ...authorizationCode,
+        code,
+      }),
+  );
+  const acceptedScope = stub(
+    authorizationCodeGrant,
+    "acceptedScope",
+    () => Promise.resolve(authorizedScope),
+  );
+  try {
+    await server.authorize(request, response, setAuthorization, login, consent);
+  } finally {
+    generateAuthorizationCode.restore();
+    acceptedScope.restore();
+  }
 
   assertSpyCalls(authorizeError, 0);
   assertSpyCalls(error, 0);
@@ -1779,6 +1830,31 @@ async function authorizeTest(
   expectedRedirectUrl.searchParams.set("code", code);
   assertEquals(request.redirectUrl, expectedRedirectUrl);
 
+  assertClientUserScopeCall(
+    acceptedScope,
+    0,
+    authorizationCodeGrant,
+    client,
+    user,
+    scope,
+  );
+  assertSpyCalls(acceptedScope, 1);
+
+  const expectedOptions: Omit<AuthorizationCode<Scope>, "code" | "expiresAt"> =
+    {
+      client,
+      user,
+      scope: authorizedScope,
+      redirectUri: "https://client.example.com/cb",
+    };
+  if (challenge) expectedOptions.challenge = challenge;
+  if (challengeMethod) expectedOptions.challengeMethod = challengeMethod;
+  assertSpyCall(generateAuthorizationCode, 0, {
+    self: authorizationCodeGrant,
+    args: [expectedOptions],
+  });
+  assertSpyCalls(generateAuthorizationCode, 1);
+
   assertEquals([...response.headers.entries()], []);
   assertEquals(response.status, undefined);
   assertEquals(response.body, undefined);
@@ -1792,59 +1868,35 @@ async function authorizeTest(
 }
 
 test(authorizeTests, "success without PKCE", async (context) => {
-  const generateAuthorizationCode: Stub<AuthorizationCodeGrant> = stub(
-    authorizationCodeGrant,
-    "generateAuthorizationCode",
-    (authorizationCode: Omit<AuthorizationCode<Scope>, "code" | "expiresAt">) =>
-      Promise.resolve({
-        ...authorizationCode,
-        code: "123",
-      }),
+  const request = fakeAuthorizeRequest();
+  const response = fakeResponse();
+  await authorizeTest(
+    context,
+    request,
+    response,
+    "123",
+    user,
+    new Scope("read"),
   );
-  try {
-    const request = fakeAuthorizeRequest();
-    const response = fakeResponse();
-    await authorizeTest(
-      context,
-      request,
-      response,
-      "123",
-      user,
-      scope,
-    );
-  } finally {
-    generateAuthorizationCode.restore();
-  }
 });
 
 test(authorizeTests, "success with PKCE", async (context) => {
-  const generateAuthorizationCode: Stub<AuthorizationCodeGrant> = stub(
-    authorizationCodeGrant,
-    "generateAuthorizationCode",
-    (authorizationCode: Omit<AuthorizationCode<Scope>, "code" | "expiresAt">) =>
-      Promise.resolve({
-        ...authorizationCode,
-        code: "123",
-      }),
+  const request = fakeAuthorizeRequest();
+  const verifier: string = generateCodeVerifier();
+  const challenge: string = challengeMethods.S256(verifier);
+  request.url.searchParams.set("code_challenge", challenge);
+  request.url.searchParams.set("code_challenge_method", "S256");
+  const response = fakeResponse();
+  await authorizeTest(
+    context,
+    request,
+    response,
+    "123",
+    user,
+    new Scope("read"),
+    challenge,
+    "S256",
   );
-  try {
-    const request = fakeAuthorizeRequest();
-    const verifier: string = generateCodeVerifier();
-    const challenge: string = challengeMethods.S256(verifier);
-    request.url.searchParams.set("code_challenge", challenge);
-    request.url.searchParams.set("code_challenge_method", "S256");
-    const response = fakeResponse();
-    await authorizeTest(
-      context,
-      request,
-      response,
-      "123",
-      user,
-      scope,
-    );
-  } finally {
-    generateAuthorizationCode.restore();
-  }
 });
 
 test(serverTests, "authorizeSuccess", async () => {
