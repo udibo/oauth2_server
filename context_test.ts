@@ -1,82 +1,14 @@
 import {
   authorizeParameters,
   authorizeUrl,
-  getAccessToken,
   OAuth2AuthorizeRequest,
 } from "./context.ts";
 import { Scope } from "./models/scope.ts";
 import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
-import { fakeAuthorizeRequest, fakeResourceRequest } from "./test_context.ts";
+import { fakeAuthorizeRequest } from "./test_context.ts";
 import { assertEquals, test, TestSuite } from "./test_deps.ts";
 
 const contextTests: TestSuite<void> = new TestSuite({ name: "context" });
-
-const getAccessTokenTests: TestSuite<void> = new TestSuite({
-  name: "getAccessToken",
-  suite: contextTests,
-});
-
-test(getAccessTokenTests, "GET request with no access token", async () => {
-  const request = fakeResourceRequest("");
-  const result = getAccessToken(request);
-  assertEquals(Promise.resolve(result), result);
-  assertEquals(await result, null);
-});
-
-test(
-  getAccessTokenTests,
-  "GET request with access token in authorization header",
-  async () => {
-    const request = fakeResourceRequest("abc");
-    const result = getAccessToken(request);
-    assertEquals(Promise.resolve(result), result);
-    assertEquals(await result, "abc");
-  },
-);
-
-test(getAccessTokenTests, "POST request with no access token", async () => {
-  const request = fakeResourceRequest("");
-  const result = getAccessToken(request);
-  assertEquals(Promise.resolve(result), result);
-  assertEquals(await result, null);
-});
-
-test(
-  getAccessTokenTests,
-  "POST request with access token in authorization header",
-  async () => {
-    const request = fakeResourceRequest("abc", {});
-    const result = getAccessToken(request);
-    assertEquals(Promise.resolve(result), result);
-    assertEquals(await result, "abc");
-  },
-);
-
-test(
-  getAccessTokenTests,
-  "POST request with access token in request body",
-  async () => {
-    const request = fakeResourceRequest("", {
-      access_token: "abc",
-    });
-    const result = getAccessToken(request);
-    assertEquals(Promise.resolve(result), result);
-    assertEquals(await result, "abc");
-  },
-);
-
-test(
-  getAccessTokenTests,
-  "POST request with access token in authorization header and body",
-  async () => {
-    const request = fakeResourceRequest("abc", {
-      access_token: "def",
-    });
-    const result = getAccessToken(request);
-    assertEquals(Promise.resolve(result), result);
-    assertEquals(await result, "abc");
-  },
-);
 
 const authorizeParametersTests: TestSuite<void> = new TestSuite({
   name: "authorizeParameters",

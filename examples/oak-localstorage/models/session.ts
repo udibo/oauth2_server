@@ -2,6 +2,7 @@ import { AppUser } from "./user.ts";
 
 export interface Session {
   id: string;
+  csrf: string;
   user?: AppUser;
   state?: string;
   redirectUri?: string;
@@ -9,5 +10,4 @@ export interface Session {
   accessToken?: string;
   refreshToken?: string;
   accessTokenExpiresAt?: number;
-  csrf?: string;
 }

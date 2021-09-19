@@ -33,11 +33,7 @@ export type { User } from "./models/user.ts";
 export { AbstractUserService } from "./services/user.ts";
 export type { UserServiceInterface } from "./services/user.ts";
 
-export {
-  authorizeUrl,
-  getAccessToken,
-  loginRedirectFactory,
-} from "./context.ts";
+export { authorizeUrl, loginRedirectFactory } from "./context.ts";
 export type {
   AuthorizeParameters,
   ErrorBody,

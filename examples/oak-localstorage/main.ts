@@ -37,9 +37,7 @@ const showLogin = async (
   error?: Error,
 ) => {
   const session = await sessionService.start();
-  cookies.set("sessionId", session.id, { httpOnly: true });
-  session.csrf = crypto.randomUUID();
-  await sessionService.update(session);
+  await cookies.set("sessionId", session.id, { httpOnly: true });
   if (error) response.status = 400;
   response.type = "html";
   response.body = loginPage(session.csrf, error?.message);
@@ -47,9 +45,9 @@ const showLogin = async (
 
 const router = new Router();
 router
-  .get("/", async ({ response, cookies }) => {
-    const sessionId: string | undefined = await cookies.get("sessionId");
-    const session: Session | undefined = await sessionService.start(sessionId);
+  .get("/", async (context) => {
+    const { response } = context;
+    const token = await oauth2.getTokenForContext(context);
     response.type = "html";
     response.body = `
       <html>
@@ -59,7 +57,7 @@ router
         <body>
           <h2>Home</h2>
           ${
-      !session?.user
+      !token?.user
         ? '<a href="/login">Login</a>'
         : '<a href="/logout">Logout</a>'
     }
@@ -67,15 +65,13 @@ router
       </html>
     `;
   })
-  .get("/login", async ({ request, response, cookies }) => {
-    const sessionId: string | undefined = await cookies.get("sessionId");
-    let session: Session | undefined = undefined;
-    if (sessionId) session = await sessionService.get(sessionId);
-    if (session?.user) {
+  .get("/login", async (context) => {
+    const { request, response, cookies } = context;
+    const token = await oauth2.getTokenForContext(context);
+    if (token?.user) {
       const redirectUri = request.url.searchParams.get("redirect_uri") ?? "/";
       response.redirect(redirectUri);
     } else {
-      if (sessionId) await sessionService.delete(sessionId);
       showLogin(response, cookies);
     }
   })
@@ -85,6 +81,7 @@ router
     if (sessionId) {
       session = await sessionService.get(sessionId);
       await sessionService.delete(sessionId);
+      cookies.delete("sessionId");
     }
 
     if (!session) {
@@ -112,7 +109,7 @@ router
         const redirectUri = request.url.searchParams.get("redirect_uri") ?? "/";
 
         session = await sessionService.start();
-        cookies.set("sessionId", session.id, { httpOnly: true });
+        await cookies.set("sessionId", session.id, { httpOnly: true });
         session.user = user;
         session.state = crypto.randomUUID();
         session.redirectUri = redirectUri;
@@ -177,6 +174,7 @@ router
         if (accessToken) session.accessToken = accessToken;
         if (refreshToken) session.refreshToken = refreshToken;
         if (expiresIn) session.accessTokenExpiresAt = now + expiresIn;
+        delete session.user;
         delete session.state;
         delete session.codeVerifier;
         delete session.redirectUri;
@@ -190,7 +188,10 @@ router
   })
   .get("/logout", async ({ response, cookies }) => {
     const sessionId: string | undefined = await cookies.get("sessionId");
-    if (sessionId) await sessionService.delete(sessionId);
+    if (sessionId) {
+      await sessionService.delete(sessionId);
+      cookies.delete("sessionId");
+    }
     response.redirect("/");
   })
   .get("/public", ({ response }) => {

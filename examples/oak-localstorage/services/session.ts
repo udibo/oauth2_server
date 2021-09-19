@@ -2,6 +2,7 @@ import { Session } from "../models/session.ts";
 import { UserService } from "./user.ts";
 
 interface SessionInternal {
+  csrf: string;
   username?: string;
   authorizedScope?: string;
   state?: string;
@@ -10,7 +11,6 @@ interface SessionInternal {
   accessToken?: string;
   refreshToken?: string;
   accessTokenExpiresAt?: number;
-  csrf?: string;
 }
 
 export function saveSession(sessionId: string, session: Session): void {
@@ -99,7 +99,10 @@ export class SessionService {
   async start(id?: string): Promise<Session> {
     let session: Session | undefined = id ? await this.get(id) : undefined;
     if (!session) {
-      session = { id: crypto.randomUUID() };
+      session = {
+        id: crypto.randomUUID(),
+        csrf: crypto.randomUUID(),
+      };
       await this.insert(session);
     }
     return session;

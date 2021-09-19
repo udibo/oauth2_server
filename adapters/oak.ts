@@ -113,6 +113,12 @@ export interface OakOAuth2Options<Scope extends ScopeInterface> {
   server: OAuth2Server<Scope>;
   /** The key for storing OAuth2 state on the context's state. Defaults to "oauth2". */
   stateKey?: string;
+  /**
+   * Gets access token from request in a non standard way.
+   * If function is not set or it resolves to null,
+   * authenticate will check for access token in the authorization header or request body.
+   */
+  getAccessToken?: (request: OakOAuth2Request<Scope>) => Promise<string | null>;
 }
 
 export interface OakOAuth2State<Scope extends ScopeInterface> {
@@ -124,10 +130,15 @@ export interface OakOAuth2State<Scope extends ScopeInterface> {
 export class OakOAuth2<Scope extends ScopeInterface> {
   private server: OAuth2Server<Scope>;
   private stateKey: string;
+  private getAccessToken: (
+    request: OakOAuth2Request<Scope>,
+  ) => Promise<string | null>;
 
   constructor(options: OakOAuth2Options<Scope>) {
     this.server = options.server;
     this.stateKey = options.stateKey ?? "oauth2";
+    this.getAccessToken = options.getAccessToken ??
+      (() => Promise.resolve(null));
   }
 
   protected getState(context: Context): OakOAuth2State<Scope> {
@@ -138,6 +149,40 @@ export class OakOAuth2<Scope extends ScopeInterface> {
       state.response = new OakOAuth2Response(context);
     }
     return state;
+  }
+
+  /**
+   * For use in setAuthorization to get token for request.
+   * User could be retrieved from token for authorization.
+   * Authorized scope could be derived from token's client, user, or scope.
+   */
+  async getToken(
+    request: OakOAuth2Request<Scope>,
+  ): Promise<Token<Scope> | undefined> {
+    let { token } = request;
+    if (!token) {
+      const accessToken: string | null = await this.getAccessToken(request);
+      if (accessToken) {
+        token = await this.server.getToken(accessToken).catch(() => undefined);
+      }
+    }
+    request.token = token;
+    return token;
+  }
+
+  /**
+   * Gets the token for an Oak context.
+   */
+  async getTokenForContext(
+    context: Context,
+  ): Promise<Token<Scope> | undefined> {
+    const state = this.getState(context);
+    let { token } = state;
+    if (!token) {
+      token = await this.getToken(state.request);
+      state.token = token;
+    }
+    return token;
   }
 
   token(): Middleware {
@@ -185,7 +230,13 @@ export class OakOAuth2<Scope extends ScopeInterface> {
     return async (context: Context, next: () => Promise<unknown>) => {
       const state = this.getState(context);
       const { request, response } = state;
-      await this.server.authenticate(request, response, next, requiredScope);
+      await this.server.authenticate(
+        request,
+        response,
+        next,
+        this.getAccessToken,
+        requiredScope,
+      );
       const { token } = request;
       if (token) state.token = token;
     };

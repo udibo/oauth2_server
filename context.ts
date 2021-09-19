@@ -49,35 +49,6 @@ export interface ErrorBody {
   "error_uri"?: string;
 }
 
-const BEARER_TOKEN = /^ *(?:[Bb][Ee][Aa][Rr][Ee][Rr]) +([\w-.~+/]+=*) *$/;
-
-export async function getAccessToken<Scope extends ScopeInterface>(
-  request: OAuth2Request<Scope>,
-): Promise<string | null> {
-  let accessToken: string | null = null;
-
-  const authorization = request.headers.get("authorization");
-  if (authorization) {
-    const match = BEARER_TOKEN.exec(authorization);
-    if (match) accessToken = match[1];
-  }
-
-  if (!accessToken) {
-    const contentType: string | null = request.headers.get(
-      "content-type",
-    );
-    if (
-      request.method === "POST" &&
-      contentType === "application/x-www-form-urlencoded"
-    ) {
-      const body: URLSearchParams = await request.body!;
-      accessToken = body.get("access_token");
-    }
-  }
-
-  return accessToken;
-}
-
 export interface AuthorizeParameters {
   responseType: string | null;
   clientId: string | null;

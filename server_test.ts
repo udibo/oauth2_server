@@ -5,7 +5,9 @@ import { Scope } from "./models/scope.ts";
 import {
   assertEquals,
   assertSpyCall,
+  assertSpyCallAsync,
   assertSpyCalls,
+  assertThrowsAsync,
   delay,
   resolves,
   Spy,
@@ -583,6 +585,147 @@ test(serverTests, "tokenError handles error", async () => {
   }
 });
 
+const getAccessTokenTests: TestSuite<void> = new TestSuite({
+  name: "getAccessToken",
+  suite: serverTests,
+});
+
+test(getAccessTokenTests, "GET request with no access token", async () => {
+  const request = fakeResourceRequest("");
+  const result = server.getAccessToken(request);
+  assertEquals(Promise.resolve(result), result);
+  assertEquals(await result, null);
+});
+
+test(
+  getAccessTokenTests,
+  "GET request with access token in authorization header",
+  async () => {
+    const request = fakeResourceRequest("abc");
+    const result = server.getAccessToken(request);
+    assertEquals(Promise.resolve(result), result);
+    assertEquals(await result, "abc");
+  },
+);
+
+test(getAccessTokenTests, "POST request with no access token", async () => {
+  const request = fakeResourceRequest("");
+  const result = server.getAccessToken(request);
+  assertEquals(Promise.resolve(result), result);
+  assertEquals(await result, null);
+});
+
+test(
+  getAccessTokenTests,
+  "POST request with access token in authorization header",
+  async () => {
+    const request = fakeResourceRequest("abc", {});
+    const result = server.getAccessToken(request);
+    assertEquals(Promise.resolve(result), result);
+    assertEquals(await result, "abc");
+  },
+);
+
+test(
+  getAccessTokenTests,
+  "POST request with access token in request body",
+  async () => {
+    const request = fakeResourceRequest("", {
+      access_token: "abc",
+    });
+    const result = server.getAccessToken(request);
+    assertEquals(Promise.resolve(result), result);
+    assertEquals(await result, "abc");
+  },
+);
+
+test(
+  getAccessTokenTests,
+  "POST request with access token in authorization header and body",
+  async () => {
+    const request = fakeResourceRequest("abc", {
+      access_token: "def",
+    });
+    const result = server.getAccessToken(request);
+    assertEquals(Promise.resolve(result), result);
+    assertEquals(await result, "abc");
+  },
+);
+
+const getTokenTests: TestSuite<void> = new TestSuite({
+  name: "getToken",
+  suite: serverTests,
+});
+
+test(getTokenTests, "token service required", async () => {
+  const { services } = server;
+  try {
+    server.services = {};
+    await assertThrowsAsync(
+      () => server.getToken("123"),
+      ServerError,
+      "token service required",
+    );
+  } finally {
+    server.services = services;
+  }
+});
+
+test(getTokenTests, "invalid access_token", async () => {
+  const getToken = stub(
+    tokenService,
+    "getToken",
+    resolves(undefined),
+  );
+
+  try {
+    await assertThrowsAsync(
+      () => server.getToken("123"),
+      AccessDenied,
+      "invalid access_token",
+    );
+
+    assertSpyCall(getToken, 0, {
+      self: tokenService,
+      args: ["123"],
+    });
+    assertSpyCalls(getToken, 1);
+  } finally {
+    getToken.restore();
+  }
+});
+
+test(getTokenTests, "expired access_token", async () => {
+  const getToken = stub(
+    tokenService,
+    "getToken",
+    () =>
+      Promise.resolve({
+        accessToken: "123",
+        accessTokenExpiresAt: new Date(Date.now() - 60000),
+        client,
+        user,
+        scope,
+      }),
+  );
+
+  try {
+    await assertThrowsAsync(
+      () => server.getToken("123"),
+      AccessDenied,
+      "invalid access_token",
+    );
+
+    assertSpyCall(getToken, 0, {
+      self: tokenService,
+      args: ["123"],
+    });
+    assertSpyCalls(getToken, 1);
+  } finally {
+    getToken.restore();
+  }
+});
+
 interface AuthenticateTestContext {
   success: Spy<void>;
   error: Spy<void>;
@@ -618,6 +761,7 @@ async function authenticateTestError(
     AuthenticateTestContext,
   request: OAuth2Request<Scope>,
   response: OAuth2Response,
+  customAccessToken: string | null,
   acceptedScope?: Scope,
   expectedToken?: Token<Scope>,
   ErrorClass?: Constructor,
@@ -626,7 +770,29 @@ async function authenticateTestError(
 ) {
   const redirect = spy(response, "redirect");
   const next = spy();
-  await server.authenticate(request, response, next, acceptedScope);
+  const getCustomAccessToken = spy(() => Promise.resolve(customAccessToken));
+  const getAccessToken = spy(server, "getAccessToken");
+  try {
+    await server.authenticate(
+      request,
+      response,
+      next,
+      getCustomAccessToken,
+      acceptedScope,
+    );
+  } finally {
+    getAccessToken.restore();
+  }
+
+  await assertSpyCallAsync(getCustomAccessToken, 0, { args: [request] });
+  assertSpyCalls(getCustomAccessToken, 1);
+
+  if (customAccessToken) {
+    assertSpyCalls(getAccessToken, 0);
+  } else {
+    assertSpyCall(getAccessToken, 0, { args: [request] });
+    assertSpyCalls(getAccessToken, 1);
+  }
 
   assertSpyCalls(authenticateSuccess, 0);
   assertSpyCalls(success, 0);
@@ -649,26 +815,6 @@ async function authenticateTestError(
   assertSpyCalls(next, 0);
 }
 
-test(authenticateTests, "token service required", async (context) => {
-  const { services } = server;
-  try {
-    server.services = {};
-    const request = fakeResourceRequest("");
-    const response = fakeResponse();
-    await authenticateTestError(
-      context,
-      request,
-      response,
-      scope,
-      undefined,
-      ServerError,
-      "token service required",
-    );
-  } finally {
-    server.services = services;
-  }
-});
-
 test(authenticateTests, "authentication required", async (context) => {
   const request = fakeResourceRequest("");
   const response = fakeResponse();
@@ -676,6 +822,7 @@ test(authenticateTests, "authentication required", async (context) => {
     context,
     request,
     response,
+    null,
     scope,
     undefined,
     AccessDenied,
@@ -683,76 +830,79 @@ test(authenticateTests, "authentication required", async (context) => {
   );
 });
 
-test(authenticateTests, "invalid access_token", async (context) => {
-  const getToken = stub(
-    tokenService,
-    "getToken",
-    resolves(undefined),
-  );
-
-  try {
-    const request = fakeResourceRequest("123");
-    const response = fakeResponse();
-    await authenticateTestError(
-      context,
-      request,
-      response,
-      scope,
-      undefined,
-      AccessDenied,
-      "invalid access_token",
+test(
+  authenticateTests,
+  "invalid access_token from request",
+  async (context) => {
+    const getToken = stub(
+      server,
+      "getToken",
+      () => Promise.reject(new AccessDenied("invalid access_token")),
     );
 
-    assertSpyCall(getToken, 0, {
-      self: tokenService,
-      args: ["123"],
-    });
-    assertSpyCalls(getToken, 1);
-  } finally {
-    getToken.restore();
-  }
-});
-
-test(authenticateTests, "expired access_token", async (context) => {
-  const getToken = stub(
-    tokenService,
-    "getToken",
-    () =>
-      Promise.resolve({
-        accessToken: "123",
-        accessTokenExpiresAt: new Date(Date.now() - 60000),
-        client,
-        user,
+    try {
+      const request = fakeResourceRequest("123");
+      const response = fakeResponse();
+      await authenticateTestError(
+        context,
+        request,
+        response,
+        null,
         scope,
-      }),
-  );
+        undefined,
+        AccessDenied,
+        "invalid access_token",
+      );
 
-  try {
-    const request = fakeResourceRequest("123");
-    const response = fakeResponse();
-    await authenticateTestError(
-      context,
-      request,
-      response,
-      scope,
-      undefined,
-      AccessDenied,
-      "invalid access_token",
+      assertSpyCall(getToken, 0, {
+        self: server,
+        args: ["123"],
+      });
+      assertSpyCalls(getToken, 1);
+    } finally {
+      getToken.restore();
+    }
+  },
+);
+
+test(
+  authenticateTests,
+  "invalid access_token from custom getAccessToken",
+  async (context) => {
+    const getToken = stub(
+      server,
+      "getToken",
+      () => Promise.reject(new AccessDenied("invalid access_token")),
     );
 
-    assertSpyCall(getToken, 0, {
-      self: tokenService,
-      args: ["123"],
-    });
-    assertSpyCalls(getToken, 1);
-  } finally {
-    getToken.restore();
-  }
-});
+    try {
+      const request = fakeResourceRequest("123");
+      const response = fakeResponse();
+      await authenticateTestError(
+        context,
+        request,
+        response,
+        "456",
+        scope,
+        undefined,
+        AccessDenied,
+        "invalid access_token",
+      );
+
+      assertSpyCall(getToken, 0, {
+        self: server,
+        args: ["456"],
+      });
+      assertSpyCalls(getToken, 1);
+    } finally {
+      getToken.restore();
+    }
+  },
+);
 
 test(authenticateTests, "insufficient scope", async (context) => {
   const getToken = spy(
-    tokenService,
+    server,
     "getToken",
   );
 
@@ -770,13 +920,14 @@ test(authenticateTests, "insufficient scope", async (context) => {
       context,
       request,
       response,
+      null,
       acceptedScope,
       expectedToken,
       AccessDenied,
       "insufficient scope",
     );
     assertSpyCall(getToken, 0, {
-      self: tokenService,
+      self: server,
       args: ["123"],
     });
     assertSpyCalls(getToken, 1);
@@ -790,25 +941,49 @@ async function authenticateTest(
     AuthenticateTestContext,
   request: OAuth2Request<Scope>,
   response: OAuth2Response,
+  customAccessToken: string | null,
   acceptedScope?: Scope,
   expectedToken?: Token<Scope>,
   cached?: boolean,
 ) {
-  const getToken = spy(tokenService, "getToken");
+  const getToken = spy(server, "getToken");
+  const getCustomAccessToken = spy(() => Promise.resolve(customAccessToken));
+  const getAccessToken = spy(server, "getAccessToken");
   const redirect = spy(response, "redirect");
   const next = spy();
 
   try {
-    await server.authenticate(request, response, next, acceptedScope);
-
-    if (!cached) {
-      assertSpyCall(getToken, 0, {
-        args: ["123"],
-      });
-    }
-    assertSpyCalls(getToken, cached ? 0 : 1);
+    await server.authenticate(
+      request,
+      response,
+      next,
+      getCustomAccessToken,
+      acceptedScope,
+    );
   } finally {
     getToken.restore();
+    getAccessToken.restore();
+  }
+
+  if (cached) {
+    assertSpyCalls(getAccessToken, 0);
+    assertSpyCalls(getToken, 0);
+  } else {
+    await assertSpyCallAsync(getCustomAccessToken, 0, { args: [request] });
+    assertSpyCalls(getCustomAccessToken, 1);
+
+    if (customAccessToken) {
+      assertSpyCalls(getAccessToken, 0);
+    } else {
+      assertSpyCall(getAccessToken, 0, { args: [request] });
+      assertSpyCalls(getAccessToken, 1);
+    }
+
+    assertSpyCall(getToken, 0, {
+      self: server,
+      args: [customAccessToken || "123"],
+    });
+    assertSpyCalls(getToken, 1);
   }
 
   assertSpyCall(authenticateSuccess, 0, {
@@ -845,6 +1020,7 @@ test(authenticateTests, "without scope", async (context) => {
     context,
     request,
     response,
+    null,
     undefined,
     expectedToken,
   );
@@ -863,6 +1039,26 @@ test(authenticateTests, "with scope", async (context) => {
     context,
     request,
     response,
+    null,
+    scope,
+    expectedToken,
+  );
+});
+
+test(authenticateTests, "uses custom access token", async (context) => {
+  const request = fakeResourceRequest("123");
+  const response = fakeResponse();
+  const expectedToken = {
+    accessToken: "456",
+    client,
+    user,
+    scope,
+  };
+  await authenticateTest(
+    context,
+    request,
+    response,
+    "456",
     scope,
     expectedToken,
   );
@@ -882,6 +1078,7 @@ test(authenticateTests, "re-uses token stored in state", async (context) => {
     context,
     request,
     response,
+    null,
     scope,
     expectedToken,
     true,

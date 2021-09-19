@@ -13,7 +13,6 @@ import { TokenServiceInterface } from "./services/token.ts";
 import {
   authorizeParameters,
   ErrorBody,
-  getAccessToken,
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2AuthorizeRequest,
@@ -50,6 +49,8 @@ export interface BearerToken {
   "refresh_token"?: string;
   scope?: string;
 }
+
+const BEARER_TOKEN = /^ *(?:[Bb][Ee][Aa][Rr][Ee][Rr]) +([\w-.~+/]+=*) *$/;
 
 export class OAuth2Server<Scope extends ScopeInterface = DefaultScope> {
   grants: OAuth2ServerGrants<Scope>;
@@ -184,28 +185,63 @@ export class OAuth2Server<Scope extends ScopeInterface = DefaultScope> {
     await this.errorHandler(request, response, error);
   }
 
+  /** Gets an access token string from the authorization header or post body. */
+  async getAccessToken(request: OAuth2Request<Scope>): Promise<string | null> {
+    let accessToken: string | null = null;
+    const authorization = request.headers.get("authorization");
+    if (authorization) {
+      const match = BEARER_TOKEN.exec(authorization);
+      if (match) accessToken = match[1];
+    }
+
+    if (!accessToken) {
+      const contentType: string | null = request.headers.get(
+        "content-type",
+      );
+      if (
+        request.method === "POST" &&
+        contentType === "application/x-www-form-urlencoded"
+      ) {
+        const body: URLSearchParams = await request.body!;
+        accessToken = body.get("access_token");
+      }
+    }
+    return accessToken;
+  }
+
+  /** Gets a token for an access token string. */
+  async getToken(accessToken: string): Promise<Token<Scope>> {
+    const { tokenService } = this.services;
+    if (!tokenService) throw new ServerError("token service required");
+    const token = await tokenService.getToken(accessToken);
+
+    if (
+      !token ||
+      (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())
+    ) {
+      throw new AccessDenied("invalid access_token");
+    }
+
+    return token;
+  }
+
   /** Authenticates a request and verifies the token has the required scope. */
-  async authenticate(
-    request: OAuth2Request<Scope>,
+  async authenticate<Request extends OAuth2Request<Scope>>(
+    request: Request,
     response: OAuth2Response,
     next: () => Promise<unknown>,
+    getAccessToken: (request: Request) => Promise<string | null>,
     acceptedScope?: Scope,
   ): Promise<void> {
     try {
       if (acceptedScope) request.acceptedScope = acceptedScope;
-      const { tokenService } = this.services;
-      if (!tokenService) throw new ServerError("token service required");
 
-      const accessToken: string | null = await getAccessToken(request);
-      if (!accessToken) throw new AccessDenied("authentication required");
-
-      const token: Token<Scope> | undefined = request.token ??
-        await tokenService.getToken(accessToken);
-      if (
-        !token ||
-        (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())
-      ) {
-        throw new AccessDenied("invalid access_token");
+      let { token } = request;
+      if (!token) {
+        const accessToken: string | null = await getAccessToken(request) ??
+          await this.getAccessToken(request);
+        if (!accessToken) throw new AccessDenied("authentication required");
+        token = await this.getToken(accessToken);
       }
       request.token = token;
 

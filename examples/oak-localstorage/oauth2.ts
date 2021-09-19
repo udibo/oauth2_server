@@ -5,6 +5,7 @@ import {
   loginRedirectFactory,
   OakOAuth2,
   OakOAuth2AuthorizeRequest,
+  OakOAuth2Request,
   OakOAuth2Response,
   OAuth2Server,
   RefreshTokenGrant,
@@ -38,7 +39,26 @@ const oauth2Server = new OAuth2Server({
   services,
 });
 
-export const oauth2 = new OakOAuth2({ server: oauth2Server });
+async function getSession(
+  request: OakOAuth2Request<Scope>,
+): Promise<Session | undefined> {
+  const sessionId: string | undefined = await request.cookies.get("sessionId");
+  const session: Session | undefined = sessionId
+    ? await sessionService.get(sessionId)
+    : undefined;
+  if (!session && sessionId) request.cookies.delete("sessionId");
+  return session;
+}
+
+export const oauth2 = new OakOAuth2({
+  server: oauth2Server,
+  async getAccessToken(
+    request: OakOAuth2Request<Scope>,
+  ): Promise<string | null> {
+    const session = await getSession(request);
+    return session?.accessToken ?? null;
+  },
+});
 export const oauth2Router = new Router();
 
 oauth2Router.post("/token", oauth2.token());
@@ -46,23 +66,25 @@ oauth2Router.post("/token", oauth2.token());
 const setAuthorization = async (
   request: OakOAuth2AuthorizeRequest<Scope>,
 ): Promise<void> => {
-  const sessionId: string | undefined = await request.cookies.get("sessionId");
-  const session: Session | undefined = sessionId
-    ? await sessionService.get(sessionId)
-    : undefined;
-  if (session) {
-    if (request.method === "POST" && request.hasBody) {
-      const body: URLSearchParams | undefined = await request.body;
-      const authorizedScopeText = body?.get("authorized_scope") ?? undefined;
-      if (authorizedScopeText) {
-        request.authorizedScope = new Scope(authorizedScopeText);
-      }
+  if (request.method === "POST" && request.hasBody) {
+    const body: URLSearchParams | undefined = await request.body;
+    const authorizedScopeText = body?.get("authorized_scope") ?? undefined;
+    if (authorizedScopeText) {
+      request.authorizedScope = new Scope(authorizedScopeText);
     }
+  }
 
-    const { user, accessToken } = session;
-    const { clientId } = request.authorizeParameters;
-    if (user && (clientId === "1000" || accessToken)) {
-      request.user = user;
+  const { clientId } = request.authorizeParameters;
+
+  if (clientId === "1000") {
+    const session = await getSession(request);
+    if (session?.user) {
+      request.user = session.user;
+    }
+  } else {
+    const token = await oauth2.getToken(request);
+    if (token) {
+      request.user = token.user;
     }
   }
 };
