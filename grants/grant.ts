@@ -9,7 +9,7 @@ import {
   ScopeInterface,
 } from "../models/scope.ts";
 import type { User } from "../models/user.ts";
-import { InvalidClient, InvalidScope, ServerError } from "../errors.ts";
+import { InvalidClient, InvalidScope } from "../errors.ts";
 import { BasicAuth, parseBasicAuth } from "../basic_auth.ts";
 
 export interface GrantServices<Scope extends ScopeInterface> {
@@ -75,7 +75,6 @@ export abstract class AbstractGrant<Scope extends ScopeInterface = DefaultScope>
     scope?: Scope,
   ): Promise<Scope | undefined> {
     const { tokenService } = this.services;
-    if (!tokenService) throw new ServerError("token service required");
     const acceptedScope = await tokenService.acceptedScope(client, user, scope);
     if (acceptedScope === false) {
       throw new InvalidScope(scope ? "invalid scope" : "scope required");
