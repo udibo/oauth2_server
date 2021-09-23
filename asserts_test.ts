@@ -7,8 +7,8 @@ import { AssertionError, assertThrows, test, TestSuite } from "./test_deps.ts";
 import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
-import { User } from "./models/user.ts";
 import { AuthorizationCode } from "./models/authorization_code.ts";
+import { User } from "./models/user.ts";
 
 const assertsTests: TestSuite<void> = new TestSuite({
   name: "asserts",
@@ -57,7 +57,7 @@ const client: Client = { id: "1", grants: [] };
 const user: User = { username: "kyle" };
 
 test(assertsTests, "assertToken", () => {
-  const expectedToken: Token<Scope> = {
+  const expectedToken: Token<Client, User, Scope> = {
     accessToken: "x",
     client: { id: "1", grants: [] },
     user: { username: "kyle" },
@@ -171,7 +171,7 @@ test(assertsTests, "assertToken", () => {
 
 test(assertsTests, "assertAuthorizationCode", () => {
   const expiresAt = new Date(Date.now() + 60000);
-  const expectedAuthorizationCode: AuthorizationCode<Scope> = {
+  const expectedAuthorizationCode: AuthorizationCode<Client, User, Scope> = {
     code: "x",
     expiresAt,
     client: { id: "1", grants: [] },

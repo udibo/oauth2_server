@@ -3,7 +3,9 @@ import {
   authorizeUrl,
   OAuth2AuthorizeRequest,
 } from "./context.ts";
+import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
+import { User } from "./models/user.ts";
 import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
 import { fakeAuthorizeRequest } from "./test_context.ts";
 import { assertEquals, test, TestSuite } from "./test_deps.ts";
@@ -138,7 +140,7 @@ test(authorizeUrlTests, "without PKCE", async () => {
   request.authorizeParameters = await authorizeParameters(request);
 
   assertEquals(
-    authorizeUrl(request as OAuth2AuthorizeRequest<Scope>),
+    authorizeUrl(request as OAuth2AuthorizeRequest<Client, User, Scope>),
     expectedUrl,
   );
 });
@@ -160,7 +162,7 @@ test(authorizeUrlTests, "with PKCE", async () => {
   request.authorizeParameters = await authorizeParameters(request);
 
   assertEquals(
-    authorizeUrl(request as OAuth2AuthorizeRequest<Scope>),
+    authorizeUrl(request as OAuth2AuthorizeRequest<Client, User, Scope>),
     expectedUrl,
   );
 });

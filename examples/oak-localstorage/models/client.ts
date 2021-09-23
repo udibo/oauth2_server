@@ -1,9 +1,9 @@
-import { Client } from "../deps.ts";
-import { AppUser } from "./user.ts";
+import { ClientInterface } from "../deps.ts";
+import { User } from "./user.ts";
 
-export interface AppClient extends Client {
+export interface Client extends ClientInterface {
   /** Secret used for authenticating a client. */
-  secret: string;
+  secret?: string;
   /** A user that is controlled by the client. */
-  user?: AppUser;
+  user?: User;
 }

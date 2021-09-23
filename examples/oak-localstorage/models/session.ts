@@ -1,13 +1,13 @@
-import { AppUser } from "./user.ts";
+import { User } from "./user.ts";
 
 export interface Session {
   id: string;
   csrf: string;
-  user?: AppUser;
+  user?: User;
   state?: string;
   redirectUri?: string;
   codeVerifier?: string;
   accessToken?: string;
   refreshToken?: string;
-  accessTokenExpiresAt?: number;
+  accessTokenExpiresAt?: Date;
 }

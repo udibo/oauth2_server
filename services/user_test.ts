@@ -1,4 +1,3 @@
-import { User } from "../models/user.ts";
 import {
   assertStrictEquals,
   assertThrowsAsync,
@@ -15,7 +14,7 @@ const userServiceTests: TestSuite<void> = new TestSuite({
 });
 
 test(userServiceTests, "getAuthenticated not implemented", async () => {
-  const result: Promise<User | undefined> = userService.getAuthenticated(
+  const result = userService.getAuthenticated(
     "Kyle",
     "hunter2",
   );

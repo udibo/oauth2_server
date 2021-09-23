@@ -1,10 +1,13 @@
-import { ScopeInterface } from "../models/scope.ts";
 import { ServerError } from "../errors.ts";
-import { User } from "../models/user.ts";
 import { AccessToken, RefreshToken, Token } from "../models/token.ts";
-import { Client } from "../models/client.ts";
+import { ClientInterface } from "../models/client.ts";
+import { ScopeInterface } from "../models/scope.ts";
 
-export interface TokenServiceInterface<Scope extends ScopeInterface> {
+export interface TokenServiceInterface<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
   /** Lifetime of access tokens in seconds. */
   accessTokenLifetime: number;
   /** Lifetime of refresh tokens in seconds. */
@@ -40,21 +43,26 @@ export interface TokenServiceInterface<Scope extends ScopeInterface> {
     scope?: Scope,
   ): Promise<Date | undefined>;
   /** Retrieves an existing token by access token. */
-  getToken(accessToken: string): Promise<Token<Scope> | undefined>;
+  getToken(
+    accessToken: string,
+  ): Promise<Token<Client, User, Scope> | undefined>;
   /** Retrieves an existing token by refresh token. */
   getRefreshToken(
     refreshToken: string,
-  ): Promise<RefreshToken<Scope> | undefined>;
+  ): Promise<RefreshToken<Client, User, Scope> | undefined>;
   /** Saves a token. */
-  save(token: Token<Scope>): Promise<Token<Scope>>;
+  save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>>;
   /** Revokes a token. Resolves true if a token was revoked. */
-  revoke(token: Token<Scope>): Promise<boolean>;
+  revoke(token: Token<Client, User, Scope>): Promise<boolean>;
   /** Revokes all tokens for an authorization code. Resolves true if a token was revoked. */
   revokeCode(code: string): Promise<boolean>;
 }
 
-export abstract class AbstractAccessTokenService<Scope extends ScopeInterface>
-  implements TokenServiceInterface<Scope> {
+export abstract class AbstractAccessTokenService<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> implements TokenServiceInterface<Client, User, Scope> {
   /** Lifetime of access tokens in seconds. Defaults to 1 hour. */
   accessTokenLifetime = 60 * 60;
   /** Lifetime of refresh tokens in seconds. Defaults to 0. */
@@ -116,28 +124,33 @@ export abstract class AbstractAccessTokenService<Scope extends ScopeInterface>
   /** Retrieves an existing access token. */
   abstract getToken(
     accessToken: string,
-  ): Promise<AccessToken<Scope> | undefined>;
+  ): Promise<AccessToken<Client, User, Scope> | undefined>;
 
   /** Retrieves an existing refresh token. Not implemented by default. */
   getRefreshToken(
     _refreshToken: string,
-  ): Promise<RefreshToken<Scope> | undefined> {
+  ): Promise<RefreshToken<Client, User, Scope> | undefined> {
     return Promise.reject(new ServerError("getRefreshToken not implemented"));
   }
 
   /** Saves a token. */
-  abstract save(token: AccessToken<Scope>): Promise<AccessToken<Scope>>;
+  abstract save(
+    token: AccessToken<Client, User, Scope>,
+  ): Promise<AccessToken<Client, User, Scope>>;
 
   /** Revokes a token. Resolves true if a token was revoked. */
-  abstract revoke(token: AccessToken<Scope>): Promise<boolean>;
+  abstract revoke(token: AccessToken<Client, User, Scope>): Promise<boolean>;
 
   /** Revokes all tokens for an authorization code. Resolves true if a token was revoked. */
   abstract revokeCode(code: string): Promise<boolean>;
 }
 
-export abstract class AbstractRefreshTokenService<Scope extends ScopeInterface>
-  extends AbstractAccessTokenService<Scope>
-  implements TokenServiceInterface<Scope> {
+export abstract class AbstractRefreshTokenService<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends AbstractAccessTokenService<Client, User, Scope>
+  implements TokenServiceInterface<Client, User, Scope> {
   /** Lifetime of refresh token in seconds. Defaults to 2 weeks. */
   refreshTokenLifetime = 14 * 24 * 60 * 60;
 
@@ -166,16 +179,18 @@ export abstract class AbstractRefreshTokenService<Scope extends ScopeInterface>
   /** Retrieves an existing token. */
   abstract getToken(
     accessToken: string,
-  ): Promise<Token<Scope> | undefined>;
+  ): Promise<Token<Client, User, Scope> | undefined>;
 
   /** Retrieves an existing refresh token. */
   abstract getRefreshToken(
     refreshToken: string,
-  ): Promise<RefreshToken<Scope> | undefined>;
+  ): Promise<RefreshToken<Client, User, Scope> | undefined>;
 
   /** Saves a token. */
-  abstract save(token: Token<Scope>): Promise<Token<Scope>>;
+  abstract save(
+    token: Token<Client, User, Scope>,
+  ): Promise<Token<Client, User, Scope>>;
 
   /** Revokes a token. Resolves true if a token was revoked. */
-  abstract revoke(token: Token<Scope> | string): Promise<boolean>;
+  abstract revoke(token: Token<Client, User, Scope> | string): Promise<boolean>;
 }

@@ -1,19 +1,19 @@
 import { AbstractClientService } from "../deps.ts";
-import { AppClient } from "../models/client.ts";
-import { AppUser } from "../models/user.ts";
+import { Client } from "../models/client.ts";
+import { User } from "../models/user.ts";
 import { UserService } from "./user.ts";
 
 interface ClientInternal {
   id: string;
-  secret: string;
-  grants: string[];
+  secret?: string;
+  grants?: string[];
   redirectUris?: string[];
   accessTokenLifetime?: number;
   refreshTokenLifetime?: number;
   username?: string;
 }
 
-export class ClientService extends AbstractClientService {
+export class ClientService extends AbstractClientService<Client, User> {
   private userService: UserService;
 
   constructor(userService: UserService) {
@@ -21,14 +21,7 @@ export class ClientService extends AbstractClientService {
     this.userService = userService;
   }
 
-  async insert(client: AppClient): Promise<void> {
-    if (localStorage.getItem(`client:${client.id}`)) {
-      throw new Error("client already exists");
-    }
-    await this.update(client);
-  }
-
-  async update(client: AppClient): Promise<void> {
+  put(client: Client): Promise<void> {
     const {
       id,
       secret,
@@ -38,24 +31,49 @@ export class ClientService extends AbstractClientService {
       refreshTokenLifetime,
       user,
     } = client;
-    const username: string | undefined = "user" in client
-      ? user?.username
-      : (await this.getInternal(id))?.username;
-    localStorage.setItem(
-      `client:${id}`,
-      JSON.stringify({
-        id,
-        secret,
-        grants,
-        redirectUris,
-        accessTokenLifetime,
-        refreshTokenLifetime,
-        username,
-      } as ClientInternal),
-    );
+    const { username } = user ?? {};
+    const next: ClientInternal = {
+      id,
+      secret,
+      grants,
+      redirectUris,
+      accessTokenLifetime,
+      refreshTokenLifetime,
+      username,
+    };
+    localStorage.setItem(`client:${id}`, JSON.stringify(next));
+    return Promise.resolve();
   }
 
-  delete(client: AppClient | string): Promise<boolean> {
+  async patch(client: Partial<Client> & Pick<Client, "id">): Promise<void> {
+    const {
+      id,
+      secret,
+      grants,
+      redirectUris,
+      accessTokenLifetime,
+      refreshTokenLifetime,
+      user,
+    } = client;
+    const { username } = user ?? {};
+    const current = await this.getInternal(id);
+    if (!current) throw new Error("client not found");
+    const next: ClientInternal = { ...current };
+    if ("grants" in client) next.grants = grants;
+    if ("secret" in client) next.secret = secret;
+    if ("redirectUris" in client) next.redirectUris = redirectUris;
+    if ("accessTokenLifetime" in client) {
+      next.accessTokenLifetime = accessTokenLifetime;
+    }
+    if ("refreshTokenLifetime" in client) {
+      next.refreshTokenLifetime = refreshTokenLifetime;
+    }
+    if ("user" in client) next.username = username;
+    localStorage.setItem(`client:${id}`, JSON.stringify(next));
+    return Promise.resolve();
+  }
+
+  delete(client: Client | string): Promise<boolean> {
     const clientId = typeof client === "string" ? client : client.id;
     const clientKey = `client:${clientId}`;
     const existed = !!localStorage.getItem(clientKey);
@@ -68,7 +86,7 @@ export class ClientService extends AbstractClientService {
     return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
   }
 
-  private toExternal(internal: ClientInternal): Promise<AppClient> {
+  private toExternal(internal: ClientInternal): Promise<Client> {
     const {
       id,
       secret,
@@ -87,7 +105,7 @@ export class ClientService extends AbstractClientService {
     });
   }
 
-  async get(clientId: string): Promise<AppClient | undefined> {
+  async get(clientId: string): Promise<Client | undefined> {
     const internal = await this.getInternal(clientId);
     return internal ? this.toExternal(internal) : undefined;
   }
@@ -95,16 +113,16 @@ export class ClientService extends AbstractClientService {
   async getAuthenticated(
     clientId: string,
     clientSecret?: string,
-  ): Promise<AppClient | undefined> {
+  ): Promise<Client | undefined> {
     const internal = await this.getInternal(clientId);
-    let client: AppClient | undefined = undefined;
+    let client: Client | undefined = undefined;
     if (internal && clientSecret === internal.secret) {
       client = await this.toExternal(internal);
     }
     return client;
   }
 
-  async getUser(client: AppClient | string): Promise<AppUser | undefined> {
+  async getUser(client: Client | string): Promise<User | undefined> {
     const clientId = typeof client === "string" ? client : client.id;
     const internal = await this.getInternal(clientId);
     return internal?.username

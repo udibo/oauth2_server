@@ -1,8 +1,11 @@
 import type { ScopeInterface } from "./scope.ts";
-import type { Client } from "./client.ts";
-import type { User } from "./user.ts";
+import type { ClientInterface } from "./client.ts";
 
-export interface AccessToken<Scope extends ScopeInterface> {
+export interface AccessToken<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
   /** The access token. */
   accessToken: string;
   /** The expiration time for the access token. */
@@ -17,16 +20,22 @@ export interface AccessToken<Scope extends ScopeInterface> {
   code?: string;
 }
 
-export interface Token<Scope extends ScopeInterface>
-  extends AccessToken<Scope> {
+export interface Token<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends AccessToken<Client, User, Scope> {
   /** The refresh token. */
   refreshToken?: string;
   /** The expiration time for the refresh token. */
   refreshTokenExpiresAt?: Date;
 }
 
-export interface RefreshToken<Scope extends ScopeInterface>
-  extends Token<Scope> {
+export interface RefreshToken<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends Token<Client, User, Scope> {
   /** The refresh token. */
   refreshToken: string;
 }

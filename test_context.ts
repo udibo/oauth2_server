@@ -1,13 +1,15 @@
 import { OAuth2Request, OAuth2Response } from "./context.ts";
+import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
+import { User } from "./models/user.ts";
 
 export function fakeTokenRequest(
   body?: string | URLSearchParams | string[][] | Record<string, string>,
-): OAuth2Request<Scope> {
+): OAuth2Request<Client, User, Scope> {
   const params: URLSearchParams | undefined = typeof body === "undefined"
     ? undefined
     : new URLSearchParams(body);
-  const request: OAuth2Request<Scope> = {
+  const request: OAuth2Request<Client, User, Scope> = {
     url: new URL("https://example.com/token"),
     headers: new Headers(),
     method: "POST",
@@ -22,11 +24,11 @@ export function fakeTokenRequest(
 export function fakeResourceRequest(
   bearerToken: string,
   body?: string | URLSearchParams | string[][] | Record<string, string>,
-): OAuth2Request<Scope> {
+): OAuth2Request<Client, User, Scope> {
   const params: URLSearchParams | undefined = typeof body === "undefined"
     ? undefined
     : new URLSearchParams(body);
-  const request: OAuth2Request<Scope> = {
+  const request: OAuth2Request<Client, User, Scope> = {
     url: new URL("https://example.com/resource/1"),
     headers: new Headers(),
     method: params ? "POST" : "GET",
@@ -44,7 +46,7 @@ export function fakeResourceRequest(
 
 export function fakeAuthorizeRequest(
   body?: string | URLSearchParams | string[][] | Record<string, string>,
-): OAuth2Request<Scope> {
+): OAuth2Request<Client, User, Scope> {
   const bodyParams: URLSearchParams | undefined = typeof body === "undefined"
     ? undefined
     : new URLSearchParams(body);
@@ -57,7 +59,7 @@ export function fakeAuthorizeRequest(
   searchParams.set("state", "xyz");
   searchParams.set("scope", "read write");
 
-  const request: OAuth2Request<Scope> = {
+  const request: OAuth2Request<Client, User, Scope> = {
     url,
     headers: new Headers(),
     method: bodyParams ? "POST" : "GET",

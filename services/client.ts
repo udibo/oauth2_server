@@ -1,8 +1,7 @@
 import { ServerError } from "../errors.ts";
-import { Client } from "../models/client.ts";
-import { User } from "../models/user.ts";
+import { ClientInterface } from "../models/client.ts";
 
-export interface ClientServiceInterface {
+export interface ClientServiceInterface<Client extends ClientInterface, User> {
   /** Retrieves a client. */
   get(clientId: string): Promise<Client | undefined>;
   /** Retrieves an authenticted client. */
@@ -14,7 +13,10 @@ export interface ClientServiceInterface {
   getUser(client: Client | string): Promise<User | undefined>;
 }
 
-export abstract class AbstractClientService implements ClientServiceInterface {
+export abstract class AbstractClientService<
+  Client extends ClientInterface,
+  User,
+> implements ClientServiceInterface<Client, User> {
   /** Retrieves a client. */
   abstract get(
     clientId: string,

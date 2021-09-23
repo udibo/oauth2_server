@@ -7,7 +7,7 @@ import {
   Response,
   Router,
 } from "./deps.ts";
-import { AppUser } from "./models/user.ts";
+import { User } from "./models/user.ts";
 import { oauth2, oauth2Router } from "./oauth2.ts";
 import { Session } from "./models/session.ts";
 import { sessionService, userService } from "./services/mod.ts";
@@ -101,7 +101,7 @@ router
         if (!username) throw new Error("username required");
         const password = form.get("password");
         if (!password) throw new Error("password required");
-        const user: AppUser | undefined = await userService.getAuthenticated(
+        const user: User | undefined = await userService.getAuthenticated(
           username,
           password,
         );
@@ -114,7 +114,7 @@ router
         session.state = crypto.randomUUID();
         session.redirectUri = redirectUri;
         session.codeVerifier = generateCodeVerifier();
-        await sessionService.update(session);
+        await sessionService.patch(session);
 
         const authorizeUrl = new URL("http://localhost:8000/oauth2/authorize");
         const { searchParams } = authorizeUrl;
@@ -174,11 +174,11 @@ router
         if (accessToken) session.accessToken = accessToken;
         if (refreshToken) session.refreshToken = refreshToken;
         if (expiresIn) session.accessTokenExpiresAt = now + expiresIn;
-        delete session.user;
-        delete session.state;
-        delete session.codeVerifier;
-        delete session.redirectUri;
-        sessionService.update(session);
+        session.user = undefined;
+        session.state = undefined;
+        session.codeVerifier = undefined;
+        session.redirectUri = undefined;
+        sessionService.patch(session);
         response.redirect(redirectUri);
       } else {
         response.status = 400;

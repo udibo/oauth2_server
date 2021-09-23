@@ -32,13 +32,12 @@ export type {
   AccessToken,
   AuthorizationCode,
   AuthorizeParameters,
-  Client,
+  ClientInterface,
   LoginRedirectOptions,
   OAuth2Request,
   OAuth2Response,
   RefreshToken,
   Token,
-  User,
 } from "../../mod.ts";
 
 export {

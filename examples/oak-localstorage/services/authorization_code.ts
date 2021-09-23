@@ -1,5 +1,10 @@
-import { AbstractAuthorizationCodeService, Scope } from "../deps.ts";
-import { AppAuthorizationCode } from "../models/authorization_code.ts";
+import {
+  AbstractAuthorizationCodeService,
+  AuthorizationCode,
+  Scope,
+} from "../deps.ts";
+import { Client } from "../models/client.ts";
+import { User } from "../models/user.ts";
 import { ClientService } from "./client.ts";
 import { UserService } from "./user.ts";
 
@@ -15,7 +20,7 @@ interface AuthorizationCodeInternal {
 }
 
 export class AuthorizationCodeService
-  extends AbstractAuthorizationCodeService<Scope> {
+  extends AbstractAuthorizationCodeService<Client, User, Scope> {
   private clientService: ClientService;
   private userService: UserService;
 
@@ -25,14 +30,9 @@ export class AuthorizationCodeService
     this.userService = userService;
   }
 
-  async insert(authorizationCode: AppAuthorizationCode): Promise<void> {
-    if (localStorage.getItem(`authorizationCode:${authorizationCode.code}`)) {
-      throw new Error("authorization code already exists");
-    }
-    await this.update(authorizationCode);
-  }
-
-  update(authorizationCode: AppAuthorizationCode): Promise<void> {
+  put(
+    authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<void> {
     const {
       code,
       expiresAt,
@@ -43,23 +43,23 @@ export class AuthorizationCodeService
       challenge,
       challengeMethod,
     } = authorizationCode;
-    localStorage.setItem(
-      `authorizationCode:${code}`,
-      JSON.stringify({
-        code,
-        expiresAt: expiresAt.toJSON(),
-        clientId: client.id,
-        username: user.username,
-        scope: scope?.toJSON(),
-        redirectUri,
-        challenge,
-        challengeMethod,
-      } as AuthorizationCodeInternal),
-    );
+    const next: AuthorizationCodeInternal = {
+      code,
+      expiresAt: expiresAt.toJSON(),
+      clientId: client.id,
+      username: user.username,
+      scope: scope?.toJSON(),
+      redirectUri,
+      challenge,
+      challengeMethod,
+    };
+    localStorage.setItem(`authorizationCode:${code}`, JSON.stringify(next));
     return Promise.resolve();
   }
 
-  delete(authorizationCode: AppAuthorizationCode | string): Promise<boolean> {
+  delete(
+    authorizationCode: AuthorizationCode<Client, User, Scope> | string,
+  ): Promise<boolean> {
     const code = typeof authorizationCode === "string"
       ? authorizationCode
       : authorizationCode.code;
@@ -69,12 +69,15 @@ export class AuthorizationCodeService
     return Promise.resolve(existed);
   }
 
-  async get(code: string): Promise<AppAuthorizationCode | undefined> {
+  async get(
+    code: string,
+  ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
     const internalText = localStorage.getItem(`authorizationCode:${code}`);
     const internal: AuthorizationCodeInternal | undefined = internalText
       ? JSON.parse(internalText)
       : undefined;
-    let authorizationCode: AppAuthorizationCode | undefined = undefined;
+    let authorizationCode: AuthorizationCode<Client, User, Scope> | undefined =
+      undefined;
     if (internal) {
       const {
         code,
@@ -107,14 +110,14 @@ export class AuthorizationCodeService
   }
 
   async save(
-    authorizationCode: AppAuthorizationCode,
-  ): Promise<AppAuthorizationCode> {
-    await this.insert(authorizationCode);
+    authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<AuthorizationCode<Client, User, Scope>> {
+    await this.put(authorizationCode);
     return (await this.get(authorizationCode.code))!;
   }
 
   async revoke(
-    authorizationCode: AppAuthorizationCode | string,
+    authorizationCode: AuthorizationCode<Client, User, Scope> | string,
   ): Promise<boolean> {
     return await this.delete(authorizationCode);
   }

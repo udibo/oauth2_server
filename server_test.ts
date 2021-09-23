@@ -1,6 +1,5 @@
 import { RefreshTokenGrant } from "./grants/refresh_token.ts";
 import { AccessToken, RefreshToken, Token } from "./models/token.ts";
-import type { User } from "./models/user.ts";
 import { Scope } from "./models/scope.ts";
 import {
   assertEquals,
@@ -60,18 +59,23 @@ import {
   scope,
   user,
 } from "./services/test_services.ts";
+import { Client } from "./models/client.ts";
+import { User } from "./models/user.ts";
 
 const clientService: ClientService = new ClientService();
 const tokenService: RefreshTokenService = new RefreshTokenService();
 const authorizationCodeService: AuthorizationCodeService =
   new AuthorizationCodeService();
-const services: GrantServices<Scope> = { clientService, tokenService };
+const services: GrantServices<Client, User, Scope> = {
+  clientService,
+  tokenService,
+};
 
 const refreshTokenGrant = new RefreshTokenGrant({ services });
 const authorizationCodeGrant = new AuthorizationCodeGrant({
   services: { ...services, authorizationCodeService },
 });
-const grants: OAuth2ServerGrants<Scope> = {
+const grants: OAuth2ServerGrants<Client, User, Scope> = {
   "refresh_token": refreshTokenGrant,
   "authorization_code": authorizationCodeGrant,
 };
@@ -181,8 +185,8 @@ test(errorHandlerTests, "Error", async () => {
 interface TokenTestContext {
   success: Spy<void>;
   error: Spy<void>;
-  tokenSuccess: Stub<OAuth2Server>;
-  tokenError: Stub<OAuth2Server>;
+  tokenSuccess: Stub<OAuth2Server<Client, User, Scope>>;
+  tokenError: Stub<OAuth2Server<Client, User, Scope>>;
 }
 
 const tokenTests = new TestSuite({
@@ -210,7 +214,7 @@ const tokenTests = new TestSuite({
 
 async function tokenTestError(
   { success, error, tokenSuccess, tokenError }: TokenTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   ErrorClass?: Constructor,
   msgIncludes?: string,
@@ -414,7 +418,7 @@ test(
   tokenTests,
   "returns refresh token",
   async ({ success, error, tokenSuccess, tokenError }) => {
-    const refreshToken: RefreshToken<Scope> = {
+    const refreshToken: RefreshToken<Client, User, Scope> = {
       accessToken: "foo",
       refreshToken: "bar",
       client,
@@ -458,7 +462,7 @@ const bearerTokenTests = new TestSuite({
 });
 
 test(bearerTokenTests, "without optional token properties", () => {
-  const accessToken: AccessToken<Scope> = {
+  const accessToken: AccessToken<Client, User, Scope> = {
     accessToken: "foo",
     client,
     user,
@@ -471,7 +475,7 @@ test(bearerTokenTests, "without optional token properties", () => {
 });
 
 test(bearerTokenTests, "with optional token properties", () => {
-  const refreshToken: RefreshToken<Scope> = {
+  const refreshToken: RefreshToken<Client, User, Scope> = {
     accessToken: "foo",
     refreshToken: "bar",
     client,
@@ -513,7 +517,7 @@ test(serverTests, "tokenSuccess", async () => {
   try {
     const request = fakeTokenRequest(
       "grant_type=refresh_token",
-    ) as OAuth2AuthenticatedRequest<Scope>;
+    ) as OAuth2AuthenticatedRequest<Client, User, Scope>;
     request.token = {
       accessToken: "foo",
       refreshToken: "bar",
@@ -731,8 +735,8 @@ test(getTokenTests, "expired access_token", async () => {
 interface AuthenticateTestContext {
   success: Spy<void>;
   error: Spy<void>;
-  authenticateSuccess: Stub<OAuth2Server>;
-  authenticateError: Stub<OAuth2Server>;
+  authenticateSuccess: Stub<OAuth2Server<Client, User, Scope>>;
+  authenticateError: Stub<OAuth2Server<Client, User, Scope>>;
 }
 
 const authenticateTests = new TestSuite({
@@ -761,11 +765,11 @@ const authenticateTests = new TestSuite({
 async function authenticateTestError(
   { success, error, authenticateSuccess, authenticateError }:
     AuthenticateTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   customAccessToken: string | null,
   acceptedScope?: Scope,
-  expectedToken?: Token<Scope>,
+  expectedToken?: Token<Client, User, Scope>,
   ErrorClass?: Constructor,
   msgIncludes?: string,
   msg?: string,
@@ -941,11 +945,11 @@ test(authenticateTests, "insufficient scope", async (context) => {
 async function authenticateTest(
   { success, error, authenticateSuccess, authenticateError }:
     AuthenticateTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   customAccessToken: string | null,
   acceptedScope?: Scope,
-  expectedToken?: Token<Scope>,
+  expectedToken?: Token<Client, User, Scope>,
   cached?: boolean,
 ) {
   const getToken = spy(server, "getToken");
@@ -1162,6 +1166,8 @@ test(serverTests, "authenticateSuccess", async () => {
   );
   try {
     const request = fakeResourceRequest("123") as OAuth2AuthenticatedRequest<
+      Client,
+      User,
       Scope
     >;
     request.token = {
@@ -1210,6 +1216,8 @@ test(serverTests, "authenticateError", async () => {
   );
   try {
     const request = fakeResourceRequest("123") as OAuth2AuthenticatedRequest<
+      Client,
+      User,
       Scope
     >;
     request.token = {
@@ -1248,8 +1256,8 @@ test(serverTests, "authenticateError", async () => {
 interface AuthorizeTestContext {
   success: Spy<void>;
   error: Spy<void>;
-  authorizeSuccess: Stub<OAuth2Server>;
-  authorizeError: Stub<OAuth2Server>;
+  authorizeSuccess: Stub<OAuth2Server<Client, User, Scope>>;
+  authorizeError: Stub<OAuth2Server<Client, User, Scope>>;
   setAuthorizationAwait: Spy<void>;
   setAuthorization: Spy<void>;
   login: Spy<void>;
@@ -1289,7 +1297,7 @@ const authorizeTests = new TestSuite({
 
 async function authorizeTestError(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   ErrorClass?: Constructor,
   msgIncludes?: string,
@@ -1331,7 +1339,7 @@ async function authorizeTestError(
 
 async function authorizeTestErrorNoRedirect(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   ErrorClass?: Constructor,
   msgIncludes?: string,
@@ -1477,7 +1485,7 @@ test(authorizeTests, "redirect_uri not authorized", async (context) => {
 
 async function authorizeTestErrorRedirect(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   ErrorClass?: Constructor,
   msgIncludes?: string,
@@ -1504,7 +1512,7 @@ async function authorizeTestErrorRedirect(
 
 async function authorizeTestErrorPreAuthorization(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   ErrorClass?: Constructor,
   msgIncludes?: string,
@@ -1608,7 +1616,7 @@ test(authorizeTests, "unsupported code_challenge_method", async (context) => {
 
 async function authorizeTestErrorAuthorized(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   user?: User,
   authorizedScope?: Scope,
@@ -1616,11 +1624,13 @@ async function authorizeTestErrorAuthorized(
   msgIncludes?: string,
   msg?: string,
 ) {
-  context.setAuthorization = spy((request: OAuth2Request<Scope>) => {
-    request.user = user;
-    request.authorizedScope = authorizedScope;
-    return delay(0).then(context.setAuthorizationAwait);
-  });
+  context.setAuthorization = spy(
+    (request: OAuth2Request<Client, User, Scope>) => {
+      request.user = user;
+      request.authorizedScope = authorizedScope;
+      return delay(0).then(context.setAuthorizationAwait);
+    },
+  );
   await authorizeTestErrorRedirect(
     context,
     request,
@@ -1738,7 +1748,7 @@ test(
 );
 
 test(authorizeTests, "generateAuthorizationCode error", async (context) => {
-  const generateAuthorizationCode: Stub<AuthorizationCodeGrant> = stub(
+  const generateAuthorizationCode = stub(
     authorizationCodeGrant,
     "generateAuthorizationCode",
     () => Promise.reject(new ServerError("generateAuthorizationCode failed")),
@@ -1762,7 +1772,7 @@ test(authorizeTests, "generateAuthorizationCode error", async (context) => {
 
 async function authorizeTest(
   context: AuthorizeTestContext,
-  request: OAuth2Request<Scope>,
+  request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   code: string,
   user: User,
@@ -1770,11 +1780,13 @@ async function authorizeTest(
   challenge?: string,
   challengeMethod?: string,
 ) {
-  context.setAuthorization = spy((request: OAuth2Request<Scope>) => {
-    request.user = user;
-    request.authorizedScope = authorizedScope;
-    return delay(0).then(context.setAuthorizationAwait);
-  });
+  context.setAuthorization = spy(
+    (request: OAuth2Request<Client, User, Scope>) => {
+      request.user = user;
+      request.authorizedScope = authorizedScope;
+      return delay(0).then(context.setAuthorizationAwait);
+    },
+  );
 
   const {
     success,
@@ -1788,10 +1800,15 @@ async function authorizeTest(
   } = context;
   const redirect = spy(response, "redirect");
 
-  const generateAuthorizationCode: Stub<AuthorizationCodeGrant> = stub(
+  const generateAuthorizationCode = stub(
     authorizationCodeGrant,
     "generateAuthorizationCode",
-    (authorizationCode: Omit<AuthorizationCode<Scope>, "code" | "expiresAt">) =>
+    (
+      authorizationCode: Omit<
+        AuthorizationCode<Client, User, Scope>,
+        "code" | "expiresAt"
+      >,
+    ) =>
       Promise.resolve({
         ...authorizationCode,
         code,
@@ -1840,13 +1857,15 @@ async function authorizeTest(
   );
   assertSpyCalls(acceptedScope, 1);
 
-  const expectedOptions: Omit<AuthorizationCode<Scope>, "code" | "expiresAt"> =
-    {
-      client,
-      user,
-      scope: authorizedScope,
-      redirectUri: "https://client.example.com/cb",
-    };
+  const expectedOptions: Omit<
+    AuthorizationCode<Client, User, Scope>,
+    "code" | "expiresAt"
+  > = {
+    client,
+    user,
+    scope: authorizedScope,
+    redirectUri: "https://client.example.com/cb",
+  };
   if (challenge) expectedOptions.challenge = challenge;
   if (challengeMethod) expectedOptions.challengeMethod = challengeMethod;
   assertSpyCall(generateAuthorizationCode, 0, {
@@ -1913,7 +1932,7 @@ test(serverTests, "authorizeSuccess", async () => {
     () => delay(0).then(redirectAwait),
   );
   await server.authorizeSuccess(
-    request as OAuth2AuthorizedRequest<Scope>,
+    request as OAuth2AuthorizedRequest<Client, User, Scope>,
     response,
   );
 
@@ -1928,7 +1947,7 @@ test(serverTests, "authorizeSuccess", async () => {
 });
 
 interface AuthorizeTestContext {
-  request: OAuth2Request<Scope>;
+  request: OAuth2Request<Client, User, Scope>;
   response: OAuth2Response;
   redirect: Stub<OAuth2Response>;
   redirectAwait: Spy<void>;
@@ -1936,7 +1955,7 @@ interface AuthorizeTestContext {
   loginAwait: Spy<void>;
   consent: Spy<void>;
   consentAwait: Spy<void>;
-  errorHandler: Stub<OAuth2Server>;
+  errorHandler: Stub<OAuth2Server<Client, User, Scope>>;
   errorHandlerAwait: Spy<void>;
 }
 
