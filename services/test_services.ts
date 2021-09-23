@@ -8,8 +8,8 @@ import {
   AbstractAccessTokenService,
   AbstractRefreshTokenService,
 } from "./token.ts";
-import { User } from "../models/user.ts";
 import { AbstractUserService } from "./user.ts";
+import { User } from "../models/user.ts";
 
 export const client: Client = {
   id: "1",
@@ -22,20 +22,19 @@ export const client: Client = {
 export const user: User = { username: "kyle" };
 export const scope: Scope = new Scope("read write");
 
-export interface TokenServiceOptions {
-  client: Client;
-}
-
-export class AccessTokenService extends AbstractAccessTokenService<Scope> {
+export class AccessTokenService
+  extends AbstractAccessTokenService<Client, User, Scope> {
   client: Client;
 
-  constructor(options?: TokenServiceOptions) {
+  constructor(options?: { client: Client }) {
     super();
     this.client = { ...client, ...options?.client };
   }
 
   /** Retrieves an existing token by access token. */
-  getToken(accessToken: string): Promise<AccessToken<Scope> | undefined> {
+  getToken(
+    accessToken: string,
+  ): Promise<AccessToken<Client, User, Scope> | undefined> {
     return Promise.resolve({
       accessToken,
       client: { ...this.client },
@@ -45,12 +44,12 @@ export class AccessTokenService extends AbstractAccessTokenService<Scope> {
   }
 
   /** Saves a token. */
-  save(token: Token<Scope>): Promise<Token<Scope>> {
+  save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>> {
     return Promise.resolve(token);
   }
 
   /** Revokes a token. */
-  revoke(_token: Token<Scope>): Promise<boolean> {
+  revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
     return Promise.resolve(true);
   }
 
@@ -60,16 +59,19 @@ export class AccessTokenService extends AbstractAccessTokenService<Scope> {
   }
 }
 
-export class RefreshTokenService extends AbstractRefreshTokenService<Scope> {
+export class RefreshTokenService
+  extends AbstractRefreshTokenService<Client, User, Scope> {
   client: Client;
 
-  constructor(options?: TokenServiceOptions) {
+  constructor(options?: { client: Client }) {
     super();
     this.client = { ...client, ...options?.client };
   }
 
   /** Retrieves an existing token by access token. */
-  getToken(accessToken: string): Promise<Token<Scope> | undefined> {
+  getToken(
+    accessToken: string,
+  ): Promise<Token<Client, User, Scope> | undefined> {
     return Promise.resolve({
       accessToken,
       client: { ...this.client },
@@ -81,7 +83,7 @@ export class RefreshTokenService extends AbstractRefreshTokenService<Scope> {
   /** Retrieves an existing token by refresh token. */
   getRefreshToken(
     refreshToken: string,
-  ): Promise<RefreshToken<Scope> | undefined> {
+  ): Promise<RefreshToken<Client, User, Scope> | undefined> {
     return Promise.resolve({
       accessToken: "fake",
       refreshToken,
@@ -92,12 +94,12 @@ export class RefreshTokenService extends AbstractRefreshTokenService<Scope> {
   }
 
   /** Saves a token. */
-  save(token: Token<Scope>): Promise<Token<Scope>> {
+  save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>> {
     return Promise.resolve(token);
   }
 
   /** Revokes a token. */
-  revoke(_token: Token<Scope>): Promise<boolean> {
+  revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
     return Promise.resolve(true);
   }
 
@@ -107,14 +109,10 @@ export class RefreshTokenService extends AbstractRefreshTokenService<Scope> {
   }
 }
 
-interface ClientServiceOptions {
-  client: Client;
-}
-
-export class ClientService extends AbstractClientService {
+export class ClientService extends AbstractClientService<Client, User> {
   client: Client;
 
-  constructor(options?: ClientServiceOptions) {
+  constructor(options?: { client: Client }) {
     super();
     this.client = { ...client, ...options?.client };
   }
@@ -131,21 +129,19 @@ export class ClientService extends AbstractClientService {
   }
 }
 
-export interface AuthorizationCodeServiceOptions {
-  client: Client;
-}
-
 export class AuthorizationCodeService
-  extends AbstractAuthorizationCodeService<Scope> {
+  extends AbstractAuthorizationCodeService<Client, User, Scope> {
   client: Client;
 
-  constructor(options?: AuthorizationCodeServiceOptions) {
+  constructor(options?: { client: Client }) {
     super();
     this.client = { ...client, ...options?.client };
   }
 
   /** Retrieves an existing authorization code. */
-  get(code: string): Promise<AuthorizationCode<Scope> | undefined> {
+  get(
+    code: string,
+  ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
     return Promise.resolve({
       code,
       expiresAt: new Date(Date.now() + 60000),
@@ -158,15 +154,17 @@ export class AuthorizationCodeService
 
   /** Saves an authorization code. */
   save(
-    authorizationCode: AuthorizationCode<Scope>,
-  ): Promise<AuthorizationCode<Scope>> {
+    authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<AuthorizationCode<Client, User, Scope>> {
     return Promise.resolve(authorizationCode);
   }
 
   /** Revokes an authorization code. */
-  revoke(_authorizationCode: AuthorizationCode<Scope>): Promise<boolean> {
+  revoke(
+    _authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<boolean> {
     return Promise.resolve(true);
   }
 }
 
-export class UserService extends AbstractUserService {}
+export class UserService extends AbstractUserService<User> {}

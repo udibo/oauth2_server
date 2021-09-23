@@ -5,22 +5,25 @@ import {
   OAuth2Response,
 } from "../context.ts";
 import { AuthorizationCode } from "../models/authorization_code.ts";
+import { ClientInterface } from "../models/client.ts";
 import { ScopeInterface } from "../models/scope.ts";
 import { Token } from "../models/token.ts";
-import { User } from "../models/user.ts";
 import { OAuth2Server } from "../server.ts";
 import { BodyForm, Context, Cookies, Middleware } from "./oak_deps.ts";
 
-export class OakOAuth2Request<Scope extends ScopeInterface>
-  implements OAuth2Request<Scope> {
+export class OakOAuth2Request<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> implements OAuth2Request<Client, User, Scope> {
   private context: Context;
   private _bodyCached: boolean;
   private _body?: Promise<URLSearchParams>;
   authorizedScope?: Scope;
-  authorizationCode?: AuthorizationCode<Scope>;
+  authorizationCode?: AuthorizationCode<Client, User, Scope>;
   authorizeParameters?: AuthorizeParameters;
   user?: User;
-  token?: Token<Scope>;
+  token?: Token<Client, User, Scope>;
 
   constructor(context: Context) {
     this.context = context;
@@ -63,9 +66,13 @@ export class OakOAuth2Request<Scope extends ScopeInterface>
   }
 }
 
-export type OakOAuth2AuthorizeRequest<Scope extends ScopeInterface> =
-  & OakOAuth2Request<Scope>
-  & OAuth2AuthorizeRequest<Scope>;
+export type OakOAuth2AuthorizeRequest<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> =
+  & OakOAuth2Request<Client, User, Scope>
+  & OAuth2AuthorizeRequest<Client, User, Scope>;
 
 export class OakOAuth2Response implements OAuth2Response {
   private context: Context;
@@ -108,9 +115,13 @@ export class OakOAuth2Response implements OAuth2Response {
   }
 }
 
-export interface OakOAuth2Options<Scope extends ScopeInterface> {
+export interface OakOAuth2Options<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
   /** The OAuth2 server. */
-  server: OAuth2Server<Scope>;
+  server: OAuth2Server<Client, User, Scope>;
   /** The key for storing OAuth2 state on the context's state. Defaults to "oauth2". */
   stateKey?: string;
   /**
@@ -118,30 +129,40 @@ export interface OakOAuth2Options<Scope extends ScopeInterface> {
    * If function is not set or it resolves to null,
    * authenticate will check for access token in the authorization header or request body.
    */
-  getAccessToken?: (request: OakOAuth2Request<Scope>) => Promise<string | null>;
+  getAccessToken?: (
+    request: OakOAuth2Request<Client, User, Scope>,
+  ) => Promise<string | null>;
 }
 
-export interface OakOAuth2State<Scope extends ScopeInterface> {
-  request: OakOAuth2Request<Scope>;
+export interface OakOAuth2State<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
+  request: OakOAuth2Request<Client, User, Scope>;
   response: OakOAuth2Response;
-  token?: Token<Scope>;
-  authorizationCode?: AuthorizationCode<Scope>;
+  token?: Token<Client, User, Scope>;
+  authorizationCode?: AuthorizationCode<Client, User, Scope>;
 }
-export class OakOAuth2<Scope extends ScopeInterface> {
-  private server: OAuth2Server<Scope>;
+export class OakOAuth2<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
+  private server: OAuth2Server<Client, User, Scope>;
   private stateKey: string;
   private getAccessToken: (
-    request: OakOAuth2Request<Scope>,
+    request: OakOAuth2Request<Client, User, Scope>,
   ) => Promise<string | null>;
 
-  constructor(options: OakOAuth2Options<Scope>) {
+  constructor(options: OakOAuth2Options<Client, User, Scope>) {
     this.server = options.server;
     this.stateKey = options.stateKey ?? "oauth2";
     this.getAccessToken = options.getAccessToken ??
       (() => Promise.resolve(null));
   }
 
-  protected getState(context: Context): OakOAuth2State<Scope> {
+  protected getState(context: Context): OakOAuth2State<Client, User, Scope> {
     const state = context.state[this.stateKey] ?? {};
     if (!context.state[this.stateKey]) {
       context.state[this.stateKey] = state;
@@ -157,8 +178,8 @@ export class OakOAuth2<Scope extends ScopeInterface> {
    * Authorized scope could be derived from token's client, user, or scope.
    */
   async getToken(
-    request: OakOAuth2Request<Scope>,
-  ): Promise<Token<Scope> | undefined> {
+    request: OakOAuth2Request<Client, User, Scope>,
+  ): Promise<Token<Client, User, Scope> | undefined> {
     let { token } = request;
     if (!token) {
       const accessToken: string | null = await this.getAccessToken(request);
@@ -175,7 +196,7 @@ export class OakOAuth2<Scope extends ScopeInterface> {
    */
   async getTokenForContext(
     context: Context,
-  ): Promise<Token<Scope> | undefined> {
+  ): Promise<Token<Client, User, Scope> | undefined> {
     const state = this.getState(context);
     let { token } = state;
     if (!token) {
@@ -197,14 +218,14 @@ export class OakOAuth2<Scope extends ScopeInterface> {
 
   authorize(
     setAuthorization: (
-      request: OakOAuth2AuthorizeRequest<Scope>,
+      request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
     ) => Promise<void>,
     login: (
-      request: OakOAuth2AuthorizeRequest<Scope>,
+      request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
       response: OakOAuth2Response,
     ) => Promise<void>,
     consent?: (
-      request: OakOAuth2AuthorizeRequest<Scope>,
+      request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
       response: OakOAuth2Response,
     ) => Promise<void>,
   ): Middleware {

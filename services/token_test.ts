@@ -1,6 +1,5 @@
-import { Token } from "../models/token.ts";
 import { Client } from "../models/client.ts";
-import { Scope, ScopeInterface } from "../models/scope.ts";
+import { ScopeInterface } from "../models/scope.ts";
 import {
   assert,
   assertEquals,
@@ -145,10 +144,7 @@ test(
 );
 
 test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
-  const result: Promise<Token<Scope> | void> = accessTokenService
-    .getRefreshToken(
-      "fake",
-    );
+  const result = accessTokenService.getRefreshToken("fake");
   assertStrictEquals(Promise.resolve(result), result);
   await assertThrowsAsync(
     () => result,

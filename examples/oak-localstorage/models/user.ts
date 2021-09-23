@@ -1,6 +1,5 @@
-import { User } from "../deps.ts";
-
-export interface AppUser extends User {
+export interface User {
   username: string;
+  password?: string;
   email?: string;
 }

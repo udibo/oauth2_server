@@ -1,7 +1,6 @@
 import { ServerError } from "../errors.ts";
-import { User } from "../models/user.ts";
 
-export interface UserServiceInterface {
+export interface UserServiceInterface<User> {
   /** Retrieves an authenticated user if the username/password combination is correct. */
   getAuthenticated(
     username: string,
@@ -9,7 +8,8 @@ export interface UserServiceInterface {
   ): Promise<User | undefined>;
 }
 
-export abstract class AbstractUserService implements UserServiceInterface {
+export abstract class AbstractUserService<User>
+  implements UserServiceInterface<User> {
   /** Retrieves an authenticated user if the username/password combination is correct. Not implemented by default. */
   getAuthenticated(
     _username: string,

@@ -15,7 +15,7 @@ export type {
   AuthorizationCodeServiceInterface,
 } from "./services/authorization_code.ts";
 
-export type { Client } from "./models/client.ts";
+export type { Client, ClientInterface } from "./models/client.ts";
 export { AbstractClientService } from "./services/client.ts";
 export type { ClientServiceInterface } from "./services/client.ts";
 

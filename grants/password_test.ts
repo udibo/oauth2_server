@@ -1,7 +1,6 @@
 import { PasswordGrant, PasswordGrantServices } from "./password.ts";
 import { Token } from "../models/token.ts";
 import type { Client } from "../models/client.ts";
-import type { User } from "../models/user.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
@@ -30,6 +29,7 @@ import {
   scope,
   UserService,
 } from "../services/test_services.ts";
+import { User } from "../models/user.ts";
 
 const passwordGrantTests: TestSuite<void> = new TestSuite({
   name: "PasswordGrant",
@@ -49,12 +49,12 @@ const tokenService = new RefreshTokenService({
   client,
 });
 const userService = new UserService();
-const services: PasswordGrantServices<Scope> = {
+const services: PasswordGrantServices<Client, User, Scope> = {
   clientService,
   tokenService,
   userService,
 };
-const passwordGrant: PasswordGrant = new PasswordGrant({ services });
+const passwordGrant = new PasswordGrant({ services });
 
 test(tokenTests, "not implemented for UserService", async () => {
   const getAuthenticated: Spy<UserService> = spy(
@@ -65,7 +65,7 @@ test(tokenTests, "not implemented for UserService", async () => {
     let request = fakeTokenRequest(
       "username=kyle&password=hunter2",
     );
-    const result: Promise<Token<Scope>> = passwordGrant.token(
+    const result = passwordGrant.token(
       request,
       client,
     );
@@ -97,7 +97,7 @@ test(tokenTests, "not implemented for UserService", async () => {
 
 test(tokenTests, "request body required", async () => {
   const request = fakeTokenRequest();
-  const result: Promise<Token<Scope>> = passwordGrant.token(
+  const result = passwordGrant.token(
     request,
     client,
   );
@@ -111,7 +111,7 @@ test(tokenTests, "request body required", async () => {
 
 test(tokenTests, "invalid scope", async () => {
   let request = fakeTokenRequest("scope=\\");
-  const result: Promise<Token<Scope>> = passwordGrant.token(
+  const result = passwordGrant.token(
     request,
     client,
   );
@@ -132,7 +132,7 @@ test(tokenTests, "invalid scope", async () => {
 
 test(tokenTests, "username parameter required", async () => {
   let request = fakeTokenRequest("");
-  const result: Promise<Token<Scope>> = passwordGrant.token(
+  const result = passwordGrant.token(
     request,
     client,
   );
@@ -153,7 +153,7 @@ test(tokenTests, "username parameter required", async () => {
 
 test(tokenTests, "password parameter required", async () => {
   let request = fakeTokenRequest("username=kyle");
-  const result: Promise<Token<Scope>> = passwordGrant.token(
+  const result = passwordGrant.token(
     request,
     client,
   );
@@ -182,7 +182,7 @@ test(tokenTests, "user authentication failed", async () => {
     const request = fakeTokenRequest(
       "username=Kyle&password=Hunter2",
     );
-    const result: Promise<Token<Scope>> = passwordGrant.token(
+    const result = passwordGrant.token(
       request,
       client,
     );
@@ -217,7 +217,7 @@ test(tokenTests, "scope not accepted", async () => {
     const request = fakeTokenRequest(
       "username=Kyle&password=Hunter2&scope=read write",
     );
-    const result: Promise<Token<Scope>> = passwordGrant.token(
+    const result = passwordGrant.token(
       request,
       client,
     );
@@ -244,15 +244,15 @@ test(tokenTests, "scope not accepted", async () => {
 });
 
 test(tokenTests, "returns token", async () => {
-  const getAuthenticated: Stub<UserService> = stub(
+  const getAuthenticated = stub(
     userService,
     "getAuthenticated",
     (username: string, _password: string) => Promise.resolve({ username }),
   );
-  const save: Spy<RefreshTokenService> = spy(tokenService, "save");
+  const save = spy(tokenService, "save");
   const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
   const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
-  const generateToken: Stub<PasswordGrant> = stub(
+  const generateToken = stub(
     passwordGrant,
     "generateToken",
     (client: Client, user: User, scope: Scope) =>
@@ -276,12 +276,12 @@ test(tokenTests, "returns token", async () => {
     const request = fakeTokenRequest(
       "username=Kyle&password=Hunter2&scope=read write",
     );
-    const result: Promise<Token<Scope>> = passwordGrant.token(
+    const result = passwordGrant.token(
       request,
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token<Scope> = await result;
+    const token = await result;
 
     assertStrictEquals(getAuthenticated.calls.length, 1);
     let call: SpyCall = getAuthenticated.calls[0];
@@ -309,7 +309,7 @@ test(tokenTests, "returns token", async () => {
     );
     assertSpyCalls(generateToken, 1);
 
-    const expectedToken: Token<Scope> = {
+    const expectedToken: Token<Client, User, Scope> = {
       accessToken: "x",
       refreshToken: "y",
       accessTokenExpiresAt,

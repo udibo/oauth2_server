@@ -1,16 +1,20 @@
 import { AuthorizationCode } from "./models/authorization_code.ts";
+import { ClientInterface } from "./models/client.ts";
 import { ScopeInterface } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
-import { User } from "./models/user.ts";
 
-export interface OAuth2Request<Scope extends ScopeInterface> {
+export interface OAuth2Request<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
   url: URL;
   headers: Headers;
   method: string;
   hasBody: boolean;
   body?: Promise<URLSearchParams>;
-  token?: Token<Scope>;
-  authorizationCode?: AuthorizationCode<Scope>;
+  token?: Token<Client, User, Scope>;
+  authorizationCode?: AuthorizationCode<Client, User, Scope>;
   authorizeParameters?: AuthorizeParameters;
   authorizedScope?: Scope;
   redirectUrl?: URL;
@@ -19,19 +23,28 @@ export interface OAuth2Request<Scope extends ScopeInterface> {
   requestedScope?: Scope;
 }
 
-export interface OAuth2AuthenticatedRequest<Scope extends ScopeInterface>
-  extends OAuth2Request<Scope> {
-  token: Token<Scope>;
+export interface OAuth2AuthenticatedRequest<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends OAuth2Request<Client, User, Scope> {
+  token: Token<Client, User, Scope>;
 }
 
-export interface OAuth2AuthorizeRequest<Scope extends ScopeInterface>
-  extends OAuth2Request<Scope> {
+export interface OAuth2AuthorizeRequest<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends OAuth2Request<Client, User, Scope> {
   authorizeParameters: AuthorizeParameters;
 }
 
-export interface OAuth2AuthorizedRequest<Scope extends ScopeInterface>
-  extends OAuth2AuthorizeRequest<Scope> {
-  authorizationCode: AuthorizationCode<Scope>;
+export interface OAuth2AuthorizedRequest<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends OAuth2AuthorizeRequest<Client, User, Scope> {
+  authorizationCode: AuthorizationCode<Client, User, Scope>;
   redirectUrl: URL;
 }
 
@@ -60,8 +73,12 @@ export interface AuthorizeParameters {
 }
 
 /** Gets the authorize parameters from the request. */
-export async function authorizeParameters<Scope extends ScopeInterface>(
-  request: OAuth2Request<Scope>,
+export async function authorizeParameters<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+>(
+  request: OAuth2Request<Client, User, Scope>,
 ): Promise<AuthorizeParameters> {
   let responseType: string | null = null;
   let clientId: string | null = null;
@@ -112,8 +129,12 @@ export async function authorizeParameters<Scope extends ScopeInterface>(
 }
 
 /** Generates url for an authorization get request. */
-export function authorizeUrl<Scope extends ScopeInterface>(
-  request: OAuth2AuthorizeRequest<Scope>,
+export function authorizeUrl<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+>(
+  request: OAuth2AuthorizeRequest<Client, User, Scope>,
 ): URL {
   const getUrl: URL = new URL(request.url.toString());
   getUrl.search = "";
@@ -146,14 +167,18 @@ export interface LoginRedirectOptions {
   loginRedirectKey?: string;
 }
 
-export function loginRedirectFactory<Scope extends ScopeInterface>(
+export function loginRedirectFactory<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+>(
   options: LoginRedirectOptions,
 ) {
   const { loginUrl } = options;
   const loginRedirectKey = options.loginRedirectKey ?? "redirect_uri";
 
   return async (
-    request: OAuth2AuthorizeRequest<Scope>,
+    request: OAuth2AuthorizeRequest<Client, User, Scope>,
     response: OAuth2Response,
   ) => {
     if (typeof loginUrl === "string") {

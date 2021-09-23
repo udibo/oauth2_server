@@ -1,5 +1,5 @@
 import { AbstractUserService, createHash, encodeBase64 } from "../deps.ts";
-import { AppUser } from "../models/user.ts";
+import { User } from "../models/user.ts";
 
 function generateSalt(): string {
   const salt = new Uint8Array(16);
@@ -20,35 +20,41 @@ interface UserInternal {
   salt?: string;
 }
 
-export class UserService extends AbstractUserService {
+export class UserService extends AbstractUserService<User> {
   constructor() {
     super();
   }
 
-  async insert(user: AppUser, password: string): Promise<void> {
-    if (localStorage.getItem(`user:${user.username}`)) {
-      throw new Error("user already exists");
+  put(user: User): Promise<void> {
+    const { username, password, email } = user;
+    const next: UserInternal = { username, email };
+    if (password) {
+      next.salt = generateSalt();
+      next.hash = hashPassword(password, next.salt);
     }
-    await this.update(user, password);
+    localStorage.setItem(`user:${username}`, JSON.stringify(next));
+    return Promise.resolve();
   }
 
-  async update(user: AppUser, password?: string): Promise<void> {
-    const { username, email } = user;
-    const internal: UserInternal = { username, email };
-    if (password) {
-      internal.salt = generateSalt();
-      internal.hash = hashPassword(password, internal.salt);
-    } else {
-      const current = await this.getInternal(username);
-      if (current) {
-        internal.salt = current.salt;
-        internal.hash = current.hash;
+  async patch(user: Partial<User> & Pick<User, "username">): Promise<void> {
+    const { username, email, password } = user;
+    const current = await this.getInternal(username);
+    if (!current) throw new Error("user not found");
+    const next: UserInternal = { ...current, username };
+    if ("email" in user) next.email = email;
+    if ("password" in user) {
+      if (password) {
+        next.salt = generateSalt();
+        next.hash = hashPassword(password, next.salt);
+      } else {
+        delete next.salt;
+        delete next.hash;
       }
     }
-    localStorage.setItem(`user:${username}`, JSON.stringify(internal));
+    localStorage.setItem(`user:${username}`, JSON.stringify(next));
   }
 
-  delete(user: AppUser | string): Promise<boolean> {
+  delete(user: User | string): Promise<boolean> {
     const username = typeof user === "string" ? user : user.username;
     const userKey = `user:${username}`;
     const existed = !!localStorage.getItem(userKey);
@@ -61,12 +67,12 @@ export class UserService extends AbstractUserService {
     return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
   }
 
-  private toExternal(internal: UserInternal): Promise<AppUser> {
+  private toExternal(internal: UserInternal): Promise<User> {
     const { username, email } = internal;
     return Promise.resolve({ username, email });
   }
 
-  async get(username: string): Promise<AppUser | undefined> {
+  async get(username: string): Promise<User | undefined> {
     const internal = await this.getInternal(username);
     return internal ? await this.toExternal(internal) : undefined;
   }
@@ -74,9 +80,9 @@ export class UserService extends AbstractUserService {
   async getAuthenticated(
     username: string,
     password: string,
-  ): Promise<AppUser | undefined> {
+  ): Promise<User | undefined> {
     const internal = await this.getInternal(username);
-    let user: AppUser | undefined = undefined;
+    let user: User | undefined = undefined;
     if (internal) {
       const { hash, salt } = internal;
       if (hash && salt && hashPassword(password, salt) === hash) {

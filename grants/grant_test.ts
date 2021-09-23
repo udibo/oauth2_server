@@ -8,7 +8,6 @@ import {
   assertToken,
 } from "../asserts.ts";
 import { Scope } from "../models/scope.ts";
-import { User } from "../models/user.ts";
 import {
   assertEquals,
   assertSpyCalls,
@@ -30,6 +29,7 @@ import {
   RefreshTokenService,
   scope,
 } from "../services/test_services.ts";
+import { User } from "../models/user.ts";
 
 const grantTests: TestSuite<void> = new TestSuite({ name: "Grant" });
 
@@ -37,11 +37,11 @@ const clientService = new ClientService();
 const client: Client = (clientService as ClientService).client;
 const tokenService = new RefreshTokenService();
 
-class ExampleGrant extends AbstractGrant<Scope> {
+class ExampleGrant extends AbstractGrant<Client, User, Scope> {
   token(
-    _request: OAuth2Request<Scope>,
+    _request: OAuth2Request<Client, User, Scope>,
     _client: Client,
-  ): Promise<Token<Scope>> {
+  ): Promise<Token<Client, User, Scope>> {
     throw new Error("not implemented");
   }
 }
@@ -497,7 +497,7 @@ test(
     try {
       const result = grant.generateToken(client, user);
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token<Scope> = await result;
+      const token = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,
@@ -535,7 +535,7 @@ test(generateTokenTests, "access token with optional properties", async () => {
   try {
     const result = grant.generateToken(client, user, new Scope("read"));
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token<Scope> = await result;
+    const token = await result;
 
     assertClientUserScopeCall(
       accessTokenExpiresAt,
@@ -587,7 +587,7 @@ test(
     try {
       const result = refreshTokenGrant.generateToken(client, user);
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token<Scope> = await result;
+      const token = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,
@@ -645,7 +645,7 @@ test(
         new Scope("read"),
       );
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token<Scope> = await result;
+      const token = await result;
 
       assertClientUserScopeCall(
         accessTokenExpiresAt,

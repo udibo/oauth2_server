@@ -1,5 +1,11 @@
-import { AbstractRefreshTokenService, Scope } from "../deps.ts";
-import { AppRefreshToken, AppToken } from "../models/token.ts";
+import {
+  AbstractRefreshTokenService,
+  RefreshToken,
+  Scope,
+  Token,
+} from "../deps.ts";
+import { Client } from "../models/client.ts";
+import { User } from "../models/user.ts";
 import { ClientService } from "./client.ts";
 import { UserService } from "./user.ts";
 
@@ -14,7 +20,8 @@ interface TokenInternal {
   code?: string;
 }
 
-export class TokenService extends AbstractRefreshTokenService<Scope> {
+export class TokenService
+  extends AbstractRefreshTokenService<Client, User, Scope> {
   private clientService: ClientService;
   private userService: UserService;
 
@@ -24,18 +31,7 @@ export class TokenService extends AbstractRefreshTokenService<Scope> {
     this.userService = userService;
   }
 
-  async insert(token: AppToken): Promise<void> {
-    if (
-      localStorage.getItem(`accessToken:${token.accessToken}`) ||
-      (token.refreshToken &&
-        localStorage.getItem(`refreshToken:${token.refreshToken}`))
-    ) {
-      throw new Error("token already exists");
-    }
-    await this.update(token);
-  }
-
-  update(token: AppToken): Promise<void> {
+  put(token: Token<Client, User, Scope>): Promise<void> {
     const {
       accessToken,
       accessTokenExpiresAt,
@@ -123,7 +119,9 @@ export class TokenService extends AbstractRefreshTokenService<Scope> {
     return Promise.resolve(!!tokenIndex);
   }
 
-  private async deleteToken(token: AppToken | TokenInternal): Promise<boolean> {
+  private async deleteToken(
+    token: Token<Client, User, Scope> | TokenInternal,
+  ): Promise<boolean> {
     let existed = await this.deleteAccessToken(token.accessToken);
     if (token.refreshToken) {
       existed = await this.deleteRefreshToken(token.refreshToken) || existed;
@@ -131,7 +129,7 @@ export class TokenService extends AbstractRefreshTokenService<Scope> {
     return existed;
   }
 
-  async delete(token: AppToken): Promise<boolean> {
+  async delete(token: Token<Client, User, Scope>): Promise<boolean> {
     return await this.deleteToken(token);
   }
 
@@ -140,7 +138,7 @@ export class TokenService extends AbstractRefreshTokenService<Scope> {
     const internal: TokenInternal | undefined = internalText
       ? JSON.parse(internalText)
       : undefined;
-    let token: AppToken | undefined = undefined;
+    let token: Token<Client, User, Scope> | undefined = undefined;
     if (internal) {
       const {
         accessToken,
@@ -176,26 +174,32 @@ export class TokenService extends AbstractRefreshTokenService<Scope> {
 
   async getToken(
     accessToken: string,
-  ): Promise<AppToken | undefined> {
+  ): Promise<Token<Client, User, Scope> | undefined> {
     const tokenIndex = localStorage.getItem(`accessToken:${accessToken}`);
     return tokenIndex ? await this.getTokenByIndex(tokenIndex) : undefined;
   }
 
   async getRefreshToken(
     refreshToken: string,
-  ): Promise<AppRefreshToken | undefined> {
+  ): Promise<RefreshToken<Client, User, Scope> | undefined> {
     const tokenIndex = localStorage.getItem(`refreshToken:${refreshToken}`);
     return tokenIndex
-      ? (await this.getTokenByIndex(tokenIndex)) as AppRefreshToken
+      ? (await this.getTokenByIndex(tokenIndex)) as RefreshToken<
+        Client,
+        User,
+        Scope
+      >
       : undefined;
   }
 
-  async save(token: AppToken): Promise<AppToken> {
-    await this.insert(token);
+  async save(
+    token: Token<Client, User, Scope>,
+  ): Promise<Token<Client, User, Scope>> {
+    await this.put(token);
     return (await this.getToken(token.accessToken))!;
   }
 
-  async revoke(token: AppToken): Promise<boolean> {
+  async revoke(token: Token<Client, User, Scope>): Promise<boolean> {
     return await this.delete(token);
   }
 

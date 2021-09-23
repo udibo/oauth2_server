@@ -1,35 +1,45 @@
 import { AbstractGrant, GrantInterface, GrantServices } from "./grant.ts";
 import { InvalidClient, InvalidGrant, InvalidRequest } from "../errors.ts";
-import type { RefreshToken, Token } from "../models/token.ts";
+import type { RefreshToken } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
-import { Client } from "../models/client.ts";
+import { ClientInterface } from "../models/client.ts";
 import {
   Scope as DefaultScope,
   ScopeConstructor,
   ScopeInterface,
 } from "../models/scope.ts";
 
-export interface RefreshTokenGrantOptions<Scope extends ScopeInterface> {
-  services: GrantServices<Scope>;
+export interface RefreshTokenGrantOptions<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
+  services: GrantServices<Client, User, Scope>;
   Scope?: ScopeConstructor<Scope>;
 }
 
-export interface RefreshTokenGrantInterface<Scope extends ScopeInterface>
-  extends GrantInterface<Scope> {
+export interface RefreshTokenGrantInterface<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends GrantInterface<Client, User, Scope> {
   token(
-    request: OAuth2Request<Scope>,
+    request: OAuth2Request<Client, User, Scope>,
     client: Client,
-  ): Promise<RefreshToken<Scope>>;
+  ): Promise<RefreshToken<Client, User, Scope>>;
 }
 
 /**
  * The refresh token grant type.
  * https://datatracker.ietf.org/doc/html/rfc6749.html#section-6
  */
-export class RefreshTokenGrant<Scope extends ScopeInterface = DefaultScope>
-  extends AbstractGrant<Scope>
-  implements RefreshTokenGrantInterface<Scope> {
-  constructor(options: RefreshTokenGrantOptions<Scope>) {
+export class RefreshTokenGrant<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface = DefaultScope,
+> extends AbstractGrant<Client, User, Scope>
+  implements RefreshTokenGrantInterface<Client, User, Scope> {
+  constructor(options: RefreshTokenGrantOptions<Client, User, Scope>) {
     super({
       allowRefreshToken: true,
       ...options,
@@ -37,9 +47,9 @@ export class RefreshTokenGrant<Scope extends ScopeInterface = DefaultScope>
   }
 
   async token(
-    request: OAuth2Request<Scope>,
+    request: OAuth2Request<Client, User, Scope>,
     client: Client,
-  ): Promise<RefreshToken<Scope>> {
+  ): Promise<RefreshToken<Client, User, Scope>> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;
@@ -49,10 +59,7 @@ export class RefreshTokenGrant<Scope extends ScopeInterface = DefaultScope>
     }
 
     const { tokenService } = this.services;
-    const currentToken: RefreshToken<Scope> | void = await tokenService
-      .getRefreshToken(
-        refreshToken,
-      );
+    const currentToken = await tokenService.getRefreshToken(refreshToken);
     if (
       !currentToken ||
       (currentToken.refreshTokenExpiresAt &&
@@ -61,14 +68,12 @@ export class RefreshTokenGrant<Scope extends ScopeInterface = DefaultScope>
       throw new InvalidGrant("invalid refresh_token");
     }
 
-    const { client: tokenClient, user, scope, code }: RefreshToken<Scope> =
-      currentToken;
+    const { client: tokenClient, user, scope, code } = currentToken;
     if (client.id !== tokenClient.id) {
       throw new InvalidClient("refresh_token was issued to another client");
     }
 
-    const nextToken: Token<Scope> =
-      (await this.generateToken(client, user, scope));
+    const nextToken = await this.generateToken(client, user, scope);
     if (!nextToken.refreshToken) {
       nextToken.refreshToken = currentToken.refreshToken;
       if (currentToken.refreshTokenExpiresAt) {
@@ -77,6 +82,10 @@ export class RefreshTokenGrant<Scope extends ScopeInterface = DefaultScope>
     }
     if (code) nextToken.code = code;
     await tokenService.revoke(currentToken);
-    return await tokenService.save(nextToken) as RefreshToken<Scope>;
+    return await tokenService.save(nextToken) as RefreshToken<
+      Client,
+      User,
+      Scope
+    >;
   }
 }

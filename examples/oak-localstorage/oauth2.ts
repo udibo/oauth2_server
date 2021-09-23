@@ -12,7 +12,9 @@ import {
   Router,
   Scope,
 } from "./deps.ts";
+import { Client } from "./models/client.ts";
 import { Session } from "./models/session.ts";
+import { User } from "./models/user.ts";
 import {
   authorizationCodeService,
   clientService,
@@ -40,7 +42,7 @@ const oauth2Server = new OAuth2Server({
 });
 
 async function getSession(
-  request: OakOAuth2Request<Scope>,
+  request: OakOAuth2Request<Client, User, Scope>,
 ): Promise<Session | undefined> {
   const sessionId: string | undefined = await request.cookies.get("sessionId");
   const session: Session | undefined = sessionId
@@ -53,7 +55,7 @@ async function getSession(
 export const oauth2 = new OakOAuth2({
   server: oauth2Server,
   async getAccessToken(
-    request: OakOAuth2Request<Scope>,
+    request: OakOAuth2Request<Client, User, Scope>,
   ): Promise<string | null> {
     const session = await getSession(request);
     return session?.accessToken ?? null;
@@ -64,7 +66,7 @@ export const oauth2Router = new Router();
 oauth2Router.post("/token", oauth2.token());
 
 const setAuthorization = async (
-  request: OakOAuth2AuthorizeRequest<Scope>,
+  request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
 ): Promise<void> => {
   if (request.method === "POST" && request.hasBody) {
     const body: URLSearchParams | undefined = await request.body;
@@ -89,7 +91,7 @@ const setAuthorization = async (
   }
 };
 
-const login = loginRedirectFactory<Scope>({ loginUrl: "/login" });
+const login = loginRedirectFactory<Client, User, Scope>({ loginUrl: "/login" });
 
 const consentPage = (
   authorizeParameters: AuthorizeParameters,
@@ -109,7 +111,7 @@ const consentPage = (
 `;
 
 const consent = (
-  request: OakOAuth2AuthorizeRequest<Scope>,
+  request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
   response: OakOAuth2Response,
 ): Promise<void> => {
   response.body = 401;

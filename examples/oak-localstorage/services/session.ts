@@ -2,6 +2,7 @@ import { Session } from "../models/session.ts";
 import { UserService } from "./user.ts";
 
 interface SessionInternal {
+  id: string;
   csrf: string;
   username?: string;
   authorizedScope?: string;
@@ -24,15 +25,9 @@ export class SessionService {
     this.userService = userService;
   }
 
-  async insert(session: Session): Promise<void> {
-    if (localStorage.getItem(`session:${session.id}`)) {
-      throw new Error("session already exists");
-    }
-    await this.update(session);
-  }
-
-  update(session: Session): Promise<void> {
+  put(session: Session): Promise<void> {
     const {
+      id,
       user,
       state,
       redirectUri,
@@ -42,20 +37,51 @@ export class SessionService {
       accessTokenExpiresAt,
       csrf,
     } = session;
-    localStorage.setItem(
-      `session:${session.id}`,
-      JSON.stringify({
-        state,
-        redirectUri,
-        codeVerifier,
-        accessToken,
-        refreshToken,
-        accessTokenExpiresAt,
-        csrf,
-        username: user?.username,
-      } as SessionInternal),
-    );
+    const next: SessionInternal = {
+      id,
+      state,
+      redirectUri,
+      codeVerifier,
+      accessToken,
+      refreshToken,
+      csrf,
+      username: user?.username,
+    };
+    if (accessTokenExpiresAt) {
+      next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
+    }
+    localStorage.setItem(`session:${id}`, JSON.stringify(next));
     return Promise.resolve();
+  }
+
+  async patch(session: Partial<Session> & Pick<Session, "id">): Promise<void> {
+    const {
+      id,
+      user,
+      state,
+      redirectUri,
+      codeVerifier,
+      accessToken,
+      refreshToken,
+      accessTokenExpiresAt,
+      csrf,
+    } = session;
+    const { username } = user ?? {};
+    const current = await this.getInternal(id);
+    if (!current) throw new Error("session not found");
+    const next: SessionInternal = { ...current };
+    if ("user" in session) next.username = username;
+    if ("state" in session) next.state = state;
+    if ("redirectUri" in session) next.redirectUri = redirectUri;
+    if ("codeVerifier" in session) next.codeVerifier = codeVerifier;
+    if ("accessToken" in session) next.accessToken = accessToken;
+    if ("refreshToken" in session) next.refreshToken = refreshToken;
+    if ("accessTokenExpiresAt" in session) {
+      next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
+    }
+    if ("csrf" in session) next.csrf = csrf ?? crypto.randomUUID();
+    localStorage.setItem(`session:${id}`, JSON.stringify(next));
+    await Promise.resolve();
   }
 
   delete(session: Session | string): Promise<boolean> {
@@ -66,34 +92,42 @@ export class SessionService {
     return Promise.resolve(existed);
   }
 
-  async get(id: string): Promise<Session | undefined> {
+  private getInternal(id: string): Promise<SessionInternal | undefined> {
     const internalText = localStorage.getItem(`session:${id}`);
-    let session: Session | undefined = undefined;
-    if (internalText) {
-      const internal: SessionInternal = JSON.parse(internalText);
-      const {
-        username,
-        state,
-        redirectUri,
-        codeVerifier,
-        accessToken,
-        refreshToken,
-        accessTokenExpiresAt,
-        csrf,
-      } = internal;
-      session = {
-        id,
-        state,
-        redirectUri,
-        codeVerifier,
-        accessToken,
-        refreshToken,
-        accessTokenExpiresAt,
-        csrf,
-      };
-      if (username) session.user = await this.userService.get(username);
+    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+  }
+
+  private async toExternal(internal: SessionInternal): Promise<Session> {
+    const {
+      id,
+      state,
+      redirectUri,
+      codeVerifier,
+      accessToken,
+      refreshToken,
+      accessTokenExpiresAt,
+      csrf,
+      username,
+    } = internal;
+    const external: Session = {
+      id,
+      state,
+      redirectUri,
+      codeVerifier,
+      accessToken,
+      refreshToken,
+      csrf,
+    };
+    if (accessTokenExpiresAt) {
+      external.accessTokenExpiresAt = new Date(accessTokenExpiresAt);
     }
-    return session;
+    if (username) external.user = await this.userService.get(username);
+    return external;
+  }
+
+  async get(id: string): Promise<Session | undefined> {
+    const internal = await this.getInternal(id);
+    return internal ? await this.toExternal(internal) : undefined;
   }
 
   async start(id?: string): Promise<Session> {
@@ -103,7 +137,7 @@ export class SessionService {
         id: crypto.randomUUID(),
         csrf: crypto.randomUUID(),
       };
-      await this.insert(session);
+      await this.put(session);
     }
     return session;
   }

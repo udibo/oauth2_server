@@ -1,8 +1,11 @@
-import { Client } from "./client.ts";
+import { ClientInterface } from "./client.ts";
 import { ScopeInterface } from "./scope.ts";
-import { User } from "./user.ts";
 
-export interface AuthorizationCode<Scope extends ScopeInterface> {
+export interface AuthorizationCode<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> {
   /** The authorization code. */
   code: string;
   /** The expiration time for the authorization code. */

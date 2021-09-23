@@ -2,17 +2,17 @@ import { clientService, userService } from "./services/mod.ts";
 
 localStorage.clear();
 
-userService.insert({ username: "kyle" }, "qwerty");
-userService.insert({ username: "john" }, "doe");
+userService.put({ username: "kyle", password: "qwerty" });
+userService.put({ username: "john", password: "doe" });
 
-clientService.insert({
+clientService.put({
   id: "1000",
   secret: "1234",
   grants: ["authorization_code", "refresh_token"],
   redirectUris: ["http://localhost:8000/cb"],
 });
 
-clientService.insert({
+clientService.put({
   id: "1001",
   secret: "1234",
   grants: ["authorization_code", "client_credentials"],

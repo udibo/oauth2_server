@@ -1,9 +1,10 @@
 import { ScopeInterface } from "../models/scope.ts";
-import { Client } from "../models/client.ts";
-import { User } from "../models/user.ts";
+import { ClientInterface } from "../models/client.ts";
 import { AuthorizationCode } from "../models/authorization_code.ts";
 
 export interface AuthorizationCodeServiceInterface<
+  Client extends ClientInterface,
+  User,
   Scope extends ScopeInterface,
 > {
   /** Lifetime of authorization codes in second. */
@@ -21,20 +22,22 @@ export interface AuthorizationCodeServiceInterface<
     scope?: Scope,
   ): Promise<Date>;
   /** Retrieves an existing authorization code. */
-  get(code: string): Promise<AuthorizationCode<Scope> | void>;
+  get(code: string): Promise<AuthorizationCode<Client, User, Scope> | void>;
   /** Saves an authorization code. */
   save(
-    authorizationCode: AuthorizationCode<Scope>,
-  ): Promise<AuthorizationCode<Scope>>;
+    authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<AuthorizationCode<Client, User, Scope>>;
   /** Revokes an authorization code. */
   revoke(
-    authorizationCode: AuthorizationCode<Scope> | string,
+    authorizationCode: AuthorizationCode<Client, User, Scope> | string,
   ): Promise<boolean>;
 }
 
 export abstract class AbstractAuthorizationCodeService<
+  Client extends ClientInterface,
+  User,
   Scope extends ScopeInterface,
-> implements AuthorizationCodeServiceInterface<Scope> {
+> implements AuthorizationCodeServiceInterface<Client, User, Scope> {
   /** Lifetime of authorization codes in second. Defaults to 5 minutes. */
   lifetime = 5 * 60;
   /** Generates an authorization code. */
@@ -56,13 +59,15 @@ export abstract class AbstractAuthorizationCodeService<
     );
   }
   /** Retrieves an existing authorization code. */
-  abstract get(code: string): Promise<AuthorizationCode<Scope> | undefined>;
+  abstract get(
+    code: string,
+  ): Promise<AuthorizationCode<Client, User, Scope> | undefined>;
   /** Saves an authorization code. */
   abstract save(
-    authorizationCode: AuthorizationCode<Scope>,
-  ): Promise<AuthorizationCode<Scope>>;
+    authorizationCode: AuthorizationCode<Client, User, Scope>,
+  ): Promise<AuthorizationCode<Client, User, Scope>>;
   /** Revokes an authorization code. */
   abstract revoke(
-    authorizationCode: AuthorizationCode<Scope> | string,
+    authorizationCode: AuthorizationCode<Client, User, Scope> | string,
   ): Promise<boolean>;
 }

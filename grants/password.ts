@@ -6,25 +6,33 @@ import {
 } from "./grant.ts";
 import { InvalidGrant, InvalidRequest } from "../errors.ts";
 import { Scope as DefaultScope, ScopeInterface } from "../models/scope.ts";
-import { User } from "../models/user.ts";
 import { UserServiceInterface } from "../services/user.ts";
 import { OAuth2Request } from "../context.ts";
-import { Client } from "../models/client.ts";
+import { ClientInterface } from "../models/client.ts";
 import { Token } from "../models/token.ts";
 
-export interface PasswordGrantServices<Scope extends ScopeInterface>
-  extends GrantServices<Scope> {
-  userService: UserServiceInterface;
+export interface PasswordGrantServices<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends GrantServices<Client, User, Scope> {
+  userService: UserServiceInterface<User>;
 }
 
-export interface PasswordGrantOptions<Scope extends ScopeInterface>
-  extends GrantOptions<Scope> {
-  services: PasswordGrantServices<Scope>;
+export interface PasswordGrantOptions<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends GrantOptions<Client, User, Scope> {
+  services: PasswordGrantServices<Client, User, Scope>;
 }
 
-export interface PasswordGrantInterface<Scope extends ScopeInterface>
-  extends GrantInterface<Scope> {
-  services: PasswordGrantServices<Scope>;
+export interface PasswordGrantInterface<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface,
+> extends GrantInterface<Client, User, Scope> {
+  services: PasswordGrantServices<Client, User, Scope>;
 }
 
 /**
@@ -33,19 +41,22 @@ export interface PasswordGrantInterface<Scope extends ScopeInterface>
  * Usage of this grant type is not recommended.
  * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-2.4
  */
-export class PasswordGrant<Scope extends ScopeInterface = DefaultScope>
-  extends AbstractGrant<Scope>
-  implements PasswordGrantInterface<Scope> {
-  declare services: PasswordGrantServices<Scope>;
+export class PasswordGrant<
+  Client extends ClientInterface,
+  User,
+  Scope extends ScopeInterface = DefaultScope,
+> extends AbstractGrant<Client, User, Scope>
+  implements PasswordGrantInterface<Client, User, Scope> {
+  declare services: PasswordGrantServices<Client, User, Scope>;
 
-  constructor(options: PasswordGrantOptions<Scope>) {
+  constructor(options: PasswordGrantOptions<Client, User, Scope>) {
     super(options);
   }
 
   async token(
-    request: OAuth2Request<Scope>,
+    request: OAuth2Request<Client, User, Scope>,
     client: Client,
-  ): Promise<Token<Scope>> {
+  ): Promise<Token<Client, User, Scope>> {
     if (!request.hasBody) throw new InvalidRequest("request body required");
 
     const body: URLSearchParams = await request.body!;
@@ -66,7 +77,7 @@ export class PasswordGrant<Scope extends ScopeInterface = DefaultScope>
 
     scope = await this.acceptedScope(client, user, scope);
 
-    const token: Token<Scope> = await this.generateToken(client, user, scope);
+    const token = await this.generateToken(client, user, scope);
     return await tokenService.save(token);
   }
 }

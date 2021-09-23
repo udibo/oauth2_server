@@ -29,7 +29,6 @@ import {
   ServerError,
 } from "../errors.ts";
 import { fakeTokenRequest } from "../test_context.ts";
-import { User } from "../models/user.ts";
 import {
   assertAuthorizationCode,
   assertClientUserScopeCall,
@@ -48,6 +47,7 @@ import {
   scope,
   user,
 } from "../services/test_services.ts";
+import { User } from "../models/user.ts";
 
 const authorizationCodeGrantTests: TestSuite<void> = new TestSuite({
   name: "AuthorizationCodeGrant",
@@ -66,7 +66,7 @@ const tokenService = new RefreshTokenService({
   client,
 });
 const authorizationCodeService = new AuthorizationCodeService();
-const services: AuthorizationCodeGrantServices<Scope> = {
+const services: AuthorizationCodeGrantServices<Client, User, Scope> = {
   clientService,
   tokenService,
   authorizationCodeService,
@@ -129,7 +129,7 @@ const getAuthenticatedClientTests: TestSuite<void> = new TestSuite({
 });
 
 test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
-  const getClientCredentials: Spy<AuthorizationCodeGrant<Scope>> = spy(
+  const getClientCredentials = spy(
     authorizationCodeGrant,
     "getClientCredentials",
   );
@@ -166,7 +166,7 @@ test(
   getAuthenticatedClientTests,
   "client authentication failed without secret",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
@@ -210,7 +210,7 @@ test(
   getAuthenticatedClientTests,
   "client authentication failed with secret",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
@@ -254,16 +254,16 @@ test(
   getAuthenticatedClientTests,
   "client authentication failed with PKCE",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
-    const clientServiceGet: Stub<ClientService> = stub(
+    const clientServiceGet = stub(
       clientService,
       "get",
       resolves(undefined),
     );
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+    const clientServiceGetAuthenticated = spy(
       clientService,
       "getAuthenticated",
     );
@@ -304,12 +304,12 @@ test(
   getAuthenticatedClientTests,
   "returns client authenticated without secret",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
-    const clientServiceGet: Spy<ClientService> = spy(clientService, "get");
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+    const clientServiceGet = spy(clientService, "get");
+    const clientServiceGetAuthenticated = spy(
       clientService,
       "getAuthenticated",
     );
@@ -348,12 +348,12 @@ test(
   getAuthenticatedClientTests,
   "returns client authenticated with secret",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
-    const clientServiceGet: Spy<ClientService> = spy(clientService, "get");
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+    const clientServiceGet = spy(clientService, "get");
+    const clientServiceGetAuthenticated = spy(
       clientService,
       "getAuthenticated",
     );
@@ -392,12 +392,12 @@ test(
   getAuthenticatedClientTests,
   "returns client authenticated with PKCE",
   async () => {
-    const getClientCredentials: Spy<AuthorizationCodeGrant> = spy(
+    const getClientCredentials = spy(
       authorizationCodeGrant,
       "getClientCredentials",
     );
-    const clientServiceGet: Spy<ClientService> = spy(clientService, "get");
-    const clientServiceGetAuthenticated: Spy<ClientService> = spy(
+    const clientServiceGet = spy(clientService, "get");
+    const clientServiceGetAuthenticated = spy(
       clientService,
       "getAuthenticated",
     );
@@ -462,7 +462,7 @@ test(getChallengeMethodTests, "with default challenge methods", () => {
 test(getChallengeMethodTests, "with custom challenge methods", () => {
   const plain: ChallengeMethod = (verifier: string) => verifier;
   const other: ChallengeMethod = (verifier: string) => verifier.toLowerCase();
-  const grant: AuthorizationCodeGrant = new AuthorizationCodeGrant({
+  const grant = new AuthorizationCodeGrant({
     services,
     challengeMethods: { ...challengeMethods, plain, other },
   });
@@ -504,7 +504,7 @@ test(validateChallengeMethodTests, "with default challenge methods", () => {
 test(validateChallengeMethodTests, "with custom challenge methods", () => {
   const plain: ChallengeMethod = (verifier: string) => verifier;
   const other: ChallengeMethod = (verifier: string) => verifier.toLowerCase();
-  const grant: AuthorizationCodeGrant = new AuthorizationCodeGrant({
+  const grant = new AuthorizationCodeGrant({
     services,
     challengeMethods: { ...challengeMethods, plain, other },
   });
@@ -518,7 +518,7 @@ test(validateChallengeMethodTests, "with custom challenge methods", () => {
 
 interface VerifyCodeContext {
   codeVerifier: string;
-  authorizationCode: AuthorizationCode<Scope>;
+  authorizationCode: AuthorizationCode<Client, User, Scope>;
 }
 
 const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
@@ -601,7 +601,7 @@ const tokenTests: TestSuite<void> = new TestSuite({
 
 test(tokenTests, "request body required", async () => {
   const request = fakeTokenRequest();
-  const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+  const result = authorizationCodeGrant.token(
     request,
     client,
   );
@@ -615,7 +615,7 @@ test(tokenTests, "request body required", async () => {
 
 test(tokenTests, "code parameter required", async () => {
   let request = fakeTokenRequest("");
-  const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+  const result = authorizationCodeGrant.token(
     request,
     client,
   );
@@ -642,7 +642,7 @@ test(tokenTests, "code already used", async () => {
   );
   try {
     const request = fakeTokenRequest("code=1");
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -671,7 +671,7 @@ test(tokenTests, "invalid code", async () => {
   );
   try {
     const request = fakeTokenRequest("code=1");
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -704,7 +704,7 @@ test(tokenTests, "expired code", async () => {
   );
   try {
     const request = fakeTokenRequest("code=1");
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -737,7 +737,7 @@ test(tokenTests, "code was issued to another client", async () => {
   );
   try {
     const request = fakeTokenRequest("code=1");
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -765,7 +765,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
   );
   try {
     let request = fakeTokenRequest("code=1");
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -810,7 +810,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
         encodeURIComponent("http://client.example.com/cb")
       }`,
     );
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -864,7 +864,7 @@ test(tokenTests, "did not expect redirect_uri parameter", async () => {
         encodeURIComponent("http://client.example.com/cb")
       }`,
     );
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
@@ -914,7 +914,7 @@ test(
           encodeURIComponent("https://client.example.com/cb")
         }`,
       );
-      const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+      const result = authorizationCodeGrant.token(
         request,
         client,
       );
@@ -962,7 +962,7 @@ test(
           encodeURIComponent("https://client.example.com/cb")
         }`,
       );
-      const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+      const result = authorizationCodeGrant.token(
         request,
         client,
       );
@@ -985,14 +985,14 @@ test(
 );
 
 test(tokenTests, "returns token", async () => {
-  const get: Spy<AuthorizationCodeService> = spy(
+  const get = spy(
     authorizationCodeService,
     "get",
   );
-  const save: Spy<RefreshTokenService> = spy(tokenService, "save");
-  const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
-  const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
-  const generateToken: Stub<AuthorizationCodeGrant> = stub(
+  const save = spy(tokenService, "save");
+  const accessTokenExpiresAt = new Date(Date.now() + 1000);
+  const refreshTokenExpiresAt = new Date(Date.now() + 2000);
+  const generateToken = stub(
     authorizationCodeGrant,
     "generateToken",
     (client: Client, user: User, scope: Scope) =>
@@ -1012,19 +1012,20 @@ test(tokenTests, "returns token", async () => {
         encodeURIComponent("https://client.example.com/cb")
       }`,
     );
-    const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+    const result = authorizationCodeGrant.token(
       request,
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    const token: Token<Scope> = await result;
+    const token = await result;
 
     const call: SpyCall = assertSpyCall(get, 0, {
       self: authorizationCodeService,
       args: ["1"],
     });
     assertSpyCalls(get, 1);
-    const { user, scope }: AuthorizationCode<Scope> = await call.returned;
+    const { user, scope }: AuthorizationCode<Client, User, Scope> = await call
+      .returned;
 
     assertClientUserScopeCall(
       generateToken,
@@ -1036,7 +1037,7 @@ test(tokenTests, "returns token", async () => {
     );
     assertSpyCalls(generateToken, 1);
 
-    const expectedToken: Token<Scope> = {
+    const expectedToken: Token<Client, User, Scope> = {
       accessToken: "x",
       refreshToken: "y",
       accessTokenExpiresAt,
@@ -1064,8 +1065,8 @@ test(
   tokenTests,
   "returns token using client authenticated with PKCE",
   async () => {
-    const codeVerifier: string = generateCodeVerifier();
-    const get: Stub<AuthorizationCodeService> = stub(
+    const codeVerifier = generateCodeVerifier();
+    const get = stub(
       authorizationCodeService,
       "get",
       (code: string) =>
@@ -1080,10 +1081,10 @@ test(
           challenge: challengeMethods["S256"](codeVerifier),
         }),
     );
-    const save: Spy<RefreshTokenService> = spy(tokenService, "save");
-    const accessTokenExpiresAt: Date = new Date(Date.now() + 1000);
-    const refreshTokenExpiresAt: Date = new Date(Date.now() + 2000);
-    const generateToken: Stub<AuthorizationCodeGrant> = stub(
+    const save = spy(tokenService, "save");
+    const accessTokenExpiresAt = new Date(Date.now() + 1000);
+    const refreshTokenExpiresAt = new Date(Date.now() + 2000);
+    const generateToken = stub(
       authorizationCodeGrant,
       "generateToken",
       (client: Client, user: User, scope: Scope) =>
@@ -1103,19 +1104,20 @@ test(
           encodeURIComponent("https://client.example.com/cb")
         }`,
       );
-      const result: Promise<Token<Scope>> = authorizationCodeGrant.token(
+      const result = authorizationCodeGrant.token(
         request,
         client,
       );
       assertStrictEquals(Promise.resolve(result), result);
-      const token: Token<Scope> = await result;
+      const token = await result;
 
       const call: SpyCall = assertSpyCall(get, 0, {
         self: authorizationCodeService,
         args: ["1"],
       });
       assertSpyCalls(get, 1);
-      const { user, scope }: AuthorizationCode<Scope> = await call.returned;
+      const { user, scope }: AuthorizationCode<Client, User, Scope> = await call
+        .returned;
 
       assertClientUserScopeCall(
         generateToken,
@@ -1127,7 +1129,7 @@ test(
       );
       assertSpyCalls(generateToken, 1);
 
-      const expectedToken: Token<Scope> = {
+      const expectedToken: Token<Client, User, Scope> = {
         accessToken: "x",
         refreshToken: "y",
         accessTokenExpiresAt,
