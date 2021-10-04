@@ -1,6 +1,7 @@
 import {
   AuthorizationCodeGrant,
   AuthorizeParameters,
+  BearerToken,
   ClientCredentialsGrant,
   loginRedirectFactory,
   OakOAuth2,
@@ -28,7 +29,10 @@ const services = {
   tokenService,
 };
 
-const authorizationCodeGrant = new AuthorizationCodeGrant({ services });
+const authorizationCodeGrant = new AuthorizationCodeGrant({
+  services,
+  allowRefreshToken: true,
+});
 const clientCredentialsGrant = new ClientCredentialsGrant({ services });
 const refreshTokenGrant = new RefreshTokenGrant({ services });
 
@@ -56,8 +60,41 @@ export const oauth2 = new OakOAuth2({
   server: oauth2Server,
   async getAccessToken(
     request: OakOAuth2Request<Client, User, Scope>,
+    requireRefresh = false,
   ): Promise<string | null> {
-    const session = await getSession(request);
+    let session = await getSession(request);
+    if (requireRefresh && session?.refreshToken) {
+      const tokenUrl = new URL("http://localhost:8000/oauth2/token");
+      const formParams = new URLSearchParams();
+      formParams.set("grant_type", "refresh_token");
+      formParams.set("refresh_token", session.refreshToken);
+      const now = Date.now();
+      const headers = new Headers();
+      headers.set("authorization", `basic ${btoa("1000:1234")}`); // should be environment variable
+      headers.set("content-type", "application/x-www-form-urlencoded");
+      const tokenResponse = await fetch(tokenUrl, {
+        method: "POST",
+        headers,
+        body: formParams.toString(),
+      });
+      const body = await tokenResponse.json();
+      if (tokenResponse.status === 200) {
+        const {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: expiresIn,
+        } = body as BearerToken;
+        if (accessToken) session.accessToken = accessToken;
+        if (refreshToken) session.refreshToken = refreshToken;
+        if (expiresIn) {
+          session.accessTokenExpiresAt = new Date(now + (expiresIn * 1000));
+        }
+        await sessionService.patch(session);
+      } else {
+        await sessionService.delete(session);
+        session = undefined;
+      }
+    }
     return session?.accessToken ?? null;
   },
 });
@@ -84,7 +121,7 @@ const setAuthorization = async (
       request.user = session.user;
     }
   } else {
-    const token = await oauth2.getToken(request);
+    const token = await oauth2.getTokenForRequest(request);
     if (token) {
       request.user = token.user;
     }

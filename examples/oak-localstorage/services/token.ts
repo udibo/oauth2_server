@@ -79,15 +79,15 @@ export class TokenService
     const accessTokenKey = `accessToken:${accessToken}`;
     const tokenIndex = localStorage.getItem(accessTokenKey);
     if (tokenIndex) {
-      localStorage.deleteItem(accessTokenKey);
+      localStorage.removeItem(accessTokenKey);
       const tokenKey = `token:${tokenIndex}`;
       const internalText = localStorage.getItem(tokenKey);
       if (internalText) {
         const internal: TokenInternal = JSON.parse(internalText);
         if (!internal.refreshToken) {
-          localStorage.deleteItem(tokenKey);
+          localStorage.removeItem(tokenKey);
           if (internal.code) {
-            localStorage.deleteItem(`tokenCode:${internal.code}`);
+            localStorage.removeItem(`tokenCode:${internal.code}`);
           }
         }
       }
@@ -99,7 +99,7 @@ export class TokenService
     const refreshTokenKey = `refreshToken:${refreshToken}`;
     const tokenIndex = localStorage.getItem(refreshTokenKey);
     if (tokenIndex) {
-      localStorage.deleteItem(refreshTokenKey);
+      localStorage.removeItem(refreshTokenKey);
       const tokenKey = `token:${tokenIndex}`;
       const internalText = localStorage.getItem(tokenKey);
       if (internalText) {
@@ -109,9 +109,9 @@ export class TokenService
           delete internal.refreshTokenExpiresAt;
           localStorage.setItem(tokenKey, JSON.stringify(internal));
         } else {
-          localStorage.deleteItem(tokenKey);
+          localStorage.removeItem(tokenKey);
           if (internal.code) {
-            localStorage.deleteItem(`tokenCode:${internal.code}`);
+            localStorage.removeItem(`tokenCode:${internal.code}`);
           }
         }
       }

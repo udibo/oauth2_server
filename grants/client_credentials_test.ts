@@ -7,9 +7,9 @@ import type { Client } from "../models/client.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
+  assertRejects,
   assertSpyCalls,
   assertStrictEquals,
-  assertThrowsAsync,
   Spy,
   spy,
   SpyCall,
@@ -69,7 +69,7 @@ test(tokenTests, "not implemented for UserService", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       ServerError,
       "clientService.getUser not implemented",
@@ -91,7 +91,7 @@ test(tokenTests, "request body required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "request body required",
@@ -107,14 +107,14 @@ test(tokenTests, "invalid scope", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidScope,
       "invalid scope",
     );
 
     request = fakeTokenRequest("scope= ");
-    await assertThrowsAsync(
+    await assertRejects(
       () => clientCredentialsGrant.token(request, client),
       InvalidScope,
       "invalid scope",
@@ -137,7 +137,7 @@ test(tokenTests, "no user for client", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "no user for client",
@@ -171,7 +171,7 @@ test(tokenTests, "scope not accepted", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidScope,
       "invalid scope",

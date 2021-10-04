@@ -4,12 +4,12 @@ export {
   AssertionError,
   assertNotEquals,
   assertObjectMatch,
+  assertRejects,
   assertStrictEquals,
   assertThrows,
-  assertThrowsAsync,
-} from "https://deno.land/std@0.107.0/testing/asserts.ts";
-export { delay } from "https://deno.land/std@0.107.0/async/delay.ts";
-export { v4 } from "https://deno.land/std@0.107.0/uuid/mod.ts";
+} from "https://deno.land/std@0.109.0/testing/asserts.ts";
+export { delay } from "https://deno.land/std@0.109.0/async/delay.ts";
+export { v4 } from "https://deno.land/std@0.109.0/uuid/mod.ts";
 
 export {
   assertSpyCall,

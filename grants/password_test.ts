@@ -4,9 +4,9 @@ import type { Client } from "../models/client.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
+  assertRejects,
   assertSpyCalls,
   assertStrictEquals,
-  assertThrowsAsync,
   Spy,
   spy,
   SpyCall,
@@ -70,7 +70,7 @@ test(tokenTests, "not implemented for UserService", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       ServerError,
       "userService.getAuthenticated not implemented",
@@ -81,7 +81,7 @@ test(tokenTests, "not implemented for UserService", async () => {
     assertEquals(call.args, ["kyle", "hunter2"]);
 
     request = fakeTokenRequest("username=John&password=Doe");
-    await assertThrowsAsync(
+    await assertRejects(
       () => passwordGrant.token(request, client),
       ServerError,
       "userService.getAuthenticated not implemented",
@@ -102,7 +102,7 @@ test(tokenTests, "request body required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "request body required",
@@ -116,14 +116,14 @@ test(tokenTests, "invalid scope", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidScope,
     "invalid scope",
   );
 
   request = fakeTokenRequest("scope= ");
-  await assertThrowsAsync(
+  await assertRejects(
     () => passwordGrant.token(request, client),
     InvalidScope,
     "invalid scope",
@@ -137,14 +137,14 @@ test(tokenTests, "username parameter required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "username parameter required",
   );
 
   request = fakeTokenRequest("username=");
-  await assertThrowsAsync(
+  await assertRejects(
     () => passwordGrant.token(request, client),
     InvalidRequest,
     "username parameter required",
@@ -158,14 +158,14 @@ test(tokenTests, "password parameter required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "password parameter required",
   );
 
   request = fakeTokenRequest("username=kyle&password=");
-  await assertThrowsAsync(
+  await assertRejects(
     () => passwordGrant.token(request, client),
     InvalidRequest,
     "password parameter required",
@@ -187,7 +187,7 @@ test(tokenTests, "user authentication failed", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "user authentication failed",
@@ -222,7 +222,7 @@ test(tokenTests, "scope not accepted", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidScope,
       "invalid scope",

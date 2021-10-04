@@ -10,9 +10,9 @@ import {
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
+  assertRejects,
   assertSpyCalls,
   assertStrictEquals,
-  assertThrowsAsync,
   resolves,
   Spy,
   spy,
@@ -153,7 +153,7 @@ test(acceptedScopeTests, "invalid scope", async () => {
     () => Promise.resolve(false),
   );
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () => grant.acceptedScope(client, user, scope),
       InvalidScope,
       "invalid scope",
@@ -180,7 +180,7 @@ test(acceptedScopeTests, "scope required", async () => {
     () => Promise.resolve(false),
   );
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () => grant.acceptedScope(client, user),
       InvalidScope,
       "scope required",
@@ -204,7 +204,7 @@ test(
   async () => {
     const request = fakeTokenRequest();
     request.headers.delete("authorization");
-    await assertThrowsAsync(
+    await assertRejects(
       () => grant.getClientCredentials(request),
       InvalidClient,
       "authorization header required",
@@ -300,7 +300,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   try {
     const request = fakeTokenRequest();
     request.headers.delete("authorization");
-    await assertThrowsAsync(
+    await assertRejects(
       () => grant.getAuthenticatedClient(request),
       InvalidClient,
       "authorization header required",
@@ -335,7 +335,7 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:")}`);
-      await assertThrowsAsync(
+      await assertRejects(
         () => grant.getAuthenticatedClient(request),
         InvalidClient,
         "client authentication failed",
@@ -374,7 +374,7 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
-      await assertThrowsAsync(
+      await assertRejects(
         () => grant.getAuthenticatedClient(request),
         InvalidClient,
         "client authentication failed",

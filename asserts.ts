@@ -56,8 +56,8 @@ export function assertToken<
   User,
   Scope extends ScopeInterface,
 >(
-  actual: Partial<Token<Client, User, Scope>> | undefined,
-  expected: Partial<Token<Client, User, Scope>> | undefined,
+  actual: Partial<Token<Client, User, Scope>> | null | undefined,
+  expected: Partial<Token<Client, User, Scope>> | null | undefined,
 ): void {
   // add test coverage for this new assertion
   assert(
@@ -75,8 +75,8 @@ export function assertAuthorizationCode<
   User,
   Scope extends ScopeInterface,
 >(
-  actual: Partial<AuthorizationCode<Client, User, Scope>> | undefined,
-  expected: Partial<AuthorizationCode<Client, User, Scope>> | undefined,
+  actual: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
+  expected: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
 ): void {
   // add test coverage for this new assertion
   assert(

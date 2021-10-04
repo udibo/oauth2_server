@@ -3,8 +3,8 @@ import { ScopeInterface } from "../models/scope.ts";
 import {
   assert,
   assertEquals,
+  assertRejects,
   assertStrictEquals,
-  assertThrowsAsync,
   FakeTime,
   test,
   TestSuite,
@@ -51,12 +51,12 @@ test(
         scope,
       );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       ServerError,
       "generateRefreshToken not implemented",
     );
-    await assertThrowsAsync(
+    await assertRejects(
       () => accessTokenService.generateRefreshToken(client, user, scope),
       ServerError,
       "generateRefreshToken not implemented",
@@ -130,12 +130,12 @@ test(
         scope,
       );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       ServerError,
       "refreshTokenExpiresAt not implemented",
     );
-    await assertThrowsAsync(
+    await assertRejects(
       () => accessTokenService.refreshTokenExpiresAt(client, user, scope),
       ServerError,
       "refreshTokenExpiresAt not implemented",
@@ -146,12 +146,12 @@ test(
 test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
   const result = accessTokenService.getRefreshToken("fake");
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     ServerError,
     "getRefreshToken not implemented",
   );
-  await assertThrowsAsync(
+  await assertRejects(
     () => accessTokenService.getRefreshToken("fake"),
     ServerError,
     "getRefreshToken not implemented",

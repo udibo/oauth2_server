@@ -8,11 +8,11 @@ import type { AuthorizationCode } from "../models/authorization_code.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
+  assertRejects,
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
   assertThrows,
-  assertThrowsAsync,
   resolves,
   Spy,
   spy,
@@ -141,7 +141,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   try {
     const request = fakeTokenRequest();
     request.headers.delete("authorization");
-    await assertThrowsAsync(
+    await assertRejects(
       () => authorizationCodeGrant.getAuthenticatedClient(request),
       InvalidClient,
       "authorization header required",
@@ -179,7 +179,7 @@ test(
     try {
       const request = fakeTokenRequest("client_id=1");
       request.headers.delete("authorization");
-      await assertThrowsAsync(
+      await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
         InvalidClient,
         "client authentication failed",
@@ -223,7 +223,7 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
-      await assertThrowsAsync(
+      await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
         InvalidClient,
         "client authentication failed",
@@ -273,7 +273,7 @@ test(
         `client_id=1&code_verifier=${codeVerifier}`,
       );
       request.headers.delete("authorization");
-      await assertThrowsAsync(
+      await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
         InvalidClient,
         "client authentication failed",
@@ -606,7 +606,7 @@ test(tokenTests, "request body required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "request body required",
@@ -620,14 +620,14 @@ test(tokenTests, "code parameter required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "code parameter required",
   );
 
   request = fakeTokenRequest("username=");
-  await assertThrowsAsync(
+  await assertRejects(
     () => authorizationCodeGrant.token(request, client),
     InvalidRequest,
     "code parameter required",
@@ -647,7 +647,7 @@ test(tokenTests, "code already used", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "code already used",
@@ -676,7 +676,7 @@ test(tokenTests, "invalid code", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "invalid code",
@@ -709,7 +709,7 @@ test(tokenTests, "expired code", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "invalid code",
@@ -742,7 +742,7 @@ test(tokenTests, "code was issued to another client", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidClient,
       "code was issued to another client",
@@ -770,7 +770,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "redirect_uri parameter required",
@@ -783,7 +783,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
     assertSpyCalls(get, 1);
 
     request = fakeTokenRequest("code=1&redirect_uri=");
-    await assertThrowsAsync(
+    await assertRejects(
       () => authorizationCodeGrant.token(request, client),
       InvalidGrant,
       "redirect_uri parameter required",
@@ -815,7 +815,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "incorrect redirect_uri",
@@ -832,7 +832,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
         encodeURIComponent("https://client.example.com/cb?client_id=1")
       }`,
     );
-    await assertThrowsAsync(
+    await assertRejects(
       () => authorizationCodeGrant.token(request, client),
       InvalidGrant,
       "incorrect redirect_uri",
@@ -869,7 +869,7 @@ test(tokenTests, "did not expect redirect_uri parameter", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "did not expect redirect_uri parameter",
@@ -919,7 +919,7 @@ test(
         client,
       );
       assertStrictEquals(Promise.resolve(result), result);
-      await assertThrowsAsync(
+      await assertRejects(
         () => result,
         InvalidClient,
         "client authentication failed",
@@ -967,7 +967,7 @@ test(
         client,
       );
       assertStrictEquals(Promise.resolve(result), result);
-      await assertThrowsAsync(
+      await assertRejects(
         () => result,
         InvalidClient,
         "client authentication failed",
@@ -1174,7 +1174,7 @@ test(generateAuthorizationCodeTests, "generateCode error", async () => {
     "save",
   );
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         authorizationCodeGrant.generateAuthorizationCode({
           client,
@@ -1215,7 +1215,7 @@ test(generateAuthorizationCodeTests, "expiresAt error", async () => {
     "save",
   );
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         authorizationCodeGrant.generateAuthorizationCode({
           client,
@@ -1266,7 +1266,7 @@ test(generateAuthorizationCodeTests, "save error", async () => {
     () => Promise.reject(new ServerError("save failed")),
   );
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         authorizationCodeGrant.generateAuthorizationCode({
           client,

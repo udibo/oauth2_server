@@ -1,5 +1,6 @@
 import {
   Application,
+  BearerToken,
   BodyForm,
   challengeMethods,
   Cookies,
@@ -161,25 +162,33 @@ router
         const now = Date.now();
         const headers = new Headers();
         headers.set("content-type", "application/x-www-form-urlencoded");
-        const tokenResponse = await (await fetch(tokenUrl, {
+        const tokenResponse = await fetch(tokenUrl, {
           method: "POST",
           headers,
           body: formParams.toString(),
-        })).json();
-        const {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: expiresIn,
-        } = tokenResponse;
-        if (accessToken) session.accessToken = accessToken;
-        if (refreshToken) session.refreshToken = refreshToken;
-        if (expiresIn) session.accessTokenExpiresAt = now + expiresIn;
-        session.user = undefined;
-        session.state = undefined;
-        session.codeVerifier = undefined;
-        session.redirectUri = undefined;
-        sessionService.patch(session);
-        response.redirect(redirectUri);
+        });
+        const body = await tokenResponse.json();
+        if (tokenResponse.status === 200) {
+          const {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expiresIn,
+          } = body as BearerToken;
+          if (accessToken) session.accessToken = accessToken;
+          if (refreshToken) session.refreshToken = refreshToken;
+          if (expiresIn) {
+            session.accessTokenExpiresAt = new Date(now + (expiresIn * 1000));
+          }
+          session.user = undefined;
+          session.state = undefined;
+          session.codeVerifier = undefined;
+          session.redirectUri = undefined;
+          await sessionService.patch(session);
+          response.redirect(redirectUri);
+        } else {
+          response.status = tokenResponse.status;
+          response.body = body.error;
+        }
       } else {
         response.status = 400;
         response.body = "invalid request";

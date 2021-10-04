@@ -1,6 +1,6 @@
 import {
+  assertRejects,
   assertStrictEquals,
-  assertThrowsAsync,
   test,
   TestSuite,
 } from "../test_deps.ts";
@@ -19,8 +19,8 @@ test(userServiceTests, "getAuthenticated not implemented", async () => {
     "hunter2",
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(() => result, Error, "not implemented");
-  await assertThrowsAsync(
+  await assertRejects(() => result, Error, "not implemented");
+  await assertRejects(
     () => userService.getAuthenticated("Kyle", "hunter2"),
     ServerError,
     "not implemented",

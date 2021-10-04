@@ -243,26 +243,60 @@ export class OAuth2Server<
     return token;
   }
 
+  /** Gets a token for a request and adds it onto the request. */
+  async getTokenForRequest<Request extends OAuth2Request<Client, User, Scope>>(
+    request: Request,
+    getAccessToken: (
+      request: Request,
+      requireRefresh?: boolean,
+    ) => Promise<string | null>,
+  ): Promise<Token<Client, User, Scope>> {
+    let { token, accessToken } = request;
+    if (!token && token !== null) {
+      request.token = null;
+      request.accessToken = null;
+      accessToken = await getAccessToken(request);
+      request.accessToken = accessToken;
+      if (accessToken) {
+        try {
+          token = await this.getToken(accessToken);
+        } catch (error) {
+          if (error.code !== "access_denied") throw error;
+          accessToken = await getAccessToken(request, true);
+          request.accessToken = accessToken;
+        }
+      }
+      if (!accessToken) {
+        accessToken = await this.getAccessToken(request);
+        request.accessToken = accessToken;
+      }
+      if (!token && accessToken) token = await this.getToken(accessToken);
+      request.token = token ?? null;
+    }
+    if (!token) {
+      throw new AccessDenied(
+        accessToken ? "invalid access_token" : "authentication required",
+      );
+    }
+    return token;
+  }
+
   /** Authenticates a request and verifies the token has the required scope. */
   async authenticate<Request extends OAuth2Request<Client, User, Scope>>(
     request: Request,
     response: OAuth2Response,
     next: () => Promise<unknown>,
-    getAccessToken: (request: Request) => Promise<string | null>,
+    getAccessToken: (
+      request: Request,
+      requireRefresh?: boolean,
+    ) => Promise<string | null>,
     acceptedScope?: Scope,
   ): Promise<void> {
     try {
       if (acceptedScope) request.acceptedScope = acceptedScope;
 
-      let { token } = request;
-      if (!token) {
-        const accessToken: string | null = await getAccessToken(request) ??
-          await this.getAccessToken(request);
-        if (!accessToken) throw new AccessDenied("authentication required");
-        token = await this.getToken(accessToken);
-      }
+      const token = await this.getTokenForRequest(request, getAccessToken);
       request.token = token;
-
       if (acceptedScope && !token.scope?.has(acceptedScope)) {
         throw new AccessDenied("insufficient scope");
       }

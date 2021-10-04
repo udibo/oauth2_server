@@ -1,4 +1,4 @@
-import { assertThrowsAsync, test, TestSuite } from "../test_deps.ts";
+import { assertRejects, test, TestSuite } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 import { client, ClientService } from "./test_services.ts";
 
@@ -9,7 +9,7 @@ const clientServiceTests: TestSuite<void> = new TestSuite({
 });
 
 test(clientServiceTests, "getUser", async () => {
-  await assertThrowsAsync(
+  await assertRejects(
     () => clientService.getUser(client),
     ServerError,
     "clientService.getUser not implemented",

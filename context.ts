@@ -13,8 +13,9 @@ export interface OAuth2Request<
   method: string;
   hasBody: boolean;
   body?: Promise<URLSearchParams>;
-  token?: Token<Client, User, Scope>;
-  authorizationCode?: AuthorizationCode<Client, User, Scope>;
+  token?: Token<Client, User, Scope> | null;
+  accessToken?: string | null;
+  authorizationCode?: AuthorizationCode<Client, User, Scope> | null;
   authorizeParameters?: AuthorizeParameters;
   authorizedScope?: Scope;
   redirectUrl?: URL;

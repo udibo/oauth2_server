@@ -4,10 +4,10 @@ import type { Client } from "../models/client.ts";
 import { Scope } from "../models/scope.ts";
 import {
   assertEquals,
+  assertRejects,
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
-  assertThrowsAsync,
   spy,
   SpyCall,
   Stub,
@@ -58,7 +58,7 @@ test(tokenTests, "not implemented for AccessTokenService", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       ServerError,
       "getRefreshToken not implemented",
@@ -69,7 +69,7 @@ test(tokenTests, "not implemented for AccessTokenService", async () => {
     assertEquals(call.args, ["example1"]);
 
     request = fakeTokenRequest("refresh_token=example2");
-    await assertThrowsAsync(
+    await assertRejects(
       () => refreshTokenGrant.token(request, client),
       ServerError,
       "getRefreshToken not implemented",
@@ -98,7 +98,7 @@ test(tokenTests, "request body required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "request body required",
@@ -112,14 +112,14 @@ test(tokenTests, "refresh_token parameter required", async () => {
     client,
   );
   assertStrictEquals(Promise.resolve(result), result);
-  await assertThrowsAsync(
+  await assertRejects(
     () => result,
     InvalidRequest,
     "refresh_token parameter required",
   );
 
   request = fakeTokenRequest("refresh_token=");
-  await assertThrowsAsync(
+  await assertRejects(
     () => refreshTokenGrant.token(request, client),
     InvalidRequest,
     "refresh_token parameter required",
@@ -142,7 +142,7 @@ test(tokenTests, "invalid refresh_token", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "invalid refresh_token",
@@ -153,7 +153,7 @@ test(tokenTests, "invalid refresh_token", async () => {
     assertEquals(call.args, ["example1"]);
 
     request = fakeTokenRequest("refresh_token=example2");
-    await assertThrowsAsync(
+    await assertRejects(
       () => refreshTokenGrant.token(request, client),
       InvalidGrant,
       "invalid refresh_token",
@@ -188,7 +188,7 @@ test(tokenTests, "expired refresh_token", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidGrant,
       "invalid refresh_token",
@@ -223,7 +223,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
       client,
     );
     assertStrictEquals(Promise.resolve(result), result);
-    await assertThrowsAsync(
+    await assertRejects(
       () => result,
       InvalidClient,
       "refresh_token was issued to another client",
@@ -234,7 +234,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
     assertEquals(call.args, ["example1"]);
 
     request = fakeTokenRequest("refresh_token=example2");
-    await assertThrowsAsync(
+    await assertRejects(
       () => refreshTokenGrant.token(request, client),
       InvalidClient,
       "refresh_token was issued to another client",
