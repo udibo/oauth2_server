@@ -26,11 +26,11 @@ export class UserService extends AbstractUserService<User> {
     super();
   }
 
-  create(user: Omit<User, "id">): Promise<void> {
-    return this.put({ ...user, id: crypto.randomUUID() })
+  async create(user: Omit<User, "id">): Promise<void> {
+    return await this.put({ ...user, id: crypto.randomUUID() });
   }
 
-  put(user: User): Promise<void> {
+  async put(user: User): Promise<void> {
     const { id, username, password, email } = user;
     const next: UserInternal = { id, username };
 
@@ -42,7 +42,7 @@ export class UserService extends AbstractUserService<User> {
 
     localStorage.setItem(`username:${username}`, id);
     localStorage.setItem(`user:${id}`, JSON.stringify(next));
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(user: Partial<User> & Pick<User, "id">): Promise<void> {
@@ -77,14 +77,16 @@ export class UserService extends AbstractUserService<User> {
     return Promise.resolve(!!internal);
   }
 
-  private getInternal(id: string): Promise<UserInternal | undefined> {
+  private async getInternal(id: string): Promise<UserInternal | undefined> {
     const internalText = localStorage.getItem(`user:${id}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
-  private toExternal(internal: UserInternal): Promise<User> {
+  private async toExternal(internal: UserInternal): Promise<User> {
     const { id, username, email } = internal;
-    return Promise.resolve({ id, username, email });
+    return await Promise.resolve({ id, username, email });
   }
 
   async get(id: string): Promise<User | undefined> {

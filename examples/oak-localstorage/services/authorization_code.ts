@@ -30,7 +30,7 @@ export class AuthorizationCodeService
     this.userService = userService;
   }
 
-  put(
+  async put(
     authorizationCode: AuthorizationCode<Client, User, Scope>,
   ): Promise<void> {
     const {
@@ -54,7 +54,7 @@ export class AuthorizationCodeService
     if (challenge) next.challenge = challenge;
     if (challengeMethod) next.challengeMethod = challengeMethod;
     localStorage.setItem(`authorizationCode:${code}`, JSON.stringify(next));
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(
@@ -95,7 +95,7 @@ export class AuthorizationCodeService
     localStorage.setItem(`authorizationCode:${code}`, JSON.stringify(next));
   }
 
-  delete(
+  async delete(
     authorizationCode: AuthorizationCode<Client, User, Scope> | string,
   ): Promise<boolean> {
     const code = typeof authorizationCode === "string"
@@ -104,14 +104,16 @@ export class AuthorizationCodeService
     const codeKey = `authorizationCode:${code}`;
     const existed = !!localStorage.getItem(codeKey);
     localStorage.removeItem(codeKey);
-    return Promise.resolve(existed);
+    return await Promise.resolve(existed);
   }
 
-  private getInternal(
+  private async getInternal(
     code: string,
   ): Promise<AuthorizationCodeInternal | undefined> {
     const internalText = localStorage.getItem(`authorizationCode:${code}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
   private async toExternal(

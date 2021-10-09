@@ -147,13 +147,13 @@ const consentPage = (
   </html>
 `;
 
-const consent = (
+const consent = async (
   request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
   response: OakOAuth2Response,
 ): Promise<void> => {
   response.body = 401;
   response.body = consentPage(request.authorizeParameters);
-  return Promise.resolve();
+  return await Promise.resolve();
 };
 
 const authorize = oauth2.authorize(setAuthorization, login, consent);

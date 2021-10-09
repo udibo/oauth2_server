@@ -21,7 +21,7 @@ export class ClientService extends AbstractClientService<Client, User> {
     this.userService = userService;
   }
 
-  put(client: Client): Promise<void> {
+  async put(client: Client): Promise<void> {
     const {
       id,
       secret,
@@ -39,7 +39,7 @@ export class ClientService extends AbstractClientService<Client, User> {
     if (refreshTokenLifetime) next.refreshTokenLifetime = refreshTokenLifetime;
     if (user) next.userId = user.id;
     localStorage.setItem(`client:${id}`, JSON.stringify(next));
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(client: Partial<Client> & Pick<Client, "id">): Promise<void> {
@@ -83,20 +83,24 @@ export class ClientService extends AbstractClientService<Client, User> {
     localStorage.setItem(`client:${id}`, JSON.stringify(next));
   }
 
-  delete(client: Client | string): Promise<boolean> {
+  async delete(client: Client | string): Promise<boolean> {
     const clientId = typeof client === "string" ? client : client.id;
     const clientKey = `client:${clientId}`;
     const existed = !!localStorage.getItem(clientKey);
     localStorage.removeItem(clientKey);
-    return Promise.resolve(existed);
+    return await Promise.resolve(existed);
   }
 
-  private getInternal(clientId: string): Promise<ClientInternal | undefined> {
+  private async getInternal(
+    clientId: string,
+  ): Promise<ClientInternal | undefined> {
     const internalText = localStorage.getItem(`client:${clientId}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
-  private toExternal(internal: ClientInternal): Promise<Client> {
+  private async toExternal(internal: ClientInternal): Promise<Client> {
     const {
       id,
       secret,
@@ -105,7 +109,7 @@ export class ClientService extends AbstractClientService<Client, User> {
       accessTokenLifetime,
       refreshTokenLifetime,
     } = internal;
-    return Promise.resolve({
+    return await Promise.resolve({
       id,
       secret,
       grants,

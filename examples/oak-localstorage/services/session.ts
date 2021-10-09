@@ -25,7 +25,7 @@ export class SessionService {
     this.userService = userService;
   }
 
-  put(session: Session): Promise<void> {
+  async put(session: Session): Promise<void> {
     const {
       id,
       user,
@@ -48,7 +48,7 @@ export class SessionService {
     if (refreshToken) next.refreshToken = refreshToken;
     if (user) next.userId = user.id;
     localStorage.setItem(`session:${id}`, JSON.stringify(next));
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(session: Partial<Session> & Pick<Session, "id">): Promise<void> {
@@ -95,17 +95,19 @@ export class SessionService {
     await Promise.resolve();
   }
 
-  delete(session: Session | string): Promise<boolean> {
+  async delete(session: Session | string): Promise<boolean> {
     const sessionId = typeof session === "string" ? session : session.id;
     const sessionKey = `session:${sessionId}`;
     const existed = !!localStorage.getItem(sessionKey);
     localStorage.removeItem(sessionKey);
-    return Promise.resolve(existed);
+    return await Promise.resolve(existed);
   }
 
-  private getInternal(id: string): Promise<SessionInternal | undefined> {
+  private async getInternal(id: string): Promise<SessionInternal | undefined> {
     const internalText = localStorage.getItem(`session:${id}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
   private async toExternal(internal: SessionInternal): Promise<Session> {

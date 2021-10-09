@@ -29,7 +29,9 @@ export abstract class AbstractClientService<
   ): Promise<Client | undefined>;
 
   /** Retrieves a user associated with a client. */
-  getUser(_client: Client | string): Promise<User | undefined> {
-    throw new ServerError("clientService.getUser not implemented");
+  async getUser(_client: Client | string): Promise<User | undefined> {
+    return await Promise.reject(
+      new ServerError("clientService.getUser not implemented"),
+    );
   }
 }

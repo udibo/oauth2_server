@@ -32,10 +32,10 @@ export class AccessTokenService
   }
 
   /** Retrieves an existing token by access token. */
-  getToken(
+  async getToken(
     accessToken: string,
   ): Promise<AccessToken<Client, User, Scope> | undefined> {
-    return Promise.resolve({
+    return await Promise.resolve({
       accessToken,
       client: { ...this.client },
       user,
@@ -44,18 +44,20 @@ export class AccessTokenService
   }
 
   /** Saves a token. */
-  save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>> {
-    return Promise.resolve(token);
+  async save(
+    token: Token<Client, User, Scope>,
+  ): Promise<Token<Client, User, Scope>> {
+    return await Promise.resolve(token);
   }
 
   /** Revokes a token. */
-  revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
-    return Promise.resolve(true);
+  async revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
+    return await Promise.resolve(true);
   }
 
   /** Revokes all tokens generated from an authorization code. */
-  revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(false);
+  async revokeCode(_code: string): Promise<boolean> {
+    return await Promise.resolve(false);
   }
 }
 
@@ -69,10 +71,10 @@ export class RefreshTokenService
   }
 
   /** Retrieves an existing token by access token. */
-  getToken(
+  async getToken(
     accessToken: string,
   ): Promise<Token<Client, User, Scope> | undefined> {
-    return Promise.resolve({
+    return await Promise.resolve({
       accessToken,
       client: { ...this.client },
       user,
@@ -81,10 +83,10 @@ export class RefreshTokenService
   }
 
   /** Retrieves an existing token by refresh token. */
-  getRefreshToken(
+  async getRefreshToken(
     refreshToken: string,
   ): Promise<RefreshToken<Client, User, Scope> | undefined> {
-    return Promise.resolve({
+    return await Promise.resolve({
       accessToken: "fake",
       refreshToken,
       client: { ...this.client },
@@ -94,18 +96,20 @@ export class RefreshTokenService
   }
 
   /** Saves a token. */
-  save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>> {
-    return Promise.resolve(token);
+  async save(
+    token: Token<Client, User, Scope>,
+  ): Promise<Token<Client, User, Scope>> {
+    return await Promise.resolve(token);
   }
 
   /** Revokes a token. */
-  revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
-    return Promise.resolve(true);
+  async revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
+    return await Promise.resolve(true);
   }
 
   /** Revokes all tokens generated from an authorization code. */
-  revokeCode(_code: string): Promise<boolean> {
-    return Promise.resolve(false);
+  async revokeCode(_code: string): Promise<boolean> {
+    return await Promise.resolve(false);
   }
 }
 
@@ -117,15 +121,15 @@ export class ClientService extends AbstractClientService<Client, User> {
     this.client = { ...client, ...options?.client };
   }
 
-  get(_clientId: string): Promise<Client | undefined> {
-    return Promise.resolve({ ...this.client });
+  async get(_clientId: string): Promise<Client | undefined> {
+    return await Promise.resolve({ ...this.client });
   }
 
-  getAuthenticated(
+  async getAuthenticated(
     _clientId: string,
     _clientSecret?: string,
   ): Promise<Client | undefined> {
-    return Promise.resolve({ ...this.client });
+    return await Promise.resolve({ ...this.client });
   }
 }
 
@@ -139,10 +143,10 @@ export class AuthorizationCodeService
   }
 
   /** Retrieves an existing authorization code. */
-  get(
+  async get(
     code: string,
   ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
-    return Promise.resolve({
+    return await Promise.resolve({
       code,
       expiresAt: new Date(Date.now() + 60000),
       redirectUri: "https://client.example.com/cb",
@@ -153,17 +157,17 @@ export class AuthorizationCodeService
   }
 
   /** Saves an authorization code. */
-  save(
+  async save(
     authorizationCode: AuthorizationCode<Client, User, Scope>,
   ): Promise<AuthorizationCode<Client, User, Scope>> {
-    return Promise.resolve(authorizationCode);
+    return await Promise.resolve(authorizationCode);
   }
 
   /** Revokes an authorization code. */
-  revoke(
+  async revoke(
     _authorizationCode: AuthorizationCode<Client, User, Scope>,
   ): Promise<boolean> {
-    return Promise.resolve(true);
+    return await Promise.resolve(true);
   }
 }
 

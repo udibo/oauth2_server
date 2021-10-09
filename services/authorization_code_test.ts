@@ -21,7 +21,7 @@ const authorizationCodeServiceTests: TestSuite<void> = new TestSuite({
 });
 
 test(authorizationCodeServiceTests, "generateAuthorizationCode", async () => {
-  const result: Promise<string> = authorizationCodeService.generateCode(
+  const result = authorizationCodeService.generateCode(
     client,
     user,
     scope,

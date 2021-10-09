@@ -45,7 +45,7 @@ export class TokenService
       null;
   }
 
-  put(token: Token<Client, User, Scope>): Promise<void> {
+  async put(token: Token<Client, User, Scope>): Promise<void> {
     const {
       accessToken,
       accessTokenExpiresAt,
@@ -88,7 +88,7 @@ export class TokenService
       `token:${tokenIndex}`,
       JSON.stringify(next),
     );
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(
@@ -139,7 +139,7 @@ export class TokenService
     localStorage.setItem(`token:${tokenIndex}`, JSON.stringify(next));
   }
 
-  deleteAccessToken(accessToken: string): Promise<boolean> {
+  async deleteAccessToken(accessToken: string): Promise<boolean> {
     const accessTokenKey = `accessToken:${accessToken}`;
     const tokenIndex = localStorage.getItem(accessTokenKey);
     if (tokenIndex) {
@@ -156,10 +156,10 @@ export class TokenService
         }
       }
     }
-    return Promise.resolve(!!tokenIndex);
+    return await Promise.resolve(!!tokenIndex);
   }
 
-  deleteRefreshToken(refreshToken: string): Promise<boolean> {
+  async deleteRefreshToken(refreshToken: string): Promise<boolean> {
     const refreshTokenKey = `refreshToken:${refreshToken}`;
     const tokenIndex = localStorage.getItem(refreshTokenKey);
     if (tokenIndex) {
@@ -180,10 +180,10 @@ export class TokenService
         }
       }
     }
-    return Promise.resolve(!!tokenIndex);
+    return await Promise.resolve(!!tokenIndex);
   }
 
-  private async deleteToken(
+  async delete(
     token: Token<Client, User, Scope> | TokenInternal,
   ): Promise<boolean> {
     let existed = await this.deleteAccessToken(token.accessToken);
@@ -193,13 +193,13 @@ export class TokenService
     return existed;
   }
 
-  async delete(token: Token<Client, User, Scope>): Promise<boolean> {
-    return await this.deleteToken(token);
-  }
-
-  private getTokenInternalByIndex(tokenIndex: string): Promise<TokenInternal> {
+  private async getTokenInternalByIndex(
+    tokenIndex: string,
+  ): Promise<TokenInternal> {
     const internalText = localStorage.getItem(`token:${tokenIndex}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
   private async getTokenByIndex(
@@ -278,7 +278,7 @@ export class TokenService
       localStorage.getItem(`token:${tokenIndex}`);
     if (internalText) {
       const internal: TokenInternal = JSON.parse(internalText);
-      existed = await this.deleteToken(internal);
+      existed = await this.delete(internal);
     }
     return existed;
   }
