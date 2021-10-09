@@ -15,8 +15,8 @@ import { AuthorizationCode } from "./models/authorization_code.ts";
 
 // Make the assert functions generic
 export function assertScope<Scope extends ScopeInterface>(
-  actual: Scope | undefined,
-  expected: Scope | undefined,
+  actual: Scope | null | undefined,
+  expected: Scope | null | undefined,
 ): void {
   try {
     if (expected && actual) {
@@ -103,7 +103,7 @@ export function assertClientUserScopeCall<
   self: any,
   client: Client,
   user: User,
-  expectedScope?: Scope,
+  expectedScope?: Scope | null,
 ): void {
   const call: SpyCall = assertSpyCall(spy, callIndex);
   assertStrictEquals(call.self, self);

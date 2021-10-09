@@ -79,8 +79,8 @@ class FakeResponse implements OAuth2Response {
     this.headers = new Headers();
   }
 
-  redirect(): Promise<void> {
-    return Promise.resolve();
+  async redirect(): Promise<void> {
+    return await Promise.resolve();
   }
 }
 

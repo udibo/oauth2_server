@@ -4,7 +4,7 @@ import { UserService } from "./user.ts";
 interface SessionInternal {
   id: string;
   csrf: string;
-  username?: string;
+  userId?: string;
   authorizedScope?: string;
   state?: string;
   redirectUri?: string;
@@ -25,7 +25,7 @@ export class SessionService {
     this.userService = userService;
   }
 
-  put(session: Session): Promise<void> {
+  async put(session: Session): Promise<void> {
     const {
       id,
       user,
@@ -37,21 +37,18 @@ export class SessionService {
       accessTokenExpiresAt,
       csrf,
     } = session;
-    const next: SessionInternal = {
-      id,
-      state,
-      redirectUri,
-      codeVerifier,
-      accessToken,
-      refreshToken,
-      csrf,
-      username: user?.username,
-    };
+    const next: SessionInternal = { id, csrf };
+    if (state) next.state = state;
+    if (redirectUri) next.redirectUri = redirectUri;
+    if (codeVerifier) next.codeVerifier = codeVerifier;
+    if (accessToken) next.accessToken = accessToken;
     if (accessTokenExpiresAt) {
       next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
     }
+    if (refreshToken) next.refreshToken = refreshToken;
+    if (user) next.userId = user.id;
     localStorage.setItem(`session:${id}`, JSON.stringify(next));
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   async patch(session: Partial<Session> & Pick<Session, "id">): Promise<void> {
@@ -66,35 +63,51 @@ export class SessionService {
       accessTokenExpiresAt,
       csrf,
     } = session;
-    const { username } = user ?? {};
     const current = await this.getInternal(id);
     if (!current) throw new Error("session not found");
-    const next: SessionInternal = { ...current };
-    if ("user" in session) next.username = username;
-    if ("state" in session) next.state = state;
-    if ("redirectUri" in session) next.redirectUri = redirectUri;
-    if ("codeVerifier" in session) next.codeVerifier = codeVerifier;
-    if ("accessToken" in session) next.accessToken = accessToken;
-    if ("refreshToken" in session) next.refreshToken = refreshToken;
-    if ("accessTokenExpiresAt" in session) {
+    const next: SessionInternal = { ...current, id };
+
+    if (user) next.userId = user.id;
+    else if (user === null) delete next.userId;
+
+    if (state) next.state = state;
+    else if (state === null) delete next.state;
+
+    if (redirectUri) next.redirectUri = redirectUri;
+    else if (redirectUri === null) delete next.redirectUri;
+
+    if (codeVerifier) next.codeVerifier = codeVerifier;
+    else if (codeVerifier === null) delete next.codeVerifier;
+
+    if (accessToken) next.accessToken = accessToken;
+    else if (accessToken === null) delete next.accessToken;
+
+    if (accessTokenExpiresAt) {
       next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
-    }
-    if ("csrf" in session) next.csrf = csrf ?? crypto.randomUUID();
+    } else if (accessTokenExpiresAt === null) delete next.accessTokenExpiresAt;
+
+    if (refreshToken) next.refreshToken = refreshToken;
+    else if (refreshToken === null) delete next.refreshToken;
+
+    if (csrf) next.csrf = csrf;
+
     localStorage.setItem(`session:${id}`, JSON.stringify(next));
     await Promise.resolve();
   }
 
-  delete(session: Session | string): Promise<boolean> {
+  async delete(session: Session | string): Promise<boolean> {
     const sessionId = typeof session === "string" ? session : session.id;
     const sessionKey = `session:${sessionId}`;
     const existed = !!localStorage.getItem(sessionKey);
     localStorage.removeItem(sessionKey);
-    return Promise.resolve(existed);
+    return await Promise.resolve(existed);
   }
 
-  private getInternal(id: string): Promise<SessionInternal | undefined> {
+  private async getInternal(id: string): Promise<SessionInternal | undefined> {
     const internalText = localStorage.getItem(`session:${id}`);
-    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+    return await Promise.resolve(
+      internalText ? JSON.parse(internalText) : undefined,
+    );
   }
 
   private async toExternal(internal: SessionInternal): Promise<Session> {
@@ -107,7 +120,7 @@ export class SessionService {
       refreshToken,
       accessTokenExpiresAt,
       csrf,
-      username,
+      userId,
     } = internal;
     const external: Session = {
       id,
@@ -121,7 +134,7 @@ export class SessionService {
     if (accessTokenExpiresAt) {
       external.accessTokenExpiresAt = new Date(accessTokenExpiresAt);
     }
-    if (username) external.user = await this.userService.get(username);
+    if (userId) external.user = await this.userService.get(userId);
     return external;
   }
 

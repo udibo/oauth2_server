@@ -83,7 +83,7 @@ export class OAuth2Server<
   }
 
   /** Handles error responses. */
-  errorHandler(
+  async errorHandler(
     request: OAuth2Request<Client, User, Scope>,
     response: OAuth2Response,
     error: OAuth2Error,
@@ -101,7 +101,7 @@ export class OAuth2Server<
     if (error.message) body.error_description = error.message;
     if (error.uri) body.error_uri = error.uri;
     response.body = body;
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   /** Handles a token request. */
@@ -168,7 +168,7 @@ export class OAuth2Server<
   }
 
   /** Adds headers to the token response. */
-  tokenResponse(
+  async tokenResponse(
     _request: OAuth2Request<Client, User, Scope>,
     response: OAuth2Response,
   ): Promise<void> {
@@ -176,7 +176,7 @@ export class OAuth2Server<
     headers.set("Content-Type", "application/json;charset=UTF-8");
     headers.set("Cache-Control", "no-store");
     headers.set("Pragma", "no-cache");
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   /** Handles the response for a successful token request. */
@@ -311,7 +311,7 @@ export class OAuth2Server<
   }
 
   /** Adds authentication scope headers to the response. */
-  authenticateResponse(
+  async authenticateResponse(
     request: OAuth2Request<Client, User, Scope>,
     response: OAuth2Response,
   ): Promise<void> {
@@ -319,7 +319,7 @@ export class OAuth2Server<
     const { headers } = response;
     headers.set("X-OAuth-Scopes", token?.scope?.toString() ?? "");
     headers.set("X-Accepted-OAuth-Scopes", acceptedScope?.toString() ?? "");
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 
   /** Handles the response for an authenticated request. */
@@ -418,7 +418,7 @@ export class OAuth2Server<
         throw new InvalidRequest("response_type not supported");
       }
 
-      let scope: Scope | undefined = grant.parseScope(scopeText);
+      let scope: Scope | null | undefined = grant.parseScope(scopeText);
       request.requestedScope = scope;
 
       if (challengeMethod && !challenge) {

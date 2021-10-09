@@ -9,15 +9,15 @@ export interface AccessToken<
   /** The access token. */
   accessToken: string;
   /** The expiration time for the access token. */
-  accessTokenExpiresAt?: Date;
+  accessTokenExpiresAt?: Date | null;
   /** The client associated with the token. */
   client: Client;
   /** The user associated with the token. */
   user: User;
   /** The scope granted to the token. */
-  scope?: Scope;
+  scope?: Scope | null;
   /** The authorization code used to issue the token. */
-  code?: string;
+  code?: string | null;
 }
 
 export interface Token<
@@ -26,9 +26,9 @@ export interface Token<
   Scope extends ScopeInterface,
 > extends AccessToken<Client, User, Scope> {
   /** The refresh token. */
-  refreshToken?: string;
+  refreshToken?: string | null;
   /** The expiration time for the refresh token. */
-  refreshTokenExpiresAt?: Date;
+  refreshTokenExpiresAt?: Date | null;
 }
 
 export interface RefreshToken<

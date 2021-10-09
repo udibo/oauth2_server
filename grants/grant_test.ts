@@ -1,4 +1,4 @@
-import { AbstractGrant, ClientCredentials } from "./grant.ts";
+import { AbstractGrant } from "./grant.ts";
 import { OAuth2Request } from "../context.ts";
 import { Client } from "../models/client.ts";
 import { Token } from "../models/token.ts";
@@ -38,11 +38,11 @@ const client: Client = (clientService as ClientService).client;
 const tokenService = new RefreshTokenService();
 
 class ExampleGrant extends AbstractGrant<Client, User, Scope> {
-  token(
+  async token(
     _request: OAuth2Request<Client, User, Scope>,
     _client: Client,
   ): Promise<Token<Client, User, Scope>> {
-    throw new Error("not implemented");
+    return await Promise.reject(new Error("not implemented"));
   }
 }
 const grant: ExampleGrant = new ExampleGrant({
@@ -218,9 +218,7 @@ test(
   async () => {
     const request = fakeTokenRequest("client_id=1");
     request.headers.delete("authorization");
-    const result: Promise<ClientCredentials> = grant.getClientCredentials(
-      request,
-    );
+    const result = grant.getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "1" });
   },
@@ -231,9 +229,7 @@ test(getClientCredentialsTests, "from request body with secret", async () => {
     "client_id=1&client_secret=2",
   );
   request.headers.delete("authorization");
-  const result: Promise<ClientCredentials> = grant.getClientCredentials(
-    request,
-  );
+  const result = grant.getClientCredentials(request);
   assertEquals(result, Promise.resolve(result));
   assertEquals(await result, { clientId: "1", clientSecret: "2" });
 });
@@ -244,9 +240,7 @@ test(
   async () => {
     const request = fakeTokenRequest();
     request.headers.set("authorization", `basic ${btoa("1:")}`);
-    const result: Promise<ClientCredentials> = grant.getClientCredentials(
-      request,
-    );
+    const result = grant.getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "1" });
   },
@@ -258,9 +252,7 @@ test(
   async () => {
     const request = fakeTokenRequest();
     request.headers.set("authorization", `basic ${btoa("1:2")}`);
-    const result: Promise<ClientCredentials> = grant.getClientCredentials(
-      request,
-    );
+    const result = grant.getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "1", clientSecret: "2" });
   },
@@ -274,9 +266,7 @@ test(
       "client_id=1&client_secret=2",
     );
     request.headers.set("authorization", `basic ${btoa("3:")}`);
-    const result: Promise<ClientCredentials> = grant.getClientCredentials(
-      request,
-    );
+    const result = grant.getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "3" });
   },
@@ -412,9 +402,9 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:")}`);
-      const result: Promise<Client> = grant.getAuthenticatedClient(request);
+      const result = grant.getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
-      const client: Client = await result;
+      const client = await result;
 
       assertEquals(getClientCredentials.calls.length, 1);
       let call: SpyCall = getClientCredentials.calls[0];
@@ -450,9 +440,9 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
-      const result: Promise<Client> = grant.getAuthenticatedClient(request);
+      const result = grant.getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
-      const client: Client = await result;
+      const client = await result;
 
       assertEquals(getClientCredentials.calls.length, 1);
       let call: SpyCall = getClientCredentials.calls[0];

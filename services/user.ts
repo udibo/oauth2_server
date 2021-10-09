@@ -11,11 +11,11 @@ export interface UserServiceInterface<User> {
 export abstract class AbstractUserService<User>
   implements UserServiceInterface<User> {
   /** Retrieves an authenticated user if the username/password combination is correct. Not implemented by default. */
-  getAuthenticated(
+  async getAuthenticated(
     _username: string,
     _password: string,
   ): Promise<User | undefined> {
-    return Promise.reject(
+    return await Promise.reject(
       new ServerError("userService.getAuthenticated not implemented"),
     );
   }

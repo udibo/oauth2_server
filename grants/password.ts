@@ -61,7 +61,7 @@ export class PasswordGrant<
 
     const body: URLSearchParams = await request.body!;
     const scopeText: string | null = body.get("scope");
-    let scope: Scope | undefined = this.parseScope(scopeText);
+    let scope: Scope | null | undefined = this.parseScope(scopeText);
 
     const username: string | null = body.get("username");
     if (!username) throw new InvalidRequest("username parameter required");

@@ -34,7 +34,6 @@ import {
   assertClientUserScopeCall,
   assertToken,
 } from "../asserts.ts";
-import { ClientCredentials } from "./grant.ts";
 import {
   ChallengeMethod,
   challengeMethods,
@@ -84,10 +83,8 @@ test(
   async () => {
     const request = fakeTokenRequest("client_id=1");
     request.headers.delete("authorization");
-    const result: Promise<ClientCredentials> = authorizationCodeGrant
-      .getClientCredentials(
-        request,
-      );
+    const result = authorizationCodeGrant
+      .getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "1" });
   },
@@ -98,10 +95,8 @@ test(getClientCredentialsTests, "from request body with secret", async () => {
     "client_id=1&client_secret=2",
   );
   request.headers.delete("authorization");
-  const result: Promise<ClientCredentials> = authorizationCodeGrant
-    .getClientCredentials(
-      request,
-    );
+  const result = authorizationCodeGrant
+    .getClientCredentials(request);
   assertEquals(result, Promise.resolve(result));
   assertEquals(await result, { clientId: "1", clientSecret: "2" });
 });
@@ -114,10 +109,8 @@ test(
       "client_id=1&code_verifier=2",
     );
     request.headers.delete("authorization");
-    const result: Promise<ClientCredentials> = authorizationCodeGrant
-      .getClientCredentials(
-        request,
-      );
+    const result = authorizationCodeGrant
+      .getClientCredentials(request);
     assertEquals(result, Promise.resolve(result));
     assertEquals(await result, { clientId: "1", codeVerifier: "2" });
   },
@@ -316,7 +309,7 @@ test(
     try {
       const request = fakeTokenRequest("client_id=1");
       request.headers.delete("authorization");
-      const result: Promise<Client> = authorizationCodeGrant
+      const result = authorizationCodeGrant
         .getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
       const client: Client = await result;
@@ -360,7 +353,7 @@ test(
     try {
       const request = fakeTokenRequest();
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
-      const result: Promise<Client> = authorizationCodeGrant
+      const result = authorizationCodeGrant
         .getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
       const client: Client = await result;
@@ -406,10 +399,10 @@ test(
       const request = fakeTokenRequest(
         `client_id=1&code_verifier=${codeVerifier}`,
       );
-      const result: Promise<Client> = authorizationCodeGrant
+      const result = authorizationCodeGrant
         .getAuthenticatedClient(request);
       assertStrictEquals(Promise.resolve(result), result);
-      const client: Client = await result;
+      const client = await result;
 
       assertSpyCall(getClientCredentials, 0, {
         self: authorizationCodeGrant,
@@ -417,7 +410,7 @@ test(
       });
       assertSpyCalls(getClientCredentials, 1);
 
-      const call: SpyCall = assertSpyCall(clientServiceGet, 0, {
+      const call = assertSpyCall(clientServiceGet, 0, {
         self: clientService,
         args: ["1"],
       });

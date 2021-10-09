@@ -2,8 +2,8 @@ import { clientService, userService } from "./services/mod.ts";
 
 localStorage.clear();
 
-userService.put({ username: "kyle", password: "qwerty" });
-userService.put({ username: "john", password: "doe" });
+userService.create({ username: "kyle", password: "qwerty" });
+userService.create({ username: "john", password: "doe" });
 
 clientService.put({
   id: "1000",

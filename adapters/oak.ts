@@ -109,9 +109,9 @@ export class OakOAuth2Response implements OAuth2Response {
     this._body = value;
   }
 
-  redirect(url: string | URL): Promise<void> {
+  async redirect(url: string | URL): Promise<void> {
     this.context.response.redirect(url);
-    return Promise.resolve();
+    return await Promise.resolve();
   }
 }
 
@@ -178,12 +178,12 @@ export class OakOAuth2<
       .catch(() => undefined);
   }
 
-  getTokenForContext(
+  async getTokenForContext(
     context: Context,
   ): Promise<Token<Client, User, Scope> | undefined> {
     const state = this.getState(context);
     const { request } = state;
-    return this.getTokenForRequest(request);
+    return await this.getTokenForRequest(request);
   }
 
   token(): Middleware {

@@ -16,31 +16,31 @@ export interface TokenServiceInterface<
   acceptedScope(
     client: Client,
     user: User,
-    scope?: Scope,
-  ): Promise<Scope | undefined | false>;
+    scope?: Scope | null,
+  ): Promise<Scope | null | undefined | false>;
   /** Generates an access token. */
   generateAccessToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<string>;
   /** Generates a refresh token. */
   generateRefreshToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<string | undefined>;
   /** Gets the date that a new access token would expire at. */
   accessTokenExpiresAt(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Date | undefined>;
   /** Gets the date that a new refresh token would expire at. */
   refreshTokenExpiresAt(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Date | undefined>;
   /** Retrieves an existing token by access token. */
   getToken(
@@ -69,54 +69,54 @@ export abstract class AbstractAccessTokenService<
   refreshTokenLifetime = 0;
 
   /** Returns the accepted scope for the client and user. */
-  acceptedScope(
+  async acceptedScope(
     _client: Client,
     _user: User,
-    scope?: Scope,
-  ): Promise<Scope | undefined | false> {
-    return Promise.resolve(scope);
+    scope?: Scope | null,
+  ): Promise<Scope | null | undefined | false> {
+    return await Promise.resolve(scope);
   }
 
   /** Generates an access token. Defaults to an RFC4122 v4 UUID (pseudo-randomly-based). */
-  generateAccessToken(
+  async generateAccessToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string> {
-    return Promise.resolve(crypto.randomUUID());
+    return await Promise.resolve(crypto.randomUUID());
   }
 
   /** Generates a refresh token. Not implemented by default. */
-  generateRefreshToken(
+  async generateRefreshToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string | undefined> {
-    return Promise.reject(
+    return await Promise.reject(
       new ServerError("generateRefreshToken not implemented"),
     );
   }
 
   /** Gets the date that a new access token would expire at. */
-  accessTokenExpiresAt(
+  async accessTokenExpiresAt(
     client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
     const lifetime: number = client.accessTokenLifetime ??
       this.accessTokenLifetime;
-    return Promise.resolve(
+    return await Promise.resolve(
       new Date(Date.now() + lifetime * 1000),
     );
   }
 
   /** Gets the date that a new refresh token would expire at. Not implemented by default. */
-  refreshTokenExpiresAt(
+  async refreshTokenExpiresAt(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
-    return Promise.reject(
+    return await Promise.reject(
       new ServerError("refreshTokenExpiresAt not implemented"),
     );
   }
@@ -127,10 +127,12 @@ export abstract class AbstractAccessTokenService<
   ): Promise<AccessToken<Client, User, Scope> | undefined>;
 
   /** Retrieves an existing refresh token. Not implemented by default. */
-  getRefreshToken(
+  async getRefreshToken(
     _refreshToken: string,
   ): Promise<RefreshToken<Client, User, Scope> | undefined> {
-    return Promise.reject(new ServerError("getRefreshToken not implemented"));
+    return await Promise.reject(
+      new ServerError("getRefreshToken not implemented"),
+    );
   }
 
   /** Saves a token. */
@@ -155,23 +157,23 @@ export abstract class AbstractRefreshTokenService<
   refreshTokenLifetime = 14 * 24 * 60 * 60;
 
   /** Generates a refresh token.  Defaults to an RFC4122 v4 UUID (pseudo-randomly-based). */
-  generateRefreshToken(
+  async generateRefreshToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string | undefined> {
-    return Promise.resolve(crypto.randomUUID());
+    return await Promise.resolve(crypto.randomUUID());
   }
 
   /** Gets the date that a new refresh token would expire at. */
-  refreshTokenExpiresAt(
+  async refreshTokenExpiresAt(
     client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
     const lifetime: number = client.refreshTokenLifetime ??
       this.refreshTokenLifetime;
-    return Promise.resolve(
+    return await Promise.resolve(
       new Date(Date.now() + lifetime * 1000),
     );
   }

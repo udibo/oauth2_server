@@ -13,13 +13,13 @@ export interface AuthorizationCodeServiceInterface<
   generateCode(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<string>;
   /** Gets the date that a new authorization code would expire at. */
   expiresAt(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Date>;
   /** Retrieves an existing authorization code. */
   get(code: string): Promise<AuthorizationCode<Client, User, Scope> | void>;
@@ -41,20 +41,20 @@ export abstract class AbstractAuthorizationCodeService<
   /** Lifetime of authorization codes in second. Defaults to 5 minutes. */
   lifetime = 5 * 60;
   /** Generates an authorization code. */
-  generateCode(
+  async generateCode(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string> {
-    return Promise.resolve(crypto.randomUUID());
+    return await Promise.resolve(crypto.randomUUID());
   }
   /** Gets the date that a new authorization code would expire at. */
-  expiresAt(
+  async expiresAt(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date> {
-    return Promise.resolve(
+    return await Promise.resolve(
       new Date(Date.now() + this.lifetime * 1000),
     );
   }
