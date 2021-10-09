@@ -15,11 +15,11 @@ export interface AuthorizationCode<
   /** The user associated with the authorization code. */
   user: User;
   /** The scope granted to the authorization code. */
-  scope?: Scope;
+  scope?: Scope | null;
   /** Redirect URI for the authorization code. */
-  redirectUri?: string;
+  redirectUri?: string | null;
   /** The code challenge used for PKCE. */
-  challenge?: string;
+  challenge?: string | null;
   /** The code challenge method used for PKCE. */
-  challengeMethod?: string;
+  challengeMethod?: string | null;
 }

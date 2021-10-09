@@ -62,7 +62,7 @@ export class ClientCredentialsGrant<
 
     const body: URLSearchParams = await request.body!;
     const scopeText: string | null = body.get("scope");
-    let scope: Scope | undefined = this.parseScope(scopeText);
+    let scope: Scope | null | undefined = this.parseScope(scopeText);
 
     const { tokenService, clientService } = this.services;
     const user: User | void = await clientService.getUser(client);

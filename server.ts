@@ -418,7 +418,7 @@ export class OAuth2Server<
         throw new InvalidRequest("response_type not supported");
       }
 
-      let scope: Scope | undefined = grant.parseScope(scopeText);
+      let scope: Scope | null | undefined = grant.parseScope(scopeText);
       request.requestedScope = scope;
 
       if (challengeMethod && !challenge) {

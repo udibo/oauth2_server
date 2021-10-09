@@ -12,7 +12,7 @@ interface AuthorizationCodeInternal {
   code: string;
   expiresAt: string;
   clientId: string;
-  username: string;
+  userId: string;
   scope?: string;
   redirectUri?: string;
   challenge?: string;
@@ -47,14 +47,52 @@ export class AuthorizationCodeService
       code,
       expiresAt: expiresAt.toJSON(),
       clientId: client.id,
-      username: user.username,
-      scope: scope?.toJSON(),
+      userId: user.id,
+    };
+    if (scope) next.scope = scope.toJSON();
+    if (redirectUri) next.redirectUri = redirectUri;
+    if (challenge) next.challenge = challenge;
+    if (challengeMethod) next.challengeMethod = challengeMethod;
+    localStorage.setItem(`authorizationCode:${code}`, JSON.stringify(next));
+    return Promise.resolve();
+  }
+
+  async patch(
+    authorizationCode:
+      & Partial<AuthorizationCode<Client, User, Scope>>
+      & Pick<AuthorizationCode<Client, User, Scope>, "code">,
+  ): Promise<void> {
+    const {
+      code,
+      expiresAt,
+      client,
+      user,
+      scope,
       redirectUri,
       challenge,
       challengeMethod,
-    };
+    } = authorizationCode;
+    const current = await this.getInternal(code);
+    if (!current) throw new Error("authorization code not found");
+    const next: AuthorizationCodeInternal = { ...current, code };
+
+    if (expiresAt) next.expiresAt = expiresAt.toJSON();
+    if (client) next.clientId = client.id;
+    if (user) next.userId = user.id;
+
+    if (scope) next.scope = scope.toJSON();
+    else if (scope === null) delete next.scope;
+
+    if (redirectUri) next.redirectUri = redirectUri;
+    else if (redirectUri === null) delete next.redirectUri;
+
+    if (challenge) next.challenge = challenge;
+    else if (challenge === null) delete next.challenge;
+
+    if (challengeMethod) next.challengeMethod = challengeMethod;
+    else if (challengeMethod === null) delete next.challengeMethod;
+
     localStorage.setItem(`authorizationCode:${code}`, JSON.stringify(next));
-    return Promise.resolve();
   }
 
   delete(
@@ -69,44 +107,50 @@ export class AuthorizationCodeService
     return Promise.resolve(existed);
   }
 
-  async get(
+  private getInternal(
     code: string,
-  ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
+  ): Promise<AuthorizationCodeInternal | undefined> {
     const internalText = localStorage.getItem(`authorizationCode:${code}`);
-    const internal: AuthorizationCodeInternal | undefined = internalText
-      ? JSON.parse(internalText)
-      : undefined;
-    let authorizationCode: AuthorizationCode<Client, User, Scope> | undefined =
-      undefined;
-    if (internal) {
-      const {
+    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+  }
+
+  private async toExternal(
+    internal: AuthorizationCodeInternal,
+  ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
+    const {
+      code,
+      expiresAt,
+      clientId,
+      userId,
+      scope,
+      redirectUri,
+      challenge,
+      challengeMethod,
+    } = internal;
+    const client = await this.clientService.get(clientId);
+    const user = client && await this.userService.get(userId);
+    if (client && user) {
+      const authorizationCode: AuthorizationCode<Client, User, Scope> = {
         code,
-        expiresAt,
-        clientId,
-        username,
-        scope,
+        expiresAt: new Date(expiresAt),
+        client,
+        user,
         redirectUri,
         challenge,
         challengeMethod,
-      } = internal;
-      const client = await this.clientService.get(clientId);
-      const user = client && await this.userService.get(username);
-      if (client && user) {
-        authorizationCode = {
-          code,
-          expiresAt: new Date(expiresAt),
-          client,
-          user,
-          redirectUri,
-          challenge,
-          challengeMethod,
-        };
-        if (scope) authorizationCode.scope = Scope.from(scope);
-      } else {
-        await this.delete(code);
-      }
+      };
+      if (scope) authorizationCode.scope = Scope.from(scope);
+      return authorizationCode;
+    } else {
+      await this.delete(code);
     }
-    return authorizationCode;
+  }
+
+  async get(
+    code: string,
+  ): Promise<AuthorizationCode<Client, User, Scope> | undefined> {
+    const internal = await this.getInternal(code);
+    return internal ? await this.toExternal(internal) : undefined;
   }
 
   async save(

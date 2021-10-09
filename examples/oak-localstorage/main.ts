@@ -179,10 +179,10 @@ router
           if (expiresIn) {
             session.accessTokenExpiresAt = new Date(now + (expiresIn * 1000));
           }
-          session.user = undefined;
-          session.state = undefined;
-          session.codeVerifier = undefined;
-          session.redirectUri = undefined;
+          session.user = null;
+          session.state = null;
+          session.codeVerifier = null;
+          session.redirectUri = null;
           await sessionService.patch(session);
           response.redirect(redirectUri);
         } else {

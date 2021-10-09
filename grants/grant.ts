@@ -43,8 +43,8 @@ export interface GrantInterface<
   acceptedScope(
     client: Client,
     user: User,
-    scope?: Scope,
-  ): Promise<Scope | undefined>;
+    scope?: Scope | null,
+  ): Promise<Scope | null | undefined>;
   getClientCredentials(
     request: OAuth2Request<Client, User, Scope>,
   ): Promise<ClientCredentials>;
@@ -54,7 +54,7 @@ export interface GrantInterface<
   generateToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Token<Client, User, Scope>>;
   token(
     request: OAuth2Request<Client, User, Scope>,
@@ -92,7 +92,7 @@ export abstract class AbstractGrant<
     client: Client,
     user: User,
     scope?: Scope,
-  ): Promise<Scope | undefined> {
+  ): Promise<Scope | null | undefined> {
     const { tokenService } = this.services;
     const acceptedScope = await tokenService.acceptedScope(client, user, scope);
     if (acceptedScope === false) {
@@ -143,7 +143,7 @@ export abstract class AbstractGrant<
   async generateToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Token<Client, User, Scope>> {
     const { tokenService } = this.services;
     const token: Token<Client, User, Scope> = {

@@ -15,7 +15,7 @@ interface TokenInternal {
   refreshToken?: string;
   refreshTokenExpiresAt?: string;
   clientId: string;
-  username: string;
+  userId: string;
   scope?: string;
   code?: string;
 }
@@ -31,6 +31,20 @@ export class TokenService
     this.userService = userService;
   }
 
+  private getTokenIndex(
+    token:
+      & Partial<Token<Client, User, Scope>>
+      & Pick<Token<Client, User, Scope>, "accessToken">,
+  ): string | null {
+    const accessTokenKey = `accessToken:${token.accessToken}`;
+    const refreshTokenKey = token.refreshToken
+      ? `refreshToken:${token.refreshToken}`
+      : undefined;
+    return localStorage.getItem(accessTokenKey) ??
+      (refreshTokenKey && localStorage.getItem(refreshTokenKey)) ??
+      null;
+  }
+
   put(token: Token<Client, User, Scope>): Promise<void> {
     const {
       accessToken,
@@ -42,12 +56,7 @@ export class TokenService
       scope,
       code,
     } = token;
-    const accessTokenKey = `accessToken:${token.accessToken}`;
-    const refreshTokenKey = token.refreshToken
-      ? `refreshToken:${token.refreshToken}`
-      : undefined;
-    let tokenIndex = localStorage.getItem(accessTokenKey) ||
-      (refreshTokenKey && localStorage.getItem(refreshTokenKey));
+    let tokenIndex = this.getTokenIndex(token);
     if (!tokenIndex) {
       tokenIndex = localStorage.getItem("nextTokenIndex") ?? "0";
       localStorage.setItem("nextTokenIndex", `${parseInt(tokenIndex) + 1}`);
@@ -59,20 +68,75 @@ export class TokenService
         localStorage.setItem(`tokenCode:${token.code}`, tokenIndex);
       }
     }
+    const next: TokenInternal = {
+      accessToken,
+      clientId: client.id,
+      userId: user.id,
+    };
+
+    if (accessTokenExpiresAt) {
+      next.accessTokenExpiresAt = accessTokenExpiresAt.toJSON();
+    }
+    if (refreshToken) next.refreshToken = refreshToken;
+    if (refreshTokenExpiresAt) {
+      next.refreshTokenExpiresAt = refreshTokenExpiresAt.toJSON();
+    }
+    if (scope) next.scope = scope.toJSON();
+    if (code) next.code = code;
+
     localStorage.setItem(
       `token:${tokenIndex}`,
-      JSON.stringify({
-        accessToken,
-        accessTokenExpiresAt: accessTokenExpiresAt?.toJSON(),
-        refreshToken,
-        refreshTokenExpiresAt: refreshTokenExpiresAt?.toJSON(),
-        clientId: client.id,
-        username: user.username,
-        scope: scope?.toJSON(),
-        code,
-      } as TokenInternal),
+      JSON.stringify(next),
     );
     return Promise.resolve();
+  }
+
+  async patch(
+    token:
+      & Partial<Token<Client, User, Scope>>
+      & Pick<Token<Client, User, Scope>, "accessToken">,
+  ): Promise<void> {
+    const {
+      accessToken,
+      accessTokenExpiresAt,
+      refreshToken,
+      refreshTokenExpiresAt,
+      client,
+      user,
+      scope,
+      code,
+    } = token;
+    const tokenIndex = this.getTokenIndex(token);
+    const current = tokenIndex !== null &&
+      await this.getTokenInternalByIndex(tokenIndex);
+    if (!current) throw new Error("token not found");
+    const next: TokenInternal = { ...current, accessToken };
+
+    if (client) next.clientId = client.id;
+    if (user) next.userId = user.id;
+
+    if (accessTokenExpiresAt) {
+      next.accessTokenExpiresAt = accessTokenExpiresAt.toJSON();
+    } else if (accessTokenExpiresAt === null) {
+      delete next.accessTokenExpiresAt;
+    }
+
+    if (refreshToken) next.refreshToken = refreshToken;
+    else if (refreshToken === null) delete next.refreshToken;
+
+    if (refreshTokenExpiresAt) {
+      next.refreshTokenExpiresAt = refreshTokenExpiresAt.toJSON();
+    } else if (refreshTokenExpiresAt === null) {
+      delete next.refreshTokenExpiresAt;
+    }
+
+    if (scope) next.scope = scope.toJSON();
+    else if (scope === null) delete next.scope;
+
+    if (code) next.code = code;
+    else if (code === null) delete next.code;
+
+    localStorage.setItem(`token:${tokenIndex}`, JSON.stringify(next));
   }
 
   deleteAccessToken(accessToken: string): Promise<boolean> {
@@ -133,11 +197,15 @@ export class TokenService
     return await this.deleteToken(token);
   }
 
-  private async getTokenByIndex(tokenIndex: string) {
+  private getTokenInternalByIndex(tokenIndex: string): Promise<TokenInternal> {
     const internalText = localStorage.getItem(`token:${tokenIndex}`);
-    const internal: TokenInternal | undefined = internalText
-      ? JSON.parse(internalText)
-      : undefined;
+    return Promise.resolve(internalText ? JSON.parse(internalText) : undefined);
+  }
+
+  private async getTokenByIndex(
+    tokenIndex: string,
+  ): Promise<Token<Client, User, Scope> | undefined> {
+    const internal = await this.getTokenInternalByIndex(tokenIndex);
     let token: Token<Client, User, Scope> | undefined = undefined;
     if (internal) {
       const {
@@ -146,12 +214,12 @@ export class TokenService
         refreshToken,
         refreshTokenExpiresAt,
         clientId,
-        username,
+        userId,
         scope,
         code,
       } = internal;
       const client = await this.clientService.get(clientId);
-      const user = client && await this.userService.get(username);
+      const user = client && await this.userService.get(userId);
       if (client && user) {
         token = {
           accessToken,

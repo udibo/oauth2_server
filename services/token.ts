@@ -16,31 +16,31 @@ export interface TokenServiceInterface<
   acceptedScope(
     client: Client,
     user: User,
-    scope?: Scope,
-  ): Promise<Scope | undefined | false>;
+    scope?: Scope | null,
+  ): Promise<Scope | null | undefined | false>;
   /** Generates an access token. */
   generateAccessToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<string>;
   /** Generates a refresh token. */
   generateRefreshToken(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<string | undefined>;
   /** Gets the date that a new access token would expire at. */
   accessTokenExpiresAt(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Date | undefined>;
   /** Gets the date that a new refresh token would expire at. */
   refreshTokenExpiresAt(
     client: Client,
     user: User,
-    scope?: Scope,
+    scope?: Scope | null,
   ): Promise<Date | undefined>;
   /** Retrieves an existing token by access token. */
   getToken(
@@ -72,8 +72,8 @@ export abstract class AbstractAccessTokenService<
   acceptedScope(
     _client: Client,
     _user: User,
-    scope?: Scope,
-  ): Promise<Scope | undefined | false> {
+    scope?: Scope | null,
+  ): Promise<Scope | null | undefined | false> {
     return Promise.resolve(scope);
   }
 
@@ -81,7 +81,7 @@ export abstract class AbstractAccessTokenService<
   generateAccessToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string> {
     return Promise.resolve(crypto.randomUUID());
   }
@@ -90,7 +90,7 @@ export abstract class AbstractAccessTokenService<
   generateRefreshToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string | undefined> {
     return Promise.reject(
       new ServerError("generateRefreshToken not implemented"),
@@ -101,7 +101,7 @@ export abstract class AbstractAccessTokenService<
   accessTokenExpiresAt(
     client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
     const lifetime: number = client.accessTokenLifetime ??
       this.accessTokenLifetime;
@@ -114,7 +114,7 @@ export abstract class AbstractAccessTokenService<
   refreshTokenExpiresAt(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
     return Promise.reject(
       new ServerError("refreshTokenExpiresAt not implemented"),
@@ -158,7 +158,7 @@ export abstract class AbstractRefreshTokenService<
   generateRefreshToken(
     _client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<string | undefined> {
     return Promise.resolve(crypto.randomUUID());
   }
@@ -167,7 +167,7 @@ export abstract class AbstractRefreshTokenService<
   refreshTokenExpiresAt(
     client: Client,
     _user: User,
-    _scope?: Scope,
+    _scope?: Scope | null,
   ): Promise<Date | undefined> {
     const lifetime: number = client.refreshTokenLifetime ??
       this.refreshTokenLifetime;

@@ -10,7 +10,7 @@ interface ClientInternal {
   redirectUris?: string[];
   accessTokenLifetime?: number;
   refreshTokenLifetime?: number;
-  username?: string;
+  userId?: string;
 }
 
 export class ClientService extends AbstractClientService<Client, User> {
@@ -31,16 +31,13 @@ export class ClientService extends AbstractClientService<Client, User> {
       refreshTokenLifetime,
       user,
     } = client;
-    const { username } = user ?? {};
-    const next: ClientInternal = {
-      id,
-      secret,
-      grants,
-      redirectUris,
-      accessTokenLifetime,
-      refreshTokenLifetime,
-      username,
-    };
+    const next: ClientInternal = { id };
+    if (secret) next.secret = secret;
+    if (grants) next.grants = grants;
+    if (redirectUris) next.redirectUris = redirectUris;
+    if (accessTokenLifetime) next.accessTokenLifetime = accessTokenLifetime;
+    if (refreshTokenLifetime) next.refreshTokenLifetime = refreshTokenLifetime;
+    if (user) next.userId = user.id;
     localStorage.setItem(`client:${id}`, JSON.stringify(next));
     return Promise.resolve();
   }
@@ -55,22 +52,35 @@ export class ClientService extends AbstractClientService<Client, User> {
       refreshTokenLifetime,
       user,
     } = client;
-    const { username } = user ?? {};
     const current = await this.getInternal(id);
     if (!current) throw new Error("client not found");
-    const next: ClientInternal = { ...current };
-    if ("grants" in client) next.grants = grants;
-    if ("secret" in client) next.secret = secret;
-    if ("redirectUris" in client) next.redirectUris = redirectUris;
-    if ("accessTokenLifetime" in client) {
+    const next: ClientInternal = { ...current, id };
+
+    if (grants) next.grants = grants;
+    else if (grants === null) delete next.grants;
+
+    if (secret) next.secret = secret;
+    else if (secret === null) delete next.secret;
+
+    if (redirectUris) next.redirectUris = redirectUris;
+    else if (redirectUris === null) delete next.redirectUris;
+
+    if (accessTokenLifetime) {
       next.accessTokenLifetime = accessTokenLifetime;
+    } else if (accessTokenLifetime === null) {
+      delete next.accessTokenLifetime;
     }
-    if ("refreshTokenLifetime" in client) {
+
+    if (refreshTokenLifetime) {
       next.refreshTokenLifetime = refreshTokenLifetime;
+    } else if (refreshTokenLifetime === null) {
+      delete next.refreshTokenLifetime;
     }
-    if ("user" in client) next.username = username;
+
+    if (user) next.userId = user.id;
+    else if (user === null) delete next.userId;
+
     localStorage.setItem(`client:${id}`, JSON.stringify(next));
-    return Promise.resolve();
   }
 
   delete(client: Client | string): Promise<boolean> {
@@ -107,7 +117,7 @@ export class ClientService extends AbstractClientService<Client, User> {
 
   async get(clientId: string): Promise<Client | undefined> {
     const internal = await this.getInternal(clientId);
-    return internal ? this.toExternal(internal) : undefined;
+    return internal ? await this.toExternal(internal) : undefined;
   }
 
   async getAuthenticated(
@@ -125,8 +135,8 @@ export class ClientService extends AbstractClientService<Client, User> {
   async getUser(client: Client | string): Promise<User | undefined> {
     const clientId = typeof client === "string" ? client : client.id;
     const internal = await this.getInternal(clientId);
-    return internal?.username
-      ? await this.userService.get(internal.username)
+    return internal?.userId
+      ? await this.userService.get(internal.userId)
       : undefined;
   }
 }
