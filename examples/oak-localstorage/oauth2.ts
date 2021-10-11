@@ -1,14 +1,14 @@
 import {
   AuthorizationCodeGrant,
+  AuthorizationServer,
   AuthorizeParameters,
   BearerToken,
   ClientCredentialsGrant,
   loginRedirectFactory,
-  OakOAuth2,
+  OakAuthorizationServer,
   OakOAuth2AuthorizeRequest,
   OakOAuth2Request,
   OakOAuth2Response,
-  OAuth2Server,
   RefreshTokenGrant,
   Router,
   Scope,
@@ -36,7 +36,7 @@ const authorizationCodeGrant = new AuthorizationCodeGrant({
 const clientCredentialsGrant = new ClientCredentialsGrant({ services });
 const refreshTokenGrant = new RefreshTokenGrant({ services });
 
-const oauth2Server = new OAuth2Server({
+const oauth2Server = new AuthorizationServer({
   grants: {
     "authorization_code": authorizationCodeGrant,
     "client_credentials": clientCredentialsGrant,
@@ -56,7 +56,7 @@ async function getSession(
   return session;
 }
 
-export const oauth2 = new OakOAuth2({
+export const oauth2 = new OakAuthorizationServer({
   server: oauth2Server,
   async getAccessToken(
     request: OakOAuth2Request<Client, User, Scope>,

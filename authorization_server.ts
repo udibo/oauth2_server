@@ -9,25 +9,20 @@ import {
 import { GrantInterface } from "./grants/grant.ts";
 import { ClientInterface } from "./models/client.ts";
 import { Token } from "./models/token.ts";
-import { TokenServiceInterface } from "./services/token.ts";
 import {
   authorizeParameters,
-  ErrorBody,
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2AuthorizeRequest,
   OAuth2Request,
   OAuth2Response,
 } from "./context.ts";
-import {
-  Scope as DefaultScope,
-  ScopeConstructor,
-  ScopeInterface,
-} from "./models/scope.ts";
+import { Scope as DefaultScope, ScopeInterface } from "./models/scope.ts";
 import { AuthorizationCodeGrant } from "./grants/authorization_code.ts";
 import { AuthorizationCode } from "./models/authorization_code.ts";
+import { ResourceServer, ResourceServerOptions } from "./resource_server.ts";
 
-export interface OAuth2ServerGrants<
+export interface AuthorizationServerGrants<
   Client extends ClientInterface,
   User,
   Scope extends ScopeInterface,
@@ -35,23 +30,12 @@ export interface OAuth2ServerGrants<
   [key: string]: GrantInterface<Client, User, Scope>;
 }
 
-export interface OAuth2ServerServices<
+export interface AuthorizationServerOptions<
   Client extends ClientInterface,
   User,
   Scope extends ScopeInterface,
-> {
-  tokenService?: TokenServiceInterface<Client, User, Scope>;
-}
-
-export interface OAuth2ServerOptions<
-  Client extends ClientInterface,
-  User,
-  Scope extends ScopeInterface,
-> {
-  grants: OAuth2ServerGrants<Client, User, Scope>;
-  services?: OAuth2ServerServices<Client, User, Scope>;
-  Scope?: ScopeConstructor<Scope>;
-  realm?: string;
+> extends ResourceServerOptions<Client, User, Scope> {
+  grants: AuthorizationServerGrants<Client, User, Scope>;
 }
 
 export interface BearerToken {
@@ -62,46 +46,16 @@ export interface BearerToken {
   scope?: string;
 }
 
-const BEARER_TOKEN = /^ *(?:[Bb][Ee][Aa][Rr][Ee][Rr]) +([\w-.~+/]+=*) *$/;
-
-export class OAuth2Server<
+export class AuthorizationServer<
   Client extends ClientInterface,
   User,
   Scope extends ScopeInterface = DefaultScope,
-> {
-  grants: OAuth2ServerGrants<Client, User, Scope>;
-  services: OAuth2ServerServices<Client, User, Scope>;
-  Scope: ScopeConstructor<Scope>;
-  realm: string;
+> extends ResourceServer<Client, User, Scope> {
+  grants: AuthorizationServerGrants<Client, User, Scope>;
 
-  constructor(options: OAuth2ServerOptions<Client, User, Scope>) {
+  constructor(options: AuthorizationServerOptions<Client, User, Scope>) {
+    super(options);
     this.grants = { ...options.grants };
-    this.services = { ...options.services };
-    this.Scope = options.Scope ??
-      (DefaultScope as unknown as ScopeConstructor<Scope>);
-    this.realm = options.realm ?? "Service";
-  }
-
-  /** Handles error responses. */
-  async errorHandler(
-    request: OAuth2Request<Client, User, Scope>,
-    response: OAuth2Response,
-    error: OAuth2Error,
-  ): Promise<void> {
-    response.status = error.status ?? 500;
-    if (error.status === 401 && request.headers.has("authorization")) {
-      response.headers.set(
-        "WWW-Authenticate",
-        `Basic realm="${this.realm}"`,
-      );
-    }
-    const body: ErrorBody = {
-      error: error.code ?? "server_error",
-    };
-    if (error.message) body.error_description = error.message;
-    if (error.uri) body.error_uri = error.uri;
-    response.body = body;
-    return await Promise.resolve();
   }
 
   /** Handles a token request. */
@@ -198,147 +152,6 @@ export class OAuth2Server<
     error: OAuth2Error,
   ): Promise<void> {
     await this.tokenResponse(request, response);
-    await this.errorHandler(request, response, error);
-  }
-
-  /** Gets an access token string from the authorization header or post body. */
-  async getAccessToken(
-    request: OAuth2Request<Client, User, Scope>,
-  ): Promise<string | null> {
-    let accessToken: string | null = null;
-    const authorization = request.headers.get("authorization");
-    if (authorization) {
-      const match = BEARER_TOKEN.exec(authorization);
-      if (match) accessToken = match[1];
-    }
-
-    if (!accessToken) {
-      const contentType: string | null = request.headers.get(
-        "content-type",
-      );
-      if (
-        request.method === "POST" &&
-        contentType === "application/x-www-form-urlencoded"
-      ) {
-        const body: URLSearchParams = await request.body!;
-        accessToken = body.get("access_token");
-      }
-    }
-    return accessToken;
-  }
-
-  /** Gets a token for an access token string. */
-  async getToken(accessToken: string): Promise<Token<Client, User, Scope>> {
-    const { tokenService } = this.services;
-    if (!tokenService) throw new ServerError("token service required");
-    const token = await tokenService.getToken(accessToken);
-
-    if (
-      !token ||
-      (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())
-    ) {
-      throw new AccessDenied("invalid access_token");
-    }
-
-    return token;
-  }
-
-  /** Gets a token for a request and adds it onto the request. */
-  async getTokenForRequest<Request extends OAuth2Request<Client, User, Scope>>(
-    request: Request,
-    getAccessToken: (
-      request: Request,
-      requireRefresh?: boolean,
-    ) => Promise<string | null>,
-  ): Promise<Token<Client, User, Scope>> {
-    let { token, accessToken } = request;
-    if (!token && token !== null) {
-      request.token = null;
-      request.accessToken = null;
-      accessToken = await getAccessToken(request);
-      request.accessToken = accessToken;
-      if (accessToken) {
-        try {
-          token = await this.getToken(accessToken);
-        } catch (error) {
-          if (error.code !== "access_denied") throw error;
-          accessToken = await getAccessToken(request, true);
-          request.accessToken = accessToken;
-        }
-      }
-      if (!accessToken) {
-        accessToken = await this.getAccessToken(request);
-        request.accessToken = accessToken;
-      }
-      if (!token && accessToken) token = await this.getToken(accessToken);
-      request.token = token ?? null;
-    }
-    if (!token) {
-      throw new AccessDenied(
-        accessToken ? "invalid access_token" : "authentication required",
-      );
-    }
-    return token;
-  }
-
-  /** Authenticates a request and verifies the token has the required scope. */
-  async authenticate<Request extends OAuth2Request<Client, User, Scope>>(
-    request: Request,
-    response: OAuth2Response,
-    next: () => Promise<unknown>,
-    getAccessToken: (
-      request: Request,
-      requireRefresh?: boolean,
-    ) => Promise<string | null>,
-    acceptedScope?: Scope,
-  ): Promise<void> {
-    try {
-      if (acceptedScope) request.acceptedScope = acceptedScope;
-
-      const token = await this.getTokenForRequest(request, getAccessToken);
-      request.token = token;
-      if (acceptedScope && !token.scope?.has(acceptedScope)) {
-        throw new AccessDenied("insufficient scope");
-      }
-      await this.authenticateSuccess(
-        request as OAuth2AuthenticatedRequest<Client, User, Scope>,
-        response,
-        next,
-      );
-    } catch (error) {
-      await this.authenticateError(request, response, error);
-    }
-  }
-
-  /** Adds authentication scope headers to the response. */
-  async authenticateResponse(
-    request: OAuth2Request<Client, User, Scope>,
-    response: OAuth2Response,
-  ): Promise<void> {
-    const { token, acceptedScope } = request;
-    const { headers } = response;
-    headers.set("X-OAuth-Scopes", token?.scope?.toString() ?? "");
-    headers.set("X-Accepted-OAuth-Scopes", acceptedScope?.toString() ?? "");
-    return await Promise.resolve();
-  }
-
-  /** Handles the response for an authenticated request. */
-  async authenticateSuccess(
-    request: OAuth2AuthenticatedRequest<Client, User, Scope>,
-    response: OAuth2Response,
-    next: () => Promise<unknown>,
-  ): Promise<void> {
-    await this.authenticateResponse(request, response);
-    await next();
-  }
-
-  /** Handles the response for an unauthenticated request. */
-  async authenticateError(
-    request: OAuth2Request<Client, User, Scope>,
-    response: OAuth2Response,
-    error: OAuth2Error,
-  ): Promise<void> {
-    await this.authenticateResponse(request, response);
     await this.errorHandler(request, response, error);
   }
 
@@ -523,3 +336,105 @@ export class OAuth2Server<
     }
   }
 }
+
+export {
+  AbstractAccessTokenService,
+  AbstractClientService,
+  AbstractRefreshTokenService,
+  AbstractUserService,
+  AccessDenied,
+  authorizeParameters,
+  authorizeUrl,
+  BEARER_TOKEN,
+  camelCase,
+  challengeMethods,
+  DefaultScope,
+  generateCodeVerifier,
+  getMessageOrOptions,
+  InvalidClient,
+  InvalidGrant,
+  InvalidRequest,
+  InvalidScope,
+  loginRedirectFactory,
+  NQCHAR,
+  NQSCHAR,
+  OAuth2Error,
+  ResourceServer,
+  SCOPE,
+  Scope,
+  SCOPE_TOKEN,
+  ServerError,
+  snakeCase,
+  TemporarilyUnavailable,
+  UnauthorizedClient,
+  UNICODECHARNOCRLF,
+  UnsupportedGrantType,
+  UnsupportedResponseType,
+  VSCHAR,
+} from "./resource_server.ts";
+export type {
+  AccessToken,
+  AuthorizeParameters,
+  ChallengeMethod,
+  ChallengeMethods,
+  Client,
+  ClientInterface,
+  ClientServiceInterface,
+  ErrorBody,
+  LoginRedirectOptions,
+  MessageOrOptions,
+  OAuth2AuthenticatedRequest,
+  OAuth2AuthorizedRequest,
+  OAuth2AuthorizeRequest,
+  OAuth2ErrorOptions,
+  OAuth2Request,
+  OAuth2Response,
+  RefreshToken,
+  ResourceServerOptions,
+  ResourceServerServices,
+  ScopeConstructor,
+  ScopeInterface,
+  Token,
+  TokenServiceInterface,
+  User,
+  UserServiceInterface,
+} from "./resource_server.ts";
+
+export type { AuthorizationCode } from "./models/authorization_code.ts";
+export { AbstractAuthorizationCodeService } from "./services/authorization_code.ts";
+export type {
+  AuthorizationCodeServiceInterface,
+} from "./services/authorization_code.ts";
+
+export { parseBasicAuth } from "./basic_auth.ts";
+export type { BasicAuth } from "./basic_auth.ts";
+
+export { AbstractGrant } from "./grants/grant.ts";
+export type {
+  ClientCredentials,
+  GrantInterface,
+  GrantOptions,
+  GrantServices,
+} from "./grants/grant.ts";
+
+export { AuthorizationCodeGrant } from "./grants/authorization_code.ts";
+export type {
+  AuthorizationCodeGrantInterface,
+  AuthorizationCodeGrantOptions,
+  AuthorizationCodeGrantServices,
+  GenerateAuthorizationCodeOptions,
+  PKCEClientCredentials,
+} from "./grants/authorization_code.ts";
+
+export { ClientCredentialsGrant } from "./grants/client_credentials.ts";
+export type {
+  ClientCredentialsGrantInterface,
+  ClientCredentialsGrantOptions,
+  ClientCredentialsGrantServices,
+} from "./grants/client_credentials.ts";
+
+export { RefreshTokenGrant } from "./grants/refresh_token.ts";
+export type {
+  RefreshTokenGrantInterface,
+  RefreshTokenGrantOptions,
+} from "./grants/refresh_token.ts";

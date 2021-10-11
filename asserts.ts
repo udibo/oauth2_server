@@ -1,6 +1,7 @@
 import {
   assert,
   assertEquals,
+  AssertionError,
   assertSpyCall,
   assertStrictEquals,
   assertThrows,
@@ -13,7 +14,6 @@ import { ScopeInterface } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
 import { AuthorizationCode } from "./models/authorization_code.ts";
 
-// Make the assert functions generic
 export function assertScope<Scope extends ScopeInterface>(
   actual: Scope | null | undefined,
   expected: Scope | null | undefined,
@@ -59,7 +59,6 @@ export function assertToken<
   actual: Partial<Token<Client, User, Scope>> | null | undefined,
   expected: Partial<Token<Client, User, Scope>> | null | undefined,
 ): void {
-  // add test coverage for this new assertion
   assert(
     !!actual === !!expected,
     actual ? "did not expect token" : "expected token",
@@ -78,7 +77,6 @@ export function assertAuthorizationCode<
   actual: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
   expected: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
 ): void {
-  // add test coverage for this new assertion
   assert(
     !!actual === !!expected,
     actual
@@ -120,17 +118,31 @@ export interface Constructor {
 }
 
 export function assertError(
-  error: Error,
+  error: unknown,
   ErrorClass?: Constructor,
   msgIncludes?: string,
   msg?: string,
-) {
+): void;
+export function assertError(
+  error: unknown,
+  errorCallback: (e: Error) => unknown,
+  msg?: string,
+): void;
+export function assertError(
+  error: unknown,
+  errorClassOrCallback?: Constructor | ((e: Error) => unknown),
+  msgIncludesOrMsg?: string,
+  msg?: string,
+): void {
+  if (error instanceof Error === false) {
+    throw new AssertionError(`Expected "error" to be an Error object.`);
+  }
   assertThrows(
     () => {
       throw error;
     },
-    ErrorClass,
-    msgIncludes,
+    errorClassOrCallback as Constructor,
+    msgIncludesOrMsg,
     msg,
   );
 }

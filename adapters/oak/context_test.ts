@@ -7,9 +7,9 @@ import {
   spy,
   test,
   TestSuite,
-} from "../test_deps.ts";
-import { BodyForm, Context, Request, Response } from "./oak_deps.ts";
-import { OakOAuth2Request, OakOAuth2Response } from "./oak.ts";
+} from "../../test_deps.ts";
+import { BodyForm, Context, Request, Response } from "./deps.ts";
+import { OakOAuth2Request, OakOAuth2Response } from "./context.ts";
 
 const requestTests = new TestSuite({ name: "OakOAuth2Request" });
 
@@ -209,30 +209,4 @@ test(responseTests, "with body function", () => {
   assertStrictEquals(original.body, body);
   const result = (original.body as CallableFunction)();
   assertStrictEquals(result, bodyValue);
-});
-
-const oakOAuth2Tests = new TestSuite({ name: "OakOAuth2" });
-
-const tokenTests = new TestSuite({
-  name: "token",
-  suite: oakOAuth2Tests,
-});
-
-test(tokenTests, "TODO", () => {
-});
-
-const authorizeTests = new TestSuite({
-  name: "authorize",
-  suite: oakOAuth2Tests,
-});
-
-test(authorizeTests, "TODO", () => {
-});
-
-const authenticateTests = new TestSuite({
-  name: "authenticate",
-  suite: oakOAuth2Tests,
-});
-
-test(authenticateTests, "TODO", () => {
 });

@@ -1,7 +1,7 @@
 # OAuth2 Server
 
-[![version](https://img.shields.io/badge/release-0.5.0-success)](https://deno.land/x/oauth2_server@0.5.0)
-[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@0.5.0/mod.ts)
+[![version](https://img.shields.io/badge/release-0.6.0-success)](https://deno.land/x/oauth2_server@0.6.0)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@0.6.0/mod.ts)
 [![CI](https://github.com/udibo/oauth2_server/workflows/CI/badge.svg)](https://github.com/udibo/oauth2_server/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/udibo/oauth2_server/branch/main/graph/badge.svg?token=8Q7TSUFWUY)](https://codecov.io/gh/udibo/oauth2_server)
 [![license](https://img.shields.io/github/license/udibo/oauth2_server)](https://github.com/udibo/oauth2_server/blob/master/LICENSE)
@@ -33,11 +33,30 @@ To include this module in a Deno project, you can import directly from the TS
 files. This module is available in Deno's third part module registry but can
 also be imported directly from GitHub using raw content URLs.
 
+There are 2 different main entry points for this module.
+
+- [authorization_server.ts](authorization_server.ts)
+- [resource_server.ts](resource_server.ts)
+
+The ResourceServer provides methods for authenticating requests and verifying
+the request has proper authorization. You should use this if your server is not
+also acting as an authorization server.
+
 ```ts
 // Import from Deno's third party module registry
-import { OAuth2Server } from "https://deno.land/x/oauth2_server@0.5.0/mod.ts";
+import { ResourceServer } from "https://deno.land/x/oauth2_server@0.6.0/resource_server.ts";
 // Import from GitHub
-import { OAuth2Server } "https://raw.githubusercontent.com/udibo/oauth2_server/0.5.0/mod.ts";
+import { ResourceServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.6.0/resource_server.ts";
+```
+
+The AuthorizationServer is an extension of the ResourceServer, adding methods
+used by the authorize and token endpoints.
+
+```ts
+// Import from Deno's third party module registry
+import { AuthorizationServer } from "https://deno.land/x/oauth2_server@0.6.0/authorization_server.ts";
+// Import from GitHub
+import { AuthorizationServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.6.0/authorization_server.ts";
 ```
 
 ## Usage
@@ -47,7 +66,7 @@ An example of how to use this module can be found
 but it should give you an idea of how to use this module.
 
 See
-[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.5.0/mod.ts)
+[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.6.0/authorization_server.ts)
 for more information.
 
 ### Grants
@@ -100,6 +119,6 @@ compatible with any framework. It comes with an adapter for
 If you would like to use this module with other frameworks, look at the oak
 adapter for an example of how to implement an adapter.
 
-The oak adapter can be found [here](adapters/oak.ts). A working example showing
-how to use this module with the adapter can be found
+The oak adapter can be found [here](adapters/oak). A working example showing how
+to use this module with the adapter can be found
 [here](examples/oak-localstorage).
