@@ -10,11 +10,8 @@ import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
 import { fakeAuthorizeRequest } from "./test_context.ts";
 import { assertEquals, test, TestSuite } from "./test_deps.ts";
 
-const contextTests: TestSuite<void> = new TestSuite({ name: "context" });
-
-const authorizeParametersTests: TestSuite<void> = new TestSuite({
+const authorizeParametersTests = new TestSuite({
   name: "authorizeParameters",
-  suite: contextTests,
 });
 
 test(authorizeParametersTests, "from search parameters", async () => {
@@ -124,9 +121,8 @@ test(
   },
 );
 
-const authorizeUrlTests: TestSuite<void> = new TestSuite({
+const authorizeUrlTests = new TestSuite({
   name: "authorizeUrl",
-  suite: contextTests,
 });
 
 test(authorizeUrlTests, "without PKCE", async () => {

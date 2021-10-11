@@ -19,15 +19,15 @@ export {
   AbstractRefreshTokenService,
   AbstractUserService,
   AuthorizationCodeGrant,
+  AuthorizationServer,
   authorizeUrl,
   challengeMethods,
   ClientCredentialsGrant,
   generateCodeVerifier,
   loginRedirectFactory,
-  OAuth2Server,
   RefreshTokenGrant,
   Scope,
-} from "../../mod.ts";
+} from "../../authorization_server.ts";
 export type {
   AccessToken,
   AuthorizationCode,
@@ -39,11 +39,11 @@ export type {
   OAuth2Response,
   RefreshToken,
   Token,
-} from "../../mod.ts";
+} from "../../authorization_server.ts";
 
 export {
-  OakOAuth2,
+  OakAuthorizationServer,
   OakOAuth2Request,
   OakOAuth2Response,
-} from "../../adapters/oak.ts";
-export type { OakOAuth2AuthorizeRequest } from "../../adapters/oak.ts";
+} from "../../adapters/oak/authorization_server.ts";
+export type { OakOAuth2AuthorizeRequest } from "../../adapters/oak/authorization_server.ts";
