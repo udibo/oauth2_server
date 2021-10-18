@@ -6,7 +6,7 @@ import {
   test,
   TestSuite,
 } from "../test_deps.ts";
-import { InvalidScope } from "../errors.ts";
+import { InvalidScopeError } from "../errors.ts";
 
 test("SCOPE", () => {
   assertStrictEquals(SCOPE.test(""), true);
@@ -41,18 +41,22 @@ const scopeTests: TestSuite<void> = new TestSuite({ name: "Scope" });
 
 test(scopeTests, "constructor validation", () => {
   new Scope("a");
-  assertThrows(() => new Scope(" "), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope(" a"), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope("a "), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope("a  b"), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope(" "), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope(" a"), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope("a "), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope("a  b"), InvalidScopeError, "invalid scope");
   new Scope("a b a c");
   new Scope("!#0A[]a~ !#1B[]b~ !#0A[]a~ !#2C[]c~");
-  assertThrows(() => new Scope('"'), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope('a"b'), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope('a b"ca d'), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope("\\"), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope("a\\b"), InvalidScope, "invalid scope");
-  assertThrows(() => new Scope("a b\\c a d"), InvalidScope, "invalid scope");
+  assertThrows(() => new Scope('"'), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope('a"b'), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope('a b"ca d'), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope("\\"), InvalidScopeError, "invalid scope");
+  assertThrows(() => new Scope("a\\b"), InvalidScopeError, "invalid scope");
+  assertThrows(
+    () => new Scope("a b\\c a d"),
+    InvalidScopeError,
+    "invalid scope",
+  );
 });
 
 test(scopeTests, "toString", () => {

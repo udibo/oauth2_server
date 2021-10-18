@@ -1,55 +1,50 @@
-export interface OAuth2ErrorOptions {
-  /** The name of the error. */
-  name?: string;
-  /** An HTTP response status code. */
-  status?: number;
-  /** A description of the error. */
-  message?: string;
+import {
+  HttpError,
+  HttpErrorInit,
+  isHttpError,
+  optionsFromArgs,
+} from "./deps.ts";
+
+export interface OAuth2ErrorInit extends HttpErrorInit {
   /** An ASCII error code. */
   code?: string;
   /** A URI identifying a human readable web page with information about the error. */
   uri?: string;
 }
 
-export interface MessageOrOptions {
-  message?: string;
-  options?: OAuth2ErrorOptions;
-}
-
-export function getMessageOrOptions(
-  messageOrOptions?: string | OAuth2ErrorOptions,
-): MessageOrOptions {
-  let message: string | undefined;
-  let options: OAuth2ErrorOptions | undefined;
-  if (messageOrOptions) {
-    if (typeof messageOrOptions === "string") {
-      message = messageOrOptions;
-    } else {
-      options = messageOrOptions;
-    }
-  }
-  return { message, options };
-}
-
-export abstract class OAuth2Error extends Error {
-  /** An HTTP response status code. */
-  status?: number;
+export class OAuth2Error extends HttpError {
   /** An ASCII error code. */
-  code?: string;
+  code: string;
   /** A URI identifying a human readable web page with information about the error. */
   uri?: string;
 
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
-    super(message ?? options?.message);
-    const { name, code, status, uri }: OAuth2ErrorOptions = options ?? {};
-    this.name = name ?? "OAuth2Error";
-    this.status = status ?? 500;
-    if (code) this.code = code;
+  constructor(
+    status?: number,
+    message?: string,
+    options?: OAuth2ErrorInit,
+  );
+  constructor(status?: number, options?: OAuth2ErrorInit);
+  constructor(message?: string, options?: OAuth2ErrorInit);
+  constructor(options?: OAuth2ErrorInit);
+  constructor(
+    statusOrMessageOrOptions?: number | string | OAuth2ErrorInit,
+    messageOrOptions?: string | OAuth2ErrorInit,
+    options?: OAuth2ErrorInit,
+  ) {
+    const init: OAuth2ErrorInit = optionsFromArgs(
+      statusOrMessageOrOptions,
+      messageOrOptions,
+      options,
+    );
+    super({ name: "OAuth2Error", ...init });
+    const { code, uri } = init;
+    this.code = code ?? "server_error";
     if (uri) this.uri = uri;
   }
+}
+
+export function isOAuth2Error(value: unknown): value is OAuth2Error {
+  return isHttpError(value) && typeof (value as OAuth2Error).code === "string";
 }
 
 /**
@@ -57,33 +52,27 @@ export abstract class OAuth2Error extends Error {
  * repeats a parameter, includes multiple credentials, utilizes more than one mechanism
  * for authenticating the client, or is otherwise malformed.
  */
-export class InvalidRequest extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class InvalidRequestError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "InvalidRequest",
+      name: "InvalidRequestError",
       code: "invalid_request",
       status: 400,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
 
 /** Client authentication failed. */
-export class InvalidClient extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class InvalidClientError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "InvalidClient",
+      name: "InvalidClientError",
       code: "invalid_client",
       status: 401,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
@@ -92,65 +81,53 @@ export class InvalidClient extends OAuth2Error {
  * The provided authorization grant or refresh token is invalid, expired, revoked,
  * does not match the redirection URI used in the authorization request, or was issued to another client.
  */
-export class InvalidGrant extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class InvalidGrantError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "InvalidGrant",
+      name: "InvalidGrantError",
       code: "invalid_grant",
       status: 400,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
 
 /** The authenticated client is not authorized to use this authorization grant type. */
-export class UnauthorizedClient extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class UnauthorizedClientError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "UnauthorizedClient",
+      name: "UnauthorizedClientError",
       code: "unauthorized_client",
       status: 401,
-      ...options,
-    });
+      cause: options?.cause,
+    } as OAuth2ErrorInit);
   }
 }
 
 /** The authorization grant type is not supported by the authorization server. */
-export class UnsupportedGrantType extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class UnsupportedGrantTypeError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "UnsupportedGrantType",
+      name: "UnsupportedGrantTypeError",
       code: "unsupported_grant_type",
       status: 400,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
 
 /** The resource owner or authorization server denied the request. */
-export class AccessDenied extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class AccessDeniedError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "AccessDenied",
+      name: "AccessDeniedError",
       code: "access_denied",
       status: 401,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
@@ -159,33 +136,27 @@ export class AccessDenied extends OAuth2Error {
  * The authorization server does not support obtaining
  * an authorization code using this method.
  */
-export class UnsupportedResponseType extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class UnsupportedResponseTypeError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "UnsupportedResponseType",
+      name: "UnsupportedResponseTypeError",
       code: "unsupported_response_type",
       status: 400,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
 
 /** The requested scope is invalid, unknown, or malformed. */
-export class InvalidScope extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class InvalidScopeError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "InvalidScope",
+      name: "InvalidScopeError",
       code: "invalid_scope",
       status: 400,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
@@ -195,16 +166,13 @@ export class InvalidScope extends OAuth2Error {
  * prevented it from fulfilling the request.
  */
 export class ServerError extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
       name: "ServerError",
       code: "server_error",
       status: 500,
-      ...options,
+      cause: options?.cause,
     });
   }
 }
@@ -213,17 +181,14 @@ export class ServerError extends OAuth2Error {
  * The authorization server is currently unable to handle the request due to
  * a temporary overloading or maintenance of the server.
  */
-export class TemporarilyUnavailable extends OAuth2Error {
-  constructor(message?: string);
-  constructor(options?: OAuth2ErrorOptions);
-  constructor(messageOrOptions?: string | OAuth2ErrorOptions) {
-    const { message, options } = getMessageOrOptions(messageOrOptions);
+export class TemporarilyUnavailableError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorInit) {
     super({
       message,
-      name: "TemporarilyUnavailable",
+      name: "TemporarilyUnavailableError",
       code: "temporarily_unavailable",
       status: 503,
-      ...options,
+      cause: options?.cause,
     });
   }
 }

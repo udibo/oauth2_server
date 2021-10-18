@@ -1,5 +1,5 @@
 import { NQCHAR } from "../common.ts";
-import { InvalidScope } from "../errors.ts";
+import { InvalidScopeError } from "../errors.ts";
 
 export const SCOPE = new RegExp(
   `^(?:(?:${NQCHAR.source}+)(?: ${NQCHAR.source}+)*)?$`,
@@ -53,7 +53,7 @@ export class Scope implements ScopeInterface {
 
   constructor(scope?: string) {
     if (scope && !SCOPE.test(scope)) {
-      throw new InvalidScope("invalid scope");
+      throw new InvalidScopeError("invalid scope");
     }
     this.tokens = scope ? new Set(scope.match(SCOPE_TOKEN)) : new Set();
   }

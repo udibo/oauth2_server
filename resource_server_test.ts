@@ -31,10 +31,10 @@ import {
 } from "./test_deps.ts";
 import * as resourceServerModule from "./authorization_server.ts";
 import {
-  AccessDenied,
+  AccessDeniedError,
   Client,
-  InvalidClient,
-  InvalidGrant,
+  InvalidClientError,
+  InvalidGrantError,
   OAuth2AuthenticatedRequest,
   OAuth2Request,
   OAuth2Response,
@@ -54,16 +54,16 @@ test("verify exports", () => {
     "AbstractGrant",
     "AbstractRefreshTokenService",
     "AbstractUserService",
-    "AccessDenied",
+    "AccessDeniedError",
     "AuthorizationCodeGrant",
     "AuthorizationServer",
     "BEARER_TOKEN",
     "ClientCredentialsGrant",
     "DefaultScope",
-    "InvalidClient",
-    "InvalidGrant",
-    "InvalidRequest",
-    "InvalidScope",
+    "InvalidClientError",
+    "InvalidGrantError",
+    "InvalidRequestError",
+    "InvalidScopeError",
     "NQCHAR",
     "NQSCHAR",
     "OAuth2Error",
@@ -73,18 +73,17 @@ test("verify exports", () => {
     "SCOPE_TOKEN",
     "Scope",
     "ServerError",
-    "TemporarilyUnavailable",
+    "TemporarilyUnavailableError",
     "UNICODECHARNOCRLF",
-    "UnauthorizedClient",
-    "UnsupportedGrantType",
-    "UnsupportedResponseType",
+    "UnauthorizedClientError",
+    "UnsupportedGrantTypeError",
+    "UnsupportedResponseTypeError",
     "VSCHAR",
     "authorizeParameters",
     "authorizeUrl",
     "camelCase",
     "challengeMethods",
     "generateCodeVerifier",
-    "getMessageOrOptions",
     "loginRedirectFactory",
     "parseBasicAuth",
     "snakeCase",
@@ -114,7 +113,7 @@ test(errorHandlerTests, "OAuth2Error without optional properties", async () => {
     await server.errorHandler(
       request,
       response,
-      new InvalidGrant(),
+      new InvalidGrantError(),
     ),
     undefined,
   );
@@ -134,8 +133,10 @@ test(errorHandlerTests, "OAuth2Error with optional properties", async () => {
     await server.errorHandler(
       request,
       response,
-      new InvalidGrant({
+      new resourceServerModule.OAuth2Error({
+        status: 400,
         message: "invalid refresh_token",
+        code: "invalid_token",
         uri: "https://example.com/",
       }),
     ),
@@ -144,7 +145,7 @@ test(errorHandlerTests, "OAuth2Error with optional properties", async () => {
   assertEquals(response.status, 400);
   assertEquals([...response.headers.entries()], []);
   assertEquals(response.body, {
-    error: "invalid_grant",
+    error: "invalid_token",
     error_description: "invalid refresh_token",
     error_uri: "https://example.com/",
   });
@@ -159,7 +160,7 @@ test(errorHandlerTests, "OAuth2Error with 401 status", async () => {
     await server.errorHandler(
       request,
       response,
-      new InvalidClient("client authentication failed"),
+      new InvalidClientError("client authentication failed"),
     ),
     undefined,
   );
@@ -190,7 +191,7 @@ test(errorHandlerTests, "Error", async () => {
   assertEquals([...response.headers.entries()], []);
   assertEquals(response.body, {
     error: "server_error",
-    error_description: "unknown",
+    error_description: "unexpected error",
   });
   assertEquals(redirectSpy.calls.length, 0);
 });
@@ -291,7 +292,7 @@ test(getTokenTests, "invalid access_token", async () => {
   try {
     await assertRejects(
       () => server.getToken("123"),
-      AccessDenied,
+      AccessDeniedError,
       "invalid access_token",
     );
 
@@ -322,7 +323,7 @@ test(getTokenTests, "expired access_token", async () => {
   try {
     await assertRejects(
       () => server.getToken("123"),
-      AccessDenied,
+      AccessDeniedError,
       "invalid access_token",
     );
 
@@ -353,7 +354,7 @@ test(
       request.token = null;
       await assertRejects(
         () => server.getTokenForRequest(request, getCustomAccessToken),
-        AccessDenied,
+        AccessDeniedError,
         "authentication required",
       );
       assertSpyCalls(getCustomAccessToken, 0);
@@ -379,7 +380,7 @@ test(
       request.accessToken = "123";
       await assertRejects(
         () => server.getTokenForRequest(request, getCustomAccessToken),
-        AccessDenied,
+        AccessDeniedError,
         "invalid access_token",
       );
       assertSpyCalls(getCustomAccessToken, 0);
@@ -434,7 +435,7 @@ test(
       const request = fakeResourceRequest("");
       await assertRejects(
         () => server.getTokenForRequest(request, getCustomAccessToken),
-        AccessDenied,
+        AccessDeniedError,
         "authentication required",
       );
       assertSpyCall(getCustomAccessToken, 0, {
@@ -468,13 +469,13 @@ test(
     const getToken = stub(
       server,
       "getToken",
-      () => Promise.reject(new AccessDenied("invalid access_token")),
+      () => Promise.reject(new AccessDeniedError("invalid access_token")),
     );
     try {
       const request = fakeResourceRequest("123");
       await assertRejects(
         () => server.getTokenForRequest(request, getCustomAccessToken),
-        AccessDenied,
+        AccessDeniedError,
         "invalid access_token",
       );
       assertSpyCall(getCustomAccessToken, 0, {
@@ -684,13 +685,16 @@ test(
     const getToken = stub(
       server,
       "getToken",
-      () => Promise.reject(new AccessDenied(`invalid session ${++tokenCalls}`)),
+      () =>
+        Promise.reject(
+          new AccessDeniedError(`invalid session ${++tokenCalls}`),
+        ),
     );
     try {
       const request = fakeResourceRequest("");
       await assertRejects(
         () => server.getTokenForRequest(request, getCustomAccessToken),
-        AccessDenied,
+        AccessDeniedError,
         "invalid session 2",
       );
       assertSpyCall(getCustomAccessToken, 0, {
@@ -746,7 +750,7 @@ test(
       "getToken",
       () =>
         tokenCalls++ === 0
-          ? Promise.reject(new AccessDenied("invalid session"))
+          ? Promise.reject(new AccessDeniedError("invalid session"))
           : Promise.resolve(expectedToken),
     );
     try {
@@ -869,7 +873,7 @@ test(
     const getTokenForRequest = stub(
       server,
       "getTokenForRequest",
-      () => Promise.reject(new AccessDenied("invalid access_token")),
+      () => Promise.reject(new AccessDeniedError("invalid access_token")),
     );
 
     try {
@@ -883,7 +887,7 @@ test(
         getAccessToken,
         scope,
         undefined,
-        AccessDenied,
+        AccessDeniedError,
         "invalid access_token",
       );
 
@@ -924,7 +928,7 @@ test(authenticateTests, "insufficient scope", async (context) => {
       getAccessToken,
       acceptedScope,
       expectedToken,
-      AccessDenied,
+      AccessDeniedError,
       "insufficient scope",
     );
 
@@ -1172,7 +1176,7 @@ test(serverTests, "authenticateError", async () => {
     };
     const response = fakeResponse();
     const redirect: Spy<OAuth2Response> = spy(response, "redirect");
-    const error = new AccessDenied("insufficient scope");
+    const error = new AccessDeniedError("insufficient scope");
     await server.authenticateError(request, response, error);
 
     assertSpyCall(authenticateResponse, 0, {

@@ -4,7 +4,12 @@ import {
   OAuth2Request,
   OAuth2Response,
 } from "./context.ts";
-import { AccessDenied, OAuth2Error, ServerError } from "./errors.ts";
+import {
+  AccessDeniedError,
+  isOAuth2Error,
+  OAuth2Error,
+  ServerError,
+} from "./errors.ts";
 import { ClientInterface } from "./models/client.ts";
 import { Scope, ScopeConstructor, ScopeInterface } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
@@ -53,20 +58,23 @@ export class ResourceServer<
   async errorHandler(
     request: OAuth2Request<Client, User, Scope>,
     response: OAuth2Response,
-    error: OAuth2Error,
+    error: Error,
   ): Promise<void> {
-    response.status = error.status ?? 500;
-    if (error.status === 401 && request.headers.has("authorization")) {
+    const e = isOAuth2Error(error)
+      ? error
+      : new ServerError("unexpected error", { cause: error });
+    response.status = e.status;
+    if (e.status === 401 && request.headers.has("authorization")) {
       response.headers.set(
         "WWW-Authenticate",
         `Basic realm="${this.realm}"`,
       );
     }
     const body: ErrorBody = {
-      error: error.code ?? "server_error",
+      error: e.code ?? "server_error",
     };
-    if (error.message) body.error_description = error.message;
-    if (error.uri) body.error_uri = error.uri;
+    if (e.message) body.error_description = e.message;
+    if (e.uri) body.error_uri = e.uri;
     response.body = body;
     return await Promise.resolve();
   }
@@ -107,7 +115,7 @@ export class ResourceServer<
       !token ||
       (token.accessTokenExpiresAt && token.accessTokenExpiresAt < new Date())
     ) {
-      throw new AccessDenied("invalid access_token");
+      throw new AccessDeniedError("invalid access_token");
     }
 
     return token;
@@ -144,7 +152,7 @@ export class ResourceServer<
       request.token = token ?? null;
     }
     if (!token) {
-      throw new AccessDenied(
+      throw new AccessDeniedError(
         accessToken ? "invalid access_token" : "authentication required",
       );
     }
@@ -168,7 +176,7 @@ export class ResourceServer<
       const token = await this.getTokenForRequest(request, getAccessToken);
       request.token = token;
       if (acceptedScope && !token.scope?.has(acceptedScope)) {
-        throw new AccessDenied("insufficient scope");
+        throw new AccessDeniedError("insufficient scope");
       }
       await this.authenticateSuccess(
         request as OAuth2AuthenticatedRequest<Client, User, Scope>,
@@ -260,17 +268,16 @@ export {
 } from "./common.ts";
 
 export {
-  AccessDenied,
-  getMessageOrOptions,
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  AccessDeniedError,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   OAuth2Error,
   ServerError,
-  TemporarilyUnavailable,
-  UnauthorizedClient,
-  UnsupportedGrantType,
-  UnsupportedResponseType,
+  TemporarilyUnavailableError,
+  UnauthorizedClientError,
+  UnsupportedGrantTypeError,
+  UnsupportedResponseTypeError,
 } from "./errors.ts";
-export type { MessageOrOptions, OAuth2ErrorOptions } from "./errors.ts";
+export type { OAuth2ErrorInit } from "./errors.ts";

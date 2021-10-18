@@ -139,8 +139,10 @@ const consentPage = (
     </head>
     <body>
       <form method="post">
-        <input type="text" readonly name="authorized_scope" value="${authorizeParameters
-  .scope ?? ""}"/>
+        <input type="text" readonly name="authorized_scope" value="${
+  authorizeParameters
+    .scope ?? ""
+}"/>
         <input type="submit" value="Consent"/>
       </form>
     </body>

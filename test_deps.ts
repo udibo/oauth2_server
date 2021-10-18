@@ -7,9 +7,9 @@ export {
   assertRejects,
   assertStrictEquals,
   assertThrows,
-} from "https://deno.land/std@0.110.0/testing/asserts.ts";
-export { delay } from "https://deno.land/std@0.110.0/async/delay.ts";
-export { v4 } from "https://deno.land/std@0.110.0/uuid/mod.ts";
+} from "https://deno.land/std@0.111.0/testing/asserts.ts";
+export { delay } from "https://deno.land/std@0.111.0/async/delay.ts";
+export { v4 } from "https://deno.land/std@0.111.0/uuid/mod.ts";
 
 export {
   assertSpyCall,

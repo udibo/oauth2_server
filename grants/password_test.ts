@@ -16,9 +16,9 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import {
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   ServerError,
 } from "../errors.ts";
 import { fakeTokenRequest } from "../test_context.ts";
@@ -104,7 +104,7 @@ test(tokenTests, "request body required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "request body required",
   );
 });
@@ -118,14 +118,14 @@ test(tokenTests, "invalid scope", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidScope,
+    InvalidScopeError,
     "invalid scope",
   );
 
   request = fakeTokenRequest("scope= ");
   await assertRejects(
     () => passwordGrant.token(request, client),
-    InvalidScope,
+    InvalidScopeError,
     "invalid scope",
   );
 });
@@ -139,14 +139,14 @@ test(tokenTests, "username parameter required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "username parameter required",
   );
 
   request = fakeTokenRequest("username=");
   await assertRejects(
     () => passwordGrant.token(request, client),
-    InvalidRequest,
+    InvalidRequestError,
     "username parameter required",
   );
 });
@@ -160,14 +160,14 @@ test(tokenTests, "password parameter required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "password parameter required",
   );
 
   request = fakeTokenRequest("username=kyle&password=");
   await assertRejects(
     () => passwordGrant.token(request, client),
-    InvalidRequest,
+    InvalidRequestError,
     "password parameter required",
   );
 });
@@ -189,7 +189,7 @@ test(tokenTests, "user authentication failed", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "user authentication failed",
     );
     assertStrictEquals(getAuthenticated.calls.length, 1);
@@ -211,7 +211,7 @@ test(tokenTests, "scope not accepted", async () => {
   const acceptedScope = stub(
     passwordGrant,
     "acceptedScope",
-    () => Promise.reject(new InvalidScope("invalid scope")),
+    () => Promise.reject(new InvalidScopeError("invalid scope")),
   );
   try {
     const request = fakeTokenRequest(
@@ -224,7 +224,7 @@ test(tokenTests, "scope not accepted", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidScope,
+      InvalidScopeError,
       "invalid scope",
     );
 

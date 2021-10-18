@@ -1,6 +1,6 @@
 import { BasicAuth, parseBasicAuth } from "./basic_auth.ts";
 import { assertEquals, assertThrows, test, TestSuite } from "./test_deps.ts";
-import { InvalidClient } from "./errors.ts";
+import { InvalidClientError } from "./errors.ts";
 
 const parseBasicAuthTests: TestSuite<void> = new TestSuite({
   name: "parseBasicAuth",
@@ -9,12 +9,12 @@ const parseBasicAuthTests: TestSuite<void> = new TestSuite({
 test(parseBasicAuthTests, "authorization header required", () => {
   assertThrows(
     () => parseBasicAuth(null),
-    InvalidClient,
+    InvalidClientError,
     "authorization header required",
   );
   assertThrows(
     () => parseBasicAuth(""),
-    InvalidClient,
+    InvalidClientError,
     "authorization header required",
   );
 });
@@ -22,17 +22,17 @@ test(parseBasicAuthTests, "authorization header required", () => {
 test(parseBasicAuthTests, "unsupported authorization header", () => {
   assertThrows(
     () => parseBasicAuth("x"),
-    InvalidClient,
+    InvalidClientError,
     "unsupported authorization header",
   );
   assertThrows(
     () => parseBasicAuth("basic"),
-    InvalidClient,
+    InvalidClientError,
     "unsupported authorization header",
   );
   assertThrows(
     () => parseBasicAuth("Bearer mF_9.B5f-4.1JqM"),
-    InvalidClient,
+    InvalidClientError,
     "unsupported authorization header",
   );
 });
@@ -43,12 +43,12 @@ test(
   () => {
     assertThrows(
       () => parseBasicAuth("basic x"),
-      InvalidClient,
+      InvalidClientError,
       "authorization header is not correctly encoded",
     );
     assertThrows(
       () => parseBasicAuth(`basic ${btoa("kyle")}=`),
-      InvalidClient,
+      InvalidClientError,
       "authorization header is not correctly encoded",
     );
   },
@@ -57,17 +57,17 @@ test(
 test(parseBasicAuthTests, "authorization header is malformed", () => {
   assertThrows(
     () => parseBasicAuth(`basic ${btoa("kyle")}`),
-    InvalidClient,
+    InvalidClientError,
     "authorization header is malformed",
   );
   assertThrows(
     () => parseBasicAuth(`basic ${btoa(":")}`),
-    InvalidClient,
+    InvalidClientError,
     "authorization header is malformed",
   );
   assertThrows(
     () => parseBasicAuth(`basic ${btoa(":hunter2")}`),
-    InvalidClient,
+    InvalidClientError,
     "authorization header is malformed",
   );
 });

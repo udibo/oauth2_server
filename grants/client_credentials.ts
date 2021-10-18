@@ -1,5 +1,5 @@
 import { AbstractGrant, GrantInterface, GrantServices } from "./grant.ts";
-import { InvalidGrant, InvalidRequest } from "../errors.ts";
+import { InvalidGrantError, InvalidRequestError } from "../errors.ts";
 import {
   Scope as DefaultScope,
   ScopeConstructor,
@@ -58,7 +58,9 @@ export class ClientCredentialsGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<Token<Client, User, Scope>> {
-    if (!request.hasBody) throw new InvalidRequest("request body required");
+    if (!request.hasBody) {
+      throw new InvalidRequestError("request body required");
+    }
 
     const body: URLSearchParams = await request.body!;
     const scopeText: string | null = body.get("scope");
@@ -66,7 +68,7 @@ export class ClientCredentialsGrant<
 
     const { tokenService, clientService } = this.services;
     const user: User | void = await clientService.getUser(client);
-    if (!user) throw new InvalidGrant("no user for client");
+    if (!user) throw new InvalidGrantError("no user for client");
 
     scope = await this.acceptedScope(client, user, scope);
 

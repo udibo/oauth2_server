@@ -6,9 +6,9 @@ import {
   GrantServices,
 } from "./grant.ts";
 import {
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
   ServerError,
 } from "../errors.ts";
 import { Token } from "../models/token.ts";
@@ -127,7 +127,7 @@ export class AuthorizationCodeGrant<
   async getClient(clientId: string): Promise<Client> {
     const { clientService } = this.services;
     const client: Client | void = await clientService.get(clientId);
-    if (!client) throw new InvalidClient("client not found");
+    if (!client) throw new InvalidClientError("client not found");
     return client;
   }
 
@@ -143,7 +143,7 @@ export class AuthorizationCodeGrant<
       : clientSecret
       ? await clientService.getAuthenticated(clientId, clientSecret)
       : await clientService.getAuthenticated(clientId);
-    if (!client) throw new InvalidClient("client authentication failed");
+    if (!client) throw new InvalidClientError("client authentication failed");
     return client;
   }
 
@@ -197,34 +197,36 @@ export class AuthorizationCodeGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<Token<Client, User, Scope>> {
-    if (!request.hasBody) throw new InvalidRequest("request body required");
+    if (!request.hasBody) {
+      throw new InvalidRequestError("request body required");
+    }
 
     const body: URLSearchParams = await request.body!;
     const code: string | null = body.get("code");
     if (!code) {
-      throw new InvalidRequest("code parameter required");
+      throw new InvalidRequestError("code parameter required");
     }
 
     const { authorizationCodeService, tokenService } = this.services;
     if (await tokenService.revokeCode(code)) {
-      throw new InvalidGrant("code already used");
+      throw new InvalidGrantError("code already used");
     }
 
     const authorizationCode: AuthorizationCode<Client, User, Scope> | void =
       await authorizationCodeService.get(code);
     if (!authorizationCode || authorizationCode.expiresAt < new Date()) {
-      throw new InvalidGrant("invalid code");
+      throw new InvalidGrantError("invalid code");
     }
     await authorizationCodeService.revoke(authorizationCode);
 
     const codeVerifier: string | null = body.get("code_verifier");
     if (codeVerifier) {
       if (!this.verifyCode(authorizationCode, codeVerifier)) {
-        throw new InvalidClient("client authentication failed");
+        throw new InvalidClientError("client authentication failed");
       }
     } else if (authorizationCode.challenge) {
       // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-4.8.2
-      throw new InvalidClient("client authentication failed");
+      throw new InvalidClientError("client authentication failed");
     }
 
     const {
@@ -234,18 +236,18 @@ export class AuthorizationCodeGrant<
       redirectUri: expectedRedirectUri,
     }: AuthorizationCode<Client, User, Scope> = authorizationCode;
     if (client.id !== authorizationCodeClient.id) {
-      throw new InvalidClient("code was issued to another client");
+      throw new InvalidClientError("code was issued to another client");
     }
 
     const redirectUri: string | null = body.get("redirect_uri");
     if (expectedRedirectUri) {
       if (!redirectUri) {
-        throw new InvalidGrant("redirect_uri parameter required");
+        throw new InvalidGrantError("redirect_uri parameter required");
       } else if (redirectUri !== expectedRedirectUri) {
-        throw new InvalidGrant("incorrect redirect_uri");
+        throw new InvalidGrantError("incorrect redirect_uri");
       }
     } else if (redirectUri) {
-      throw new InvalidGrant("did not expect redirect_uri parameter");
+      throw new InvalidGrantError("did not expect redirect_uri parameter");
     }
 
     const token = await this.generateToken(client, user, scope);

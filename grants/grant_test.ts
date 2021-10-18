@@ -23,7 +23,7 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import { fakeTokenRequest } from "../test_context.ts";
-import { InvalidClient, InvalidScope } from "../errors.ts";
+import { InvalidClientError, InvalidScopeError } from "../errors.ts";
 import {
   ClientService,
   RefreshTokenService,
@@ -155,7 +155,7 @@ test(acceptedScopeTests, "invalid scope", async () => {
   try {
     await assertRejects(
       () => grant.acceptedScope(client, user, scope),
-      InvalidScope,
+      InvalidScopeError,
       "invalid scope",
     );
 
@@ -182,7 +182,7 @@ test(acceptedScopeTests, "scope required", async () => {
   try {
     await assertRejects(
       () => grant.acceptedScope(client, user),
-      InvalidScope,
+      InvalidScopeError,
       "scope required",
     );
 
@@ -206,7 +206,7 @@ test(
     request.headers.delete("authorization");
     await assertRejects(
       () => grant.getClientCredentials(request),
-      InvalidClient,
+      InvalidClientError,
       "authorization header required",
     );
   },
@@ -292,7 +292,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
     request.headers.delete("authorization");
     await assertRejects(
       () => grant.getAuthenticatedClient(request),
-      InvalidClient,
+      InvalidClientError,
       "authorization header required",
     );
 
@@ -327,7 +327,7 @@ test(
       request.headers.set("authorization", `basic ${btoa("1:")}`);
       await assertRejects(
         () => grant.getAuthenticatedClient(request),
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
@@ -366,7 +366,7 @@ test(
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
       await assertRejects(
         () => grant.getAuthenticatedClient(request),
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
