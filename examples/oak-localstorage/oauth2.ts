@@ -2,16 +2,18 @@ import {
   AuthorizationCodeGrant,
   AuthorizationServer,
   AuthorizeParameters,
-  BearerToken,
   ClientCredentialsGrant,
   loginRedirectFactory,
   OakAuthorizationServer,
   OakOAuth2AuthorizeRequest,
   OakOAuth2Request,
   OakOAuth2Response,
+  OAuth2Error,
   RefreshTokenGrant,
   Router,
   Scope,
+  ServerError,
+  TokenBody,
 } from "./deps.ts";
 import { Client } from "./models/client.ts";
 import { Session } from "./models/session.ts";
@@ -56,6 +58,61 @@ async function getSession(
   return session;
 }
 
+async function refreshSession(session: Session): Promise<Session> {
+  if (!session.refreshToken) {
+    throw new ServerError("refreshSession called without refresh token");
+  }
+
+  const tokenUrl = new URL("http://localhost:8000/oauth2/token");
+  const formParams = new URLSearchParams();
+  formParams.set("grant_type", "refresh_token");
+  formParams.set("refresh_token", session.refreshToken);
+  const headers = new Headers();
+  headers.set("authorization", `basic ${btoa("1000:1234")}`); // should be environment variable
+  headers.set("content-type", "application/x-www-form-urlencoded");
+  const now = Date.now();
+  const tokenResponse = await fetch(tokenUrl, {
+    method: "POST",
+    headers,
+    body: formParams.toString(),
+  });
+  const body = await tokenResponse.json();
+  if (tokenResponse.status >= 400) {
+    if (tokenResponse.status !== 503) {
+      await sessionService.delete(session);
+    }
+    throw new OAuth2Error({
+      status: tokenResponse.status,
+      message: body.error_description,
+      code: body.error,
+      uri: body.error_uri,
+    });
+  } else if (tokenResponse.status !== 200) {
+    throw new ServerError("unexpected response from authorization server");
+  }
+
+  const {
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_in: expiresIn,
+  } = body as TokenBody;
+  if (accessToken) session.accessToken = accessToken;
+  if (refreshToken) session.refreshToken = refreshToken;
+  if (expiresIn) {
+    session.accessTokenExpiresAt = new Date(now + (expiresIn * 1000));
+  }
+  await sessionService.patch(session);
+
+  return session;
+}
+
+/*
+The refreshSessionPromises is being used as an in-memory lock on refreshing sessions.
+This prevents duplicate refresh token requests from being sent at the same time.
+This will not work if there are multiple resource server processes using the same sessions.
+*/
+const refreshSessionPromises = new Map<string, Promise<Session>>();
+
 export const oauth2 = new OakAuthorizationServer({
   server: oauth2Server,
   async getAccessToken(
@@ -64,35 +121,16 @@ export const oauth2 = new OakAuthorizationServer({
   ): Promise<string | null> {
     let session = await getSession(request);
     if (requireRefresh && session?.refreshToken) {
-      const tokenUrl = new URL("http://localhost:8000/oauth2/token");
-      const formParams = new URLSearchParams();
-      formParams.set("grant_type", "refresh_token");
-      formParams.set("refresh_token", session.refreshToken);
-      const now = Date.now();
-      const headers = new Headers();
-      headers.set("authorization", `basic ${btoa("1000:1234")}`); // should be environment variable
-      headers.set("content-type", "application/x-www-form-urlencoded");
-      const tokenResponse = await fetch(tokenUrl, {
-        method: "POST",
-        headers,
-        body: formParams.toString(),
-      });
-      const body = await tokenResponse.json();
-      if (tokenResponse.status === 200) {
-        const {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: expiresIn,
-        } = body as BearerToken;
-        if (accessToken) session.accessToken = accessToken;
-        if (refreshToken) session.refreshToken = refreshToken;
-        if (expiresIn) {
-          session.accessTokenExpiresAt = new Date(now + (expiresIn * 1000));
-        }
-        await sessionService.patch(session);
-      } else {
-        await sessionService.delete(session);
-        session = undefined;
+      const { refreshToken } = session;
+      let startedRefresh = false;
+      if (!refreshSessionPromises.has(refreshToken)) {
+        startedRefresh = true;
+        refreshSessionPromises.set(refreshToken, refreshSession(session));
+      }
+      try {
+        session = await refreshSessionPromises.get(refreshToken);
+      } finally {
+        if (startedRefresh) refreshSessionPromises.delete(refreshToken);
       }
     }
     return session?.accessToken ?? null;

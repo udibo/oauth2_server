@@ -1,12 +1,12 @@
 import {
   Application,
-  BearerToken,
   BodyForm,
   challengeMethods,
   Cookies,
   generateCodeVerifier,
   Response,
   Router,
+  TokenBody,
 } from "./deps.ts";
 import { User } from "./models/user.ts";
 import { oauth2, oauth2Router } from "./oauth2.ts";
@@ -173,7 +173,7 @@ router
             access_token: accessToken,
             refresh_token: refreshToken,
             expires_in: expiresIn,
-          } = body as BearerToken;
+          } = body as TokenBody;
           if (accessToken) session.accessToken = accessToken;
           if (refreshToken) session.refreshToken = refreshToken;
           if (expiresIn) {
