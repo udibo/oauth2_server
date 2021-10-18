@@ -23,9 +23,9 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import {
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
   ServerError,
 } from "../errors.ts";
 import { fakeTokenRequest } from "../test_context.ts";
@@ -136,7 +136,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
     request.headers.delete("authorization");
     await assertRejects(
       () => authorizationCodeGrant.getAuthenticatedClient(request),
-      InvalidClient,
+      InvalidClientError,
       "authorization header required",
     );
 
@@ -174,7 +174,7 @@ test(
       request.headers.delete("authorization");
       await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
@@ -218,7 +218,7 @@ test(
       request.headers.set("authorization", `basic ${btoa("1:2")}`);
       await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
@@ -268,7 +268,7 @@ test(
       request.headers.delete("authorization");
       await assertRejects(
         () => authorizationCodeGrant.getAuthenticatedClient(request),
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
@@ -601,7 +601,7 @@ test(tokenTests, "request body required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "request body required",
   );
 });
@@ -615,14 +615,14 @@ test(tokenTests, "code parameter required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "code parameter required",
   );
 
   request = fakeTokenRequest("username=");
   await assertRejects(
     () => authorizationCodeGrant.token(request, client),
-    InvalidRequest,
+    InvalidRequestError,
     "code parameter required",
   );
 });
@@ -642,7 +642,7 @@ test(tokenTests, "code already used", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "code already used",
     );
 
@@ -671,7 +671,7 @@ test(tokenTests, "invalid code", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "invalid code",
     );
 
@@ -704,7 +704,7 @@ test(tokenTests, "expired code", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "invalid code",
     );
 
@@ -737,7 +737,7 @@ test(tokenTests, "code was issued to another client", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidClient,
+      InvalidClientError,
       "code was issued to another client",
     );
 
@@ -765,7 +765,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "redirect_uri parameter required",
     );
 
@@ -778,7 +778,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
     request = fakeTokenRequest("code=1&redirect_uri=");
     await assertRejects(
       () => authorizationCodeGrant.token(request, client),
-      InvalidGrant,
+      InvalidGrantError,
       "redirect_uri parameter required",
     );
 
@@ -810,7 +810,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "incorrect redirect_uri",
     );
 
@@ -827,7 +827,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
     );
     await assertRejects(
       () => authorizationCodeGrant.token(request, client),
-      InvalidGrant,
+      InvalidGrantError,
       "incorrect redirect_uri",
     );
 
@@ -864,7 +864,7 @@ test(tokenTests, "did not expect redirect_uri parameter", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "did not expect redirect_uri parameter",
     );
 
@@ -914,7 +914,7 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       await assertRejects(
         () => result,
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 
@@ -962,7 +962,7 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       await assertRejects(
         () => result,
-        InvalidClient,
+        InvalidClientError,
         "client authentication failed",
       );
 

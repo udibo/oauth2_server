@@ -33,7 +33,7 @@ import {
 import * as resourceServerModule from "./authorization_server.ts";
 import * as authorizationServerModule from "./authorization_server.ts";
 import {
-  AccessDenied,
+  AccessDeniedError,
   AccessToken,
   AuthorizationCode,
   AuthorizationCodeGrant,
@@ -44,10 +44,10 @@ import {
   Client,
   generateCodeVerifier,
   GrantServices,
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2Request,
@@ -56,8 +56,8 @@ import {
   RefreshTokenGrant,
   Scope,
   ServerError,
-  UnauthorizedClient,
-  UnsupportedGrantType,
+  UnauthorizedClientError,
+  UnsupportedGrantTypeError,
   User,
 } from "./authorization_server.ts";
 
@@ -78,16 +78,16 @@ test("verify exports", () => {
     "AbstractGrant",
     "AbstractRefreshTokenService",
     "AbstractUserService",
-    "AccessDenied",
+    "AccessDeniedError",
     "AuthorizationCodeGrant",
     "AuthorizationServer",
     "BEARER_TOKEN",
     "ClientCredentialsGrant",
     "DefaultScope",
-    "InvalidClient",
-    "InvalidGrant",
-    "InvalidRequest",
-    "InvalidScope",
+    "InvalidClientError",
+    "InvalidGrantError",
+    "InvalidRequestError",
+    "InvalidScopeError",
     "NQCHAR",
     "NQSCHAR",
     "OAuth2Error",
@@ -97,18 +97,17 @@ test("verify exports", () => {
     "SCOPE_TOKEN",
     "Scope",
     "ServerError",
-    "TemporarilyUnavailable",
+    "TemporarilyUnavailableError",
     "UNICODECHARNOCRLF",
-    "UnauthorizedClient",
-    "UnsupportedGrantType",
-    "UnsupportedResponseType",
+    "UnauthorizedClientError",
+    "UnsupportedGrantTypeError",
+    "UnsupportedResponseTypeError",
     "VSCHAR",
     "authorizeParameters",
     "authorizeUrl",
     "camelCase",
     "challengeMethods",
     "generateCodeVerifier",
-    "getMessageOrOptions",
     "loginRedirectFactory",
     "parseBasicAuth",
     "snakeCase",
@@ -208,7 +207,7 @@ test(
       context,
       request,
       response,
-      InvalidRequest,
+      InvalidRequestError,
       "method must be POST",
     );
   },
@@ -225,7 +224,7 @@ test(
       context,
       request,
       response,
-      InvalidRequest,
+      InvalidRequestError,
       "content-type header must be application/x-www-form-urlencoded",
     );
   },
@@ -243,7 +242,7 @@ test(
       context,
       request,
       response,
-      InvalidRequest,
+      InvalidRequestError,
       "content-type header must be application/x-www-form-urlencoded",
     );
   },
@@ -256,7 +255,7 @@ test(tokenTests, "request body required", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "request body required",
   );
 });
@@ -268,7 +267,7 @@ test(tokenTests, "grant_type parameter required", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "grant_type parameter required",
   );
 });
@@ -280,7 +279,7 @@ test(tokenTests, "invalid grant_type", async (context) => {
     context,
     request,
     response,
-    UnsupportedGrantType,
+    UnsupportedGrantTypeError,
     "invalid grant_type",
   );
 });
@@ -289,7 +288,8 @@ test(tokenTests, "client authentication failed", async (context) => {
   const getAuthenticatedClient = stub(
     refreshTokenGrant,
     "getAuthenticatedClient",
-    () => Promise.reject(new InvalidClient("client authentication failed")),
+    () =>
+      Promise.reject(new InvalidClientError("client authentication failed")),
   );
   try {
     const request = fakeTokenRequest("grant_type=refresh_token");
@@ -298,7 +298,7 @@ test(tokenTests, "client authentication failed", async (context) => {
       context,
       request,
       response,
-      InvalidClient,
+      InvalidClientError,
       "client authentication failed",
     );
     assertSpyCall(getAuthenticatedClient, 0, {
@@ -332,7 +332,7 @@ test(
         context,
         request,
         response,
-        UnauthorizedClient,
+        UnauthorizedClientError,
         "client is not authorized to use this grant_type",
       );
       assertSpyCall(getAuthenticatedClient, 0, {
@@ -350,7 +350,7 @@ test(tokenTests, "grant token error", async (context) => {
   const token = stub(
     refreshTokenGrant,
     "token",
-    () => Promise.reject(new InvalidGrant("invalid refresh_token")),
+    () => Promise.reject(new InvalidGrantError("invalid refresh_token")),
   );
   try {
     const request = fakeTokenRequest("grant_type=refresh_token");
@@ -359,7 +359,7 @@ test(tokenTests, "grant token error", async (context) => {
       context,
       request,
       response,
-      InvalidGrant,
+      InvalidGrantError,
       "invalid refresh_token",
     );
     assertSpyCall(token, 0, {
@@ -525,7 +525,7 @@ test(serverTests, "tokenError handles error", async () => {
     );
     const response = fakeResponse();
     const redirect = spy(response, "redirect");
-    const error = new InvalidGrant("invalid refresh_token");
+    const error = new InvalidGrantError("invalid refresh_token");
     await server.tokenError(request, response, error);
 
     assertSpyCall(tokenResponse, 0, {
@@ -689,7 +689,7 @@ test(
       context,
       request,
       response,
-      InvalidRequest,
+      InvalidRequestError,
       "client_id parameter required",
     );
   },
@@ -711,7 +711,7 @@ test(
         context,
         request,
         response,
-        InvalidClient,
+        InvalidClientError,
         "client not found",
       );
     } finally {
@@ -736,7 +736,7 @@ test(
         context,
         request,
         response,
-        UnauthorizedClient,
+        UnauthorizedClientError,
         "client is not authorized to use the authorization code grant type",
       );
     } finally {
@@ -758,7 +758,7 @@ test(authorizeTests, "no authorized redirect_uri", async (context) => {
       context,
       request,
       response,
-      UnauthorizedClient,
+      UnauthorizedClientError,
       "no authorized redirect_uri",
     );
   } finally {
@@ -774,7 +774,7 @@ test(authorizeTests, "redirect_uri not authorized", async (context) => {
     context,
     request,
     response,
-    UnauthorizedClient,
+    UnauthorizedClientError,
     "redirect_uri not authorized",
   );
 });
@@ -835,7 +835,7 @@ test(authorizeTests, "state required", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "state required",
   );
 });
@@ -848,7 +848,7 @@ test(authorizeTests, "response_type required", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "response_type required",
   );
 });
@@ -861,7 +861,7 @@ test(authorizeTests, "response_type not supported", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "response_type not supported",
   );
 });
@@ -877,7 +877,7 @@ test(
       context,
       request,
       response,
-      InvalidRequest,
+      InvalidRequestError,
       "code_challenge required when code_challenge_method is set",
     );
   },
@@ -891,7 +891,7 @@ test(authorizeTests, "code_challenge_method required", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "unsupported code_challenge_method",
   );
 });
@@ -905,7 +905,7 @@ test(authorizeTests, "unsupported code_challenge_method", async (context) => {
     context,
     request,
     response,
-    InvalidRequest,
+    InvalidRequestError,
     "unsupported code_challenge_method",
   );
 });
@@ -957,7 +957,7 @@ test(authorizeTests, "authentication required with PKCE", async (context) => {
     response,
     undefined,
     undefined,
-    AccessDenied,
+    AccessDeniedError,
     "authentication required",
   );
 });
@@ -974,7 +974,7 @@ test(
       response,
       undefined,
       undefined,
-      AccessDenied,
+      AccessDeniedError,
       "authentication required",
     );
   },
@@ -987,7 +987,7 @@ test(
     const acceptedScope = stub(
       authorizationCodeGrant,
       "acceptedScope",
-      () => Promise.reject(new InvalidScope("invalid scope")),
+      () => Promise.reject(new InvalidScopeError("invalid scope")),
     );
     try {
       const request = fakeAuthorizeRequest();
@@ -998,7 +998,7 @@ test(
         response,
         user,
         undefined,
-        InvalidScope,
+        InvalidScopeError,
         "invalid scope",
       );
     } finally {
@@ -1019,7 +1019,7 @@ test(
       response,
       user,
       undefined,
-      AccessDenied,
+      AccessDeniedError,
       "not authorized",
     );
   },
@@ -1037,7 +1037,7 @@ test(
       response,
       user,
       new Scope("read"),
-      AccessDenied,
+      AccessDeniedError,
       "not authorized",
     );
   },
@@ -1302,7 +1302,7 @@ test(authorizeErrorTests, "non access_denied error with redirectUrl", async ({
   expectedRedirectUrl.searchParams.set("error", "invalid_request");
   expectedRedirectUrl.searchParams.set("error_description", "not valid");
 
-  const error = new InvalidRequest("not valid");
+  const error = new InvalidRequestError("not valid");
   await server.authorizeError(request, response, error, login, consent);
 
   assertEquals([...response.headers.entries()], []);
@@ -1333,7 +1333,7 @@ test(
     errorHandlerAwait,
   }) => {
     delete request.redirectUrl;
-    const error = new InvalidRequest("not valid");
+    const error = new InvalidRequestError("not valid");
     await server.authorizeError(request, response, error, login, consent);
 
     assertEquals([...response.headers.entries()], []);
@@ -1365,7 +1365,7 @@ test(
     consent,
     errorHandler,
   }) => {
-    const error = new AccessDenied("authentication required");
+    const error = new AccessDeniedError("authentication required");
     await server.authorizeError(request, response, error, login, consent);
 
     assertEquals([...response.headers.entries()], []);
@@ -1398,7 +1398,7 @@ test(
     errorHandler,
   }) => {
     request.user = user;
-    const error = new AccessDenied("not authorized");
+    const error = new AccessDeniedError("not authorized");
     await server.authorizeError(request, response, error, login, consent);
 
     assertEquals([...response.headers.entries()], []);

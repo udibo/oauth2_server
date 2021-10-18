@@ -4,7 +4,7 @@ import {
   GrantOptions,
   GrantServices,
 } from "./grant.ts";
-import { InvalidGrant, InvalidRequest } from "../errors.ts";
+import { InvalidGrantError, InvalidRequestError } from "../errors.ts";
 import { Scope as DefaultScope, ScopeInterface } from "../models/scope.ts";
 import { UserServiceInterface } from "../services/user.ts";
 import { OAuth2Request } from "../context.ts";
@@ -57,23 +57,25 @@ export class PasswordGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<Token<Client, User, Scope>> {
-    if (!request.hasBody) throw new InvalidRequest("request body required");
+    if (!request.hasBody) {
+      throw new InvalidRequestError("request body required");
+    }
 
     const body: URLSearchParams = await request.body!;
     const scopeText: string | null = body.get("scope");
     let scope: Scope | null | undefined = this.parseScope(scopeText);
 
     const username: string | null = body.get("username");
-    if (!username) throw new InvalidRequest("username parameter required");
+    if (!username) throw new InvalidRequestError("username parameter required");
     const password: string | null = body.get("password");
-    if (!password) throw new InvalidRequest("password parameter required");
+    if (!password) throw new InvalidRequestError("password parameter required");
 
     const { tokenService, userService } = this.services;
     const user: User | void = await userService.getAuthenticated(
       username,
       password,
     );
-    if (!user) throw new InvalidGrant("user authentication failed");
+    if (!user) throw new InvalidGrantError("user authentication failed");
 
     scope = await this.acceptedScope(client, user, scope);
 

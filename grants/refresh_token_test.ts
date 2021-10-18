@@ -22,9 +22,9 @@ import {
   RefreshTokenService,
 } from "../services/test_services.ts";
 import {
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
   ServerError,
 } from "../errors.ts";
 import { fakeTokenRequest } from "../test_context.ts";
@@ -100,7 +100,7 @@ test(tokenTests, "request body required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "request body required",
   );
 });
@@ -114,14 +114,14 @@ test(tokenTests, "refresh_token parameter required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "refresh_token parameter required",
   );
 
   request = fakeTokenRequest("refresh_token=");
   await assertRejects(
     () => refreshTokenGrant.token(request, client),
-    InvalidRequest,
+    InvalidRequestError,
     "refresh_token parameter required",
   );
 });
@@ -144,7 +144,7 @@ test(tokenTests, "invalid refresh_token", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "invalid refresh_token",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
@@ -155,7 +155,7 @@ test(tokenTests, "invalid refresh_token", async () => {
     request = fakeTokenRequest("refresh_token=example2");
     await assertRejects(
       () => refreshTokenGrant.token(request, client),
-      InvalidGrant,
+      InvalidGrantError,
       "invalid refresh_token",
     );
     assertStrictEquals(getRefreshToken.calls.length, 2);
@@ -190,7 +190,7 @@ test(tokenTests, "expired refresh_token", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "invalid refresh_token",
     );
     assertSpyCall(getRefreshToken, 0, {
@@ -225,7 +225,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidClient,
+      InvalidClientError,
       "refresh_token was issued to another client",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
@@ -236,7 +236,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
     request = fakeTokenRequest("refresh_token=example2");
     await assertRejects(
       () => refreshTokenGrant.token(request, client),
-      InvalidClient,
+      InvalidClientError,
       "refresh_token was issued to another client",
     );
     assertStrictEquals(getRefreshToken.calls.length, 2);

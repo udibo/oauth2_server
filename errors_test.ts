@@ -1,16 +1,16 @@
-import { assertObjectMatch, test } from "./test_deps.ts";
+import { assertEquals, assertObjectMatch, test } from "./test_deps.ts";
 import {
-  AccessDenied,
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  AccessDeniedError,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   OAuth2Error,
   ServerError,
-  TemporarilyUnavailable,
-  UnauthorizedClient,
-  UnsupportedGrantType,
-  UnsupportedResponseType,
+  TemporarilyUnavailableError,
+  UnauthorizedClientError,
+  UnsupportedGrantTypeError,
+  UnsupportedResponseTypeError,
 } from "./errors.ts";
 
 test("OAuth2Error", () => {
@@ -18,14 +18,14 @@ test("OAuth2Error", () => {
   assertObjectMatch(new CustomError(), {
     name: "OAuth2Error",
     status: 500,
-    code: undefined,
+    code: "server_error",
     uri: undefined,
   });
   assertObjectMatch(new CustomError("failed"), {
     name: "OAuth2Error",
     message: "failed",
     status: 500,
-    code: undefined,
+    code: "server_error",
     uri: undefined,
   });
   assertObjectMatch(
@@ -46,260 +46,212 @@ test("OAuth2Error", () => {
   );
 });
 
-test("InvalidRequest", () => {
-  assertObjectMatch(new InvalidRequest(), {
-    name: "InvalidRequest",
+test("InvalidRequestError", () => {
+  assertObjectMatch(new InvalidRequestError(), {
+    name: "InvalidRequestError",
     status: 400,
     code: "invalid_request",
     uri: undefined,
   });
-  assertObjectMatch(new InvalidRequest("failed"), {
-    name: "InvalidRequest",
+  assertObjectMatch(new InvalidRequestError("failed"), {
+    name: "InvalidRequestError",
     message: "failed",
     status: 400,
     code: "invalid_request",
     uri: undefined,
   });
-  assertObjectMatch(
-    new InvalidRequest({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new InvalidRequestError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "InvalidRequestError",
+    message: "failed",
+    status: 400,
+    code: "invalid_request",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("InvalidClient", () => {
-  assertObjectMatch(new InvalidClient(), {
-    name: "InvalidClient",
+test("InvalidClientError", () => {
+  assertObjectMatch(new InvalidClientError(), {
+    name: "InvalidClientError",
     status: 401,
     code: "invalid_client",
     uri: undefined,
   });
-  assertObjectMatch(new InvalidClient("failed"), {
-    name: "InvalidClient",
+  assertObjectMatch(new InvalidClientError("failed"), {
+    name: "InvalidClientError",
     message: "failed",
     status: 401,
     code: "invalid_client",
     uri: undefined,
   });
-  assertObjectMatch(
-    new InvalidClient({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new InvalidClientError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "InvalidClientError",
+    message: "failed",
+    status: 401,
+    code: "invalid_client",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("InvalidGrant", () => {
-  assertObjectMatch(new InvalidGrant(), {
-    name: "InvalidGrant",
+test("InvalidGrantError", () => {
+  assertObjectMatch(new InvalidGrantError(), {
+    name: "InvalidGrantError",
     status: 400,
     code: "invalid_grant",
     uri: undefined,
   });
-  assertObjectMatch(new InvalidGrant("failed"), {
-    name: "InvalidGrant",
+  assertObjectMatch(new InvalidGrantError("failed"), {
+    name: "InvalidGrantError",
     message: "failed",
     status: 400,
     code: "invalid_grant",
     uri: undefined,
   });
-  assertObjectMatch(
-    new InvalidGrant({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new InvalidGrantError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "InvalidGrantError",
+    message: "failed",
+    status: 400,
+    code: "invalid_grant",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("UnauthorizedClient", () => {
-  assertObjectMatch(new UnauthorizedClient(), {
-    name: "UnauthorizedClient",
+test("UnauthorizedClientError", () => {
+  assertObjectMatch(new UnauthorizedClientError(), {
+    name: "UnauthorizedClientError",
     status: 401,
     code: "unauthorized_client",
     uri: undefined,
   });
-  assertObjectMatch(new UnauthorizedClient("failed"), {
-    name: "UnauthorizedClient",
+  assertObjectMatch(new UnauthorizedClientError("failed"), {
+    name: "UnauthorizedClientError",
     message: "failed",
     status: 401,
     code: "unauthorized_client",
     uri: undefined,
   });
-  assertObjectMatch(
-    new UnauthorizedClient({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new UnauthorizedClientError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "UnauthorizedClientError",
+    message: "failed",
+    status: 401,
+    code: "unauthorized_client",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("UnsupportedGrantType", () => {
-  assertObjectMatch(new UnsupportedGrantType(), {
-    name: "UnsupportedGrantType",
+test("UnsupportedGrantTypeError", () => {
+  assertObjectMatch(new UnsupportedGrantTypeError(), {
+    name: "UnsupportedGrantTypeError",
     status: 400,
     code: "unsupported_grant_type",
     uri: undefined,
   });
-  assertObjectMatch(new UnsupportedGrantType("failed"), {
-    name: "UnsupportedGrantType",
+  assertObjectMatch(new UnsupportedGrantTypeError("failed"), {
+    name: "UnsupportedGrantTypeError",
     message: "failed",
     status: 400,
     code: "unsupported_grant_type",
     uri: undefined,
   });
-  assertObjectMatch(
-    new UnsupportedGrantType({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new UnsupportedGrantTypeError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "UnsupportedGrantTypeError",
+    message: "failed",
+    status: 400,
+    code: "unsupported_grant_type",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("AccessDenied", () => {
-  assertObjectMatch(new AccessDenied(), {
-    name: "AccessDenied",
+test("AccessDeniedError", () => {
+  assertObjectMatch(new AccessDeniedError(), {
+    name: "AccessDeniedError",
     status: 401,
     code: "access_denied",
     uri: undefined,
   });
-  assertObjectMatch(new AccessDenied("failed"), {
-    name: "AccessDenied",
+  assertObjectMatch(new AccessDeniedError("failed"), {
+    name: "AccessDeniedError",
     message: "failed",
     status: 401,
     code: "access_denied",
     uri: undefined,
   });
-  assertObjectMatch(
-    new AccessDenied({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new AccessDeniedError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "AccessDeniedError",
+    message: "failed",
+    status: 401,
+    code: "access_denied",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("UnsupportedResponseType", () => {
-  assertObjectMatch(new UnsupportedResponseType(), {
-    name: "UnsupportedResponseType",
+test("UnsupportedResponseTypeError", () => {
+  assertObjectMatch(new UnsupportedResponseTypeError(), {
+    name: "UnsupportedResponseTypeError",
     status: 400,
     code: "unsupported_response_type",
     uri: undefined,
   });
-  assertObjectMatch(new UnsupportedResponseType("failed"), {
-    name: "UnsupportedResponseType",
+  assertObjectMatch(new UnsupportedResponseTypeError("failed"), {
+    name: "UnsupportedResponseTypeError",
     message: "failed",
     status: 400,
     code: "unsupported_response_type",
     uri: undefined,
   });
-  assertObjectMatch(
-    new UnsupportedResponseType({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new UnsupportedResponseTypeError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "UnsupportedResponseTypeError",
+    message: "failed",
+    status: 400,
+    code: "unsupported_response_type",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("InvalidScope", () => {
-  assertObjectMatch(new InvalidScope(), {
-    name: "InvalidScope",
+test("InvalidScopeError", () => {
+  assertObjectMatch(new InvalidScopeError(), {
+    name: "InvalidScopeError",
     status: 400,
     code: "invalid_scope",
     uri: undefined,
   });
-  assertObjectMatch(new InvalidScope("failed"), {
-    name: "InvalidScope",
+  assertObjectMatch(new InvalidScopeError("failed"), {
+    name: "InvalidScopeError",
     message: "failed",
     status: 400,
     code: "invalid_scope",
     uri: undefined,
   });
-  assertObjectMatch(
-    new InvalidScope({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new InvalidScopeError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "InvalidScopeError",
+    message: "failed",
+    status: 400,
+    code: "invalid_scope",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
 test("ServerError", () => {
@@ -316,52 +268,40 @@ test("ServerError", () => {
     code: "server_error",
     uri: undefined,
   });
-  assertObjectMatch(
-    new ServerError({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new ServerError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "ServerError",
+    message: "failed",
+    status: 500,
+    code: "server_error",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });
 
-test("TemporarilyUnavailable", () => {
-  assertObjectMatch(new TemporarilyUnavailable(), {
-    name: "TemporarilyUnavailable",
+test("TemporarilyUnavailableError", () => {
+  assertObjectMatch(new TemporarilyUnavailableError(), {
+    name: "TemporarilyUnavailableError",
     status: 503,
     code: "temporarily_unavailable",
     uri: undefined,
   });
-  assertObjectMatch(new TemporarilyUnavailable("failed"), {
-    name: "TemporarilyUnavailable",
+  assertObjectMatch(new TemporarilyUnavailableError("failed"), {
+    name: "TemporarilyUnavailableError",
     message: "failed",
     status: 503,
     code: "temporarily_unavailable",
     uri: undefined,
   });
-  assertObjectMatch(
-    new TemporarilyUnavailable({
-      name: "CustomError",
-      message: "failed",
-      code: "custom_error",
-      status: 418,
-      uri: "https://example.com",
-    }),
-    {
-      name: "CustomError",
-      message: "failed",
-      status: 418,
-      code: "custom_error",
-      uri: "https://example.com",
-    },
-  );
+  const cause = new Error("something went wrong");
+  const error = new TemporarilyUnavailableError("failed", { cause });
+  assertObjectMatch(error, {
+    name: "TemporarilyUnavailableError",
+    message: "failed",
+    status: 503,
+    code: "temporarily_unavailable",
+    uri: undefined,
+  });
+  assertEquals(error.cause, cause);
 });

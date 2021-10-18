@@ -1,5 +1,9 @@
 import { AbstractGrant, GrantInterface, GrantServices } from "./grant.ts";
-import { InvalidClient, InvalidGrant, InvalidRequest } from "../errors.ts";
+import {
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+} from "../errors.ts";
 import type { RefreshToken } from "../models/token.ts";
 import { OAuth2Request } from "../context.ts";
 import { ClientInterface } from "../models/client.ts";
@@ -50,12 +54,14 @@ export class RefreshTokenGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<RefreshToken<Client, User, Scope>> {
-    if (!request.hasBody) throw new InvalidRequest("request body required");
+    if (!request.hasBody) {
+      throw new InvalidRequestError("request body required");
+    }
 
     const body: URLSearchParams = await request.body!;
     const refreshToken: string | null = body.get("refresh_token");
     if (!refreshToken) {
-      throw new InvalidRequest("refresh_token parameter required");
+      throw new InvalidRequestError("refresh_token parameter required");
     }
 
     const { tokenService } = this.services;
@@ -65,12 +71,14 @@ export class RefreshTokenGrant<
       (currentToken.refreshTokenExpiresAt &&
         currentToken.refreshTokenExpiresAt < new Date())
     ) {
-      throw new InvalidGrant("invalid refresh_token");
+      throw new InvalidGrantError("invalid refresh_token");
     }
 
     const { client: tokenClient, user, scope, code } = currentToken;
     if (client.id !== tokenClient.id) {
-      throw new InvalidClient("refresh_token was issued to another client");
+      throw new InvalidClientError(
+        "refresh_token was issued to another client",
+      );
     }
 
     const nextToken = await this.generateToken(client, user, scope);

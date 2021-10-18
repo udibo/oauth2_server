@@ -1,10 +1,10 @@
 import {
-  AccessDenied,
-  InvalidRequest,
+  AccessDeniedError,
+  InvalidRequestError,
   OAuth2Error,
   ServerError,
-  UnauthorizedClient,
-  UnsupportedGrantType,
+  UnauthorizedClientError,
+  UnsupportedGrantTypeError,
 } from "./errors.ts";
 import { GrantInterface } from "./grants/grant.ts";
 import { ClientInterface } from "./models/client.ts";
@@ -65,29 +65,33 @@ export class AuthorizationServer<
   ): Promise<void> {
     try {
       if (request.method !== "POST") {
-        throw new InvalidRequest("method must be POST");
+        throw new InvalidRequestError("method must be POST");
       }
 
       const contentType: string | null = request.headers.get("content-type");
       if (contentType !== "application/x-www-form-urlencoded") {
-        throw new InvalidRequest(
+        throw new InvalidRequestError(
           "content-type header must be application/x-www-form-urlencoded",
         );
       }
 
-      if (!request.hasBody) throw new InvalidRequest("request body required");
+      if (!request.hasBody) {
+        throw new InvalidRequestError("request body required");
+      }
 
       const body: URLSearchParams = await request.body!;
       const grantType: string | null = body.get("grant_type");
-      if (!grantType) throw new InvalidRequest("grant_type parameter required");
+      if (!grantType) {
+        throw new InvalidRequestError("grant_type parameter required");
+      }
       if (!this.grants[grantType]) {
-        throw new UnsupportedGrantType("invalid grant_type");
+        throw new UnsupportedGrantTypeError("invalid grant_type");
       }
 
       const grant = this.grants[grantType];
       const client: Client = await grant.getAuthenticatedClient(request);
       if (!client.grants?.includes(grantType)) {
-        throw new UnauthorizedClient(
+        throw new UnauthorizedClientError(
           "client is not authorized to use this grant_type",
         );
       }
@@ -201,55 +205,57 @@ export class AuthorizationServer<
         Scope
       >;
 
-      if (!clientId) throw new InvalidRequest("client_id parameter required");
+      if (!clientId) {
+        throw new InvalidRequestError("client_id parameter required");
+      }
 
       const client: Client = await grant.getClient(clientId);
       if (!client.grants?.includes("authorization_code")) {
-        throw new UnauthorizedClient(
+        throw new UnauthorizedClientError(
           "client is not authorized to use the authorization code grant type",
         );
       }
       if (!client.redirectUris?.length) {
-        throw new UnauthorizedClient("no authorized redirect_uri");
+        throw new UnauthorizedClientError("no authorized redirect_uri");
       }
 
       if (redirectUri && !client.redirectUris.includes(redirectUri)) {
-        throw new UnauthorizedClient("redirect_uri not authorized");
+        throw new UnauthorizedClientError("redirect_uri not authorized");
       }
 
       const redirectUrl = new URL(redirectUri ?? client.redirectUris![0]);
       request.redirectUrl = redirectUrl;
       const redirectSearchParams: URLSearchParams = redirectUrl.searchParams;
 
-      if (!state) throw new InvalidRequest("state required");
+      if (!state) throw new InvalidRequestError("state required");
       redirectSearchParams.set("state", state);
 
       if (!responseType) {
-        throw new InvalidRequest("response_type required");
+        throw new InvalidRequestError("response_type required");
       }
       if (responseType !== "code") {
-        throw new InvalidRequest("response_type not supported");
+        throw new InvalidRequestError("response_type not supported");
       }
 
       let scope: Scope | null | undefined = grant.parseScope(scopeText);
       request.requestedScope = scope;
 
       if (challengeMethod && !challenge) {
-        throw new InvalidRequest(
+        throw new InvalidRequestError(
           "code_challenge required when code_challenge_method is set",
         );
       }
       if (challenge && !grant.validateChallengeMethod(challengeMethod)) {
-        throw new InvalidRequest("unsupported code_challenge_method");
+        throw new InvalidRequestError("unsupported code_challenge_method");
       }
 
       await setAuthorization(request as unknown as AuthorizeRequest);
       const { user, authorizedScope } = request;
-      if (!user) throw new AccessDenied("authentication required");
+      if (!user) throw new AccessDeniedError("authentication required");
 
       scope = await grant.acceptedScope(client, user, scope);
       if (scope && (!authorizedScope || !authorizedScope.has(scope))) {
-        throw new AccessDenied("not authorized");
+        throw new AccessDeniedError("not authorized");
       }
 
       const options: Omit<
@@ -342,7 +348,7 @@ export {
   AbstractClientService,
   AbstractRefreshTokenService,
   AbstractUserService,
-  AccessDenied,
+  AccessDeniedError,
   authorizeParameters,
   authorizeUrl,
   BEARER_TOKEN,
@@ -350,11 +356,10 @@ export {
   challengeMethods,
   DefaultScope,
   generateCodeVerifier,
-  getMessageOrOptions,
-  InvalidClient,
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  InvalidClientError,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   loginRedirectFactory,
   NQCHAR,
   NQSCHAR,
@@ -365,11 +370,11 @@ export {
   SCOPE_TOKEN,
   ServerError,
   snakeCase,
-  TemporarilyUnavailable,
-  UnauthorizedClient,
+  TemporarilyUnavailableError,
+  UnauthorizedClientError,
   UNICODECHARNOCRLF,
-  UnsupportedGrantType,
-  UnsupportedResponseType,
+  UnsupportedGrantTypeError,
+  UnsupportedResponseTypeError,
   VSCHAR,
 } from "./resource_server.ts";
 export type {
@@ -382,11 +387,10 @@ export type {
   ClientServiceInterface,
   ErrorBody,
   LoginRedirectOptions,
-  MessageOrOptions,
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2AuthorizeRequest,
-  OAuth2ErrorOptions,
+  OAuth2ErrorInit,
   OAuth2Request,
   OAuth2Response,
   RefreshToken,

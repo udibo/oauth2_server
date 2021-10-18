@@ -19,9 +19,9 @@ import {
   TestSuite,
 } from "../test_deps.ts";
 import {
-  InvalidGrant,
-  InvalidRequest,
-  InvalidScope,
+  InvalidGrantError,
+  InvalidRequestError,
+  InvalidScopeError,
   ServerError,
 } from "../errors.ts";
 import { fakeTokenRequest } from "../test_context.ts";
@@ -93,7 +93,7 @@ test(tokenTests, "request body required", async () => {
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
     () => result,
-    InvalidRequest,
+    InvalidRequestError,
     "request body required",
   );
 });
@@ -109,14 +109,14 @@ test(tokenTests, "invalid scope", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidScope,
+      InvalidScopeError,
       "invalid scope",
     );
 
     request = fakeTokenRequest("scope= ");
     await assertRejects(
       () => clientCredentialsGrant.token(request, client),
-      InvalidScope,
+      InvalidScopeError,
       "invalid scope",
     );
   } finally {
@@ -139,7 +139,7 @@ test(tokenTests, "no user for client", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidGrant,
+      InvalidGrantError,
       "no user for client",
     );
     assertStrictEquals(getUser.calls.length, 1);
@@ -162,7 +162,7 @@ test(tokenTests, "scope not accepted", async () => {
   const acceptedScope = stub(
     clientCredentialsGrant,
     "acceptedScope",
-    () => Promise.reject(new InvalidScope("invalid scope")),
+    () => Promise.reject(new InvalidScopeError("invalid scope")),
   );
   try {
     const request = fakeTokenRequest("scope=read write");
@@ -173,7 +173,7 @@ test(tokenTests, "scope not accepted", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     await assertRejects(
       () => result,
-      InvalidScope,
+      InvalidScopeError,
       "invalid scope",
     );
 

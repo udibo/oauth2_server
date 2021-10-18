@@ -8,7 +8,7 @@ import {
   ScopeConstructor,
   ScopeInterface,
 } from "../models/scope.ts";
-import { InvalidClient, InvalidScope } from "../errors.ts";
+import { InvalidClientError, InvalidScopeError } from "../errors.ts";
 import { BasicAuth, parseBasicAuth } from "../basic_auth.ts";
 
 export interface GrantServices<
@@ -96,7 +96,7 @@ export abstract class AbstractGrant<
     const { tokenService } = this.services;
     const acceptedScope = await tokenService.acceptedScope(client, user, scope);
     if (acceptedScope === false) {
-      throw new InvalidScope(scope ? "invalid scope" : "scope required");
+      throw new InvalidScopeError(scope ? "invalid scope" : "scope required");
     }
     return acceptedScope;
   }
@@ -136,7 +136,7 @@ export abstract class AbstractGrant<
     const client: Client | void = clientSecret
       ? await clientService.getAuthenticated(clientId, clientSecret)
       : await clientService.getAuthenticated(clientId);
-    if (!client) throw new InvalidClient("client authentication failed");
+    if (!client) throw new InvalidClientError("client authentication failed");
     return client;
   }
 
