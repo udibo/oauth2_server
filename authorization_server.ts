@@ -16,6 +16,7 @@ import {
   OAuth2AuthorizeRequest,
   OAuth2Request,
   OAuth2Response,
+  TokenBody,
 } from "./context.ts";
 import { Scope as DefaultScope, ScopeInterface } from "./models/scope.ts";
 import { AuthorizationCodeGrant } from "./grants/authorization_code.ts";
@@ -36,14 +37,6 @@ export interface AuthorizationServerOptions<
   Scope extends ScopeInterface,
 > extends ResourceServerOptions<Client, User, Scope> {
   grants: AuthorizationServerGrants<Client, User, Scope>;
-}
-
-export interface BearerToken {
-  "token_type": string;
-  "access_token": string;
-  "expires_in"?: number;
-  "refresh_token"?: string;
-  scope?: string;
 }
 
 export class AuthorizationServer<
@@ -107,8 +100,8 @@ export class AuthorizationServer<
   }
 
   /** Generates a bearer token from a token. */
-  bearerToken(token: Token<Client, User, Scope>): BearerToken {
-    const bearerToken: BearerToken = {
+  bearerToken(token: Token<Client, User, Scope>): TokenBody {
+    const bearerToken: TokenBody = {
       "token_type": "Bearer",
       "access_token": token.accessToken,
     };
@@ -144,7 +137,7 @@ export class AuthorizationServer<
   ): Promise<void> {
     await this.tokenResponse(request, response);
     const { token } = request;
-    const bearerToken: BearerToken = this.bearerToken(token);
+    const bearerToken: TokenBody = this.bearerToken(token);
     response.status = 200;
     response.body = bearerToken;
   }
@@ -399,6 +392,7 @@ export type {
   ScopeConstructor,
   ScopeInterface,
   Token,
+  TokenBody,
   TokenServiceInterface,
   User,
   UserServiceInterface,

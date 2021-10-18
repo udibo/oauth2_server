@@ -57,6 +57,14 @@ export interface OAuth2Response {
   redirect(url: string | URL): Promise<void>;
 }
 
+export interface TokenBody {
+  "token_type": string;
+  "access_token": string;
+  "expires_in"?: number;
+  "refresh_token"?: string;
+  scope?: string;
+}
+
 export interface ErrorBody {
   error: string;
   "error_description"?: string;

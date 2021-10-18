@@ -25,20 +25,22 @@ export {
   ClientCredentialsGrant,
   generateCodeVerifier,
   loginRedirectFactory,
+  OAuth2Error,
   RefreshTokenGrant,
   Scope,
+  ServerError,
 } from "../../authorization_server.ts";
 export type {
   AccessToken,
   AuthorizationCode,
   AuthorizeParameters,
-  BearerToken,
   ClientInterface,
   LoginRedirectOptions,
   OAuth2Request,
   OAuth2Response,
   RefreshToken,
   Token,
+  TokenBody,
 } from "../../authorization_server.ts";
 
 export {
