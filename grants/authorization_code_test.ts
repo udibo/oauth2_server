@@ -12,7 +12,6 @@ import {
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
-  assertThrows,
   resolves,
   Spy,
   spy,
@@ -453,8 +452,10 @@ test(getChallengeMethodTests, "with default challenge methods", () => {
 });
 
 test(getChallengeMethodTests, "with custom challenge methods", () => {
-  const plain: ChallengeMethod = (verifier: string) => verifier;
-  const other: ChallengeMethod = (verifier: string) => verifier.toLowerCase();
+  const plain: ChallengeMethod = (verifier: string) =>
+    Promise.resolve(verifier);
+  const other: ChallengeMethod = (verifier: string) =>
+    Promise.resolve(verifier.toLowerCase());
   const grant = new AuthorizationCodeGrant({
     services,
     challengeMethods: { ...challengeMethods, plain, other },
@@ -495,8 +496,10 @@ test(validateChallengeMethodTests, "with default challenge methods", () => {
 });
 
 test(validateChallengeMethodTests, "with custom challenge methods", () => {
-  const plain: ChallengeMethod = (verifier: string) => verifier;
-  const other: ChallengeMethod = (verifier: string) => verifier.toLowerCase();
+  const plain: ChallengeMethod = (verifier: string) =>
+    Promise.resolve(verifier);
+  const other: ChallengeMethod = (verifier: string) =>
+    Promise.resolve(verifier.toLowerCase());
   const grant = new AuthorizationCodeGrant({
     services,
     challengeMethods: { ...challengeMethods, plain, other },
@@ -517,7 +520,7 @@ interface VerifyCodeContext {
 const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
   name: "verifyCode",
   suite: authorizationCodeGrantTests,
-  beforeEach(context: VerifyCodeContext) {
+  async beforeEach(context: VerifyCodeContext) {
     context.codeVerifier = generateCodeVerifier();
     context.authorizationCode = {
       code: "123",
@@ -527,7 +530,7 @@ const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
       user,
       scope,
       challengeMethod: "S256",
-      challenge: challengeMethods["S256"](context.codeVerifier),
+      challenge: await challengeMethods["S256"](context.codeVerifier),
     };
   },
 });
@@ -535,11 +538,11 @@ const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
 test(
   verifyCodeTests,
   "returns false if code has no challenge",
-  ({ codeVerifier, authorizationCode }) => {
+  async ({ codeVerifier, authorizationCode }) => {
     delete authorizationCode.challenge;
     delete authorizationCode.challengeMethod;
     assertStrictEquals(
-      authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
+      await authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       false,
     );
   },
@@ -548,10 +551,10 @@ test(
 test(
   verifyCodeTests,
   "returns false if verifier is incorrect",
-  ({ authorizationCode }) => {
+  async ({ authorizationCode }) => {
     const codeVerifier: string = generateCodeVerifier();
     assertStrictEquals(
-      authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
+      await authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       false,
     );
   },
@@ -560,9 +563,9 @@ test(
 test(
   verifyCodeTests,
   "returns true if verifier is correct",
-  ({ codeVerifier, authorizationCode }) => {
+  async ({ codeVerifier, authorizationCode }) => {
     assertStrictEquals(
-      authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
+      await authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       true,
     );
   },
@@ -571,15 +574,15 @@ test(
 test(
   verifyCodeTests,
   "throws if challenge method is not implemented",
-  ({ codeVerifier, authorizationCode }) => {
+  async ({ codeVerifier, authorizationCode }) => {
     delete authorizationCode.challengeMethod;
-    assertThrows(
+    await assertRejects(
       () => authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       ServerError,
       "code_challenge_method not implemented",
     );
     authorizationCode.challengeMethod = "plain";
-    assertThrows(
+    await assertRejects(
       () => authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       ServerError,
       "code_challenge_method not implemented",
@@ -889,17 +892,16 @@ test(
     const get: Stub<AuthorizationCodeService> = stub(
       authorizationCodeService,
       "get",
-      (code: string) =>
-        Promise.resolve({
-          code,
-          expiresAt: new Date(Date.now() + 60000),
-          redirectUri: "https://client.example.com/cb",
-          client,
-          user,
-          scope,
-          challengeMethod: "S256",
-          challenge: challengeMethods["S256"](codeVerifiers[0]),
-        }),
+      async (code: string) => ({
+        code,
+        expiresAt: new Date(Date.now() + 60000),
+        redirectUri: "https://client.example.com/cb",
+        client,
+        user,
+        scope,
+        challengeMethod: "S256",
+        challenge: await challengeMethods["S256"](codeVerifiers[0]),
+      }),
     );
     try {
       const request = fakeTokenRequest(
@@ -1062,17 +1064,16 @@ test(
     const get = stub(
       authorizationCodeService,
       "get",
-      (code: string) =>
-        Promise.resolve({
-          code,
-          expiresAt: new Date(Date.now() + 60000),
-          redirectUri: "https://client.example.com/cb",
-          client,
-          user,
-          scope,
-          challengeMethod: "S256",
-          challenge: challengeMethods["S256"](codeVerifier),
-        }),
+      async (code: string) => ({
+        code,
+        expiresAt: new Date(Date.now() + 60000),
+        redirectUri: "https://client.example.com/cb",
+        client,
+        user,
+        scope,
+        challengeMethod: "S256",
+        challenge: await challengeMethods["S256"](codeVerifier),
+      }),
     );
     const save = spy(tokenService, "save");
     const accessTokenExpiresAt = new Date(Date.now() + 1000);
@@ -1383,7 +1384,7 @@ test(generateAuthorizationCodeTests, "with optional properties", async () => {
   );
   try {
     const verifier: string = generateCodeVerifier();
-    const challenge: string = challengeMethods.S256(verifier);
+    const challenge: string = await challengeMethods.S256(verifier);
     const expectedAuthorizationCode = {
       code: "1",
       expiresAt: expectedExpiresAt,

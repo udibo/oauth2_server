@@ -78,7 +78,7 @@ export interface AuthorizationCodeGrantInterface<
   verifyCode(
     code: AuthorizationCode<Client, User, Scope>,
     verifier: string,
-  ): void;
+  ): Promise<boolean>;
 }
 
 export interface PKCEClientCredentials extends ClientCredentials {
@@ -163,14 +163,14 @@ export class AuthorizationCodeGrant<
    * Checks if the verifier matches the authorization code.
    * https://datatracker.ietf.org/doc/html/rfc7636#section-4.6
    */
-  verifyCode(
+  async verifyCode(
     code: AuthorizationCode<Client, User, Scope>,
     verifier: string,
-  ): boolean {
+  ): Promise<boolean> {
     if (!code.challenge) return false;
     const challengeMethod = this.getChallengeMethod(code.challengeMethod);
     if (challengeMethod) {
-      const challenge: string = challengeMethod(verifier);
+      const challenge: string = await challengeMethod(verifier);
       if (challenge !== code.challenge) return false;
     } else {
       throw new ServerError("code_challenge_method not implemented");
@@ -221,7 +221,7 @@ export class AuthorizationCodeGrant<
 
     const codeVerifier: string | null = body.get("code_verifier");
     if (codeVerifier) {
-      if (!this.verifyCode(authorizationCode, codeVerifier)) {
+      if (!await this.verifyCode(authorizationCode, codeVerifier)) {
         throw new InvalidClientError("client authentication failed");
       }
     } else if (authorizationCode.challenge) {

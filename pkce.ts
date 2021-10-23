@@ -1,10 +1,10 @@
-import { createHash, encodeBase64url } from "./deps.ts";
+import { encodeBase64url } from "./deps.ts";
 
 /**
  * A challenge method used for PKCE.
  * Transforms a verifier into a challenge.
  */
-export type ChallengeMethod = (verifier: string) => string;
+export type ChallengeMethod = (verifier: string) => Promise<string>;
 
 /** The allowed PKCE code challenge methods. */
 export interface ChallengeMethods {
@@ -18,10 +18,9 @@ export interface ChallengeMethods {
  * https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#section-2.1.1
  */
 export const challengeMethods: ChallengeMethods = {
-  S256: (verifier: string) => {
-    const hash = createHash("sha256");
-    hash.update(verifier);
-    const buffer: ArrayBuffer = hash.digest();
+  S256: async (verifier: string) => {
+    const data = (new TextEncoder()).encode(verifier);
+    const buffer = await crypto.subtle.digest("SHA-256", data);
     return encodeBase64url(new Uint8Array(buffer));
   },
 };
