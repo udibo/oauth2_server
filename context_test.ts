@@ -16,7 +16,7 @@ const authorizeParametersTests = new TestSuite({
 
 test(authorizeParametersTests, "from search parameters", async () => {
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("code_challenge", challenge);
   request.url.searchParams.set("code_challenge_method", "S256");
@@ -33,7 +33,7 @@ test(authorizeParametersTests, "from search parameters", async () => {
 
 test(authorizeParametersTests, "from body", async () => {
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest({
     "response_type": "code",
     "client_id": "1",
@@ -57,7 +57,7 @@ test(authorizeParametersTests, "from body", async () => {
 
 test(authorizeParametersTests, "from search parameters and body", async () => {
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest({
     "response_type": "code",
     "redirect_uri": "https://client.example.com/cb",
@@ -86,8 +86,8 @@ test(
     const verifiers: string[] = Array(2).fill(null).map(() =>
       generateCodeVerifier()
     );
-    const challenges: string[] = Array(2).fill(null).map((_, i) =>
-      challengeMethods.S256(verifiers[i])
+    const challenges: string[] = await Promise.all(
+      Array(2).fill(null).map((_, i) => challengeMethods.S256(verifiers[i])),
     );
     const request = fakeAuthorizeRequest({
       "response_type": "code",
@@ -143,7 +143,7 @@ test(authorizeUrlTests, "without PKCE", async () => {
 
 test(authorizeUrlTests, "with PKCE", async () => {
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("code_challenge", challenge);
   request.url.searchParams.set("code_challenge_method", "S256");

@@ -947,7 +947,7 @@ async function authorizeTestErrorAuthorized(
 test(authorizeTests, "authentication required with PKCE", async (context) => {
   const request = fakeAuthorizeRequest();
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   request.url.searchParams.set("code_challenge", challenge);
   request.url.searchParams.set("code_challenge_method", "S256");
   const response = fakeResponse();
@@ -1198,7 +1198,7 @@ test(authorizeTests, "success without PKCE", async (context) => {
 test(authorizeTests, "success with PKCE", async (context) => {
   const request = fakeAuthorizeRequest();
   const verifier: string = generateCodeVerifier();
-  const challenge: string = challengeMethods.S256(verifier);
+  const challenge: string = await challengeMethods.S256(verifier);
   request.url.searchParams.set("code_challenge", challenge);
   request.url.searchParams.set("code_challenge_method", "S256");
   const response = fakeResponse();

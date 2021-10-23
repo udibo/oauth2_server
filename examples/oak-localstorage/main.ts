@@ -124,7 +124,7 @@ router
         searchParams.set("state", session.state);
         searchParams.set(
           "code_challenge",
-          challengeMethods.S256(session.codeVerifier),
+          await challengeMethods.S256(session.codeVerifier),
         );
         searchParams.set("code_challenge_method", "S256");
         searchParams.set("redirect_uri", "http://localhost:8000/cb");

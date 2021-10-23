@@ -1,16 +1,10 @@
-import { AbstractUserService, createHash, encodeBase64 } from "../deps.ts";
+import { AbstractUserService, encodeBase64 } from "../deps.ts";
 import { User } from "../models/user.ts";
 
 function generateSalt(): string {
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
   return encodeBase64(salt);
-}
-
-function hashPassword(password: string, salt: string): string {
-  const hash = createHash("sha256");
-  hash.update(`${password}:${salt}`);
-  return hash.toString();
 }
 
 interface UserInternal {
@@ -37,7 +31,7 @@ export class UserService extends AbstractUserService<User> {
     if (email) next.email = email;
     if (password) {
       next.salt = generateSalt();
-      next.hash = hashPassword(password, next.salt);
+      next.hash = await this.hashPassword(password, next.salt);
     }
 
     localStorage.setItem(`username:${username}`, id);
@@ -58,7 +52,7 @@ export class UserService extends AbstractUserService<User> {
 
     if (password) {
       next.salt = generateSalt();
-      next.hash = hashPassword(password, next.salt);
+      next.hash = await this.hashPassword(password, next.salt);
     } else if (password === null) {
       delete next.salt;
       delete next.hash;
@@ -103,7 +97,7 @@ export class UserService extends AbstractUserService<User> {
     let user: User | undefined = undefined;
     if (internal) {
       const { hash, salt } = internal;
-      if (hash && salt && hashPassword(password, salt) === hash) {
+      if (hash && salt && await this.hashPassword(password, salt) === hash) {
         user = await this.toExternal(internal);
       }
     }
