@@ -314,10 +314,11 @@ test(
     const getAuthenticatedClient = stub(
       refreshTokenGrant,
       "getAuthenticatedClient",
-      () => Promise.resolve({
-        ...client,
-        grants: ["fake"],
-      }),
+      () =>
+        Promise.resolve({
+          ...client,
+          grants: ["fake"],
+        }),
     );
     try {
       const request = fakeTokenRequest(
