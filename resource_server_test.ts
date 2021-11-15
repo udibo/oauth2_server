@@ -1,9 +1,4 @@
-import {
-  assertError,
-  assertScope,
-  assertToken,
-  Constructor,
-} from "./asserts.ts";
+import { assertScope, assertToken } from "./asserts.ts";
 import {
   client,
   RefreshTokenService,
@@ -17,11 +12,11 @@ import {
 } from "./test_context.ts";
 import {
   assertEquals,
+  assertIsError,
   assertRejects,
   assertSpyCall,
   assertSpyCalls,
   delay,
-  resolves,
   Spy,
   spy,
   Stub,
@@ -286,7 +281,7 @@ test(getTokenTests, "invalid access_token", async () => {
   const getToken = stub(
     tokenService,
     "getToken",
-    resolves(undefined),
+    () => Promise.resolve(),
   );
 
   try {
@@ -820,6 +815,7 @@ const authenticateTests = new TestSuite<AuthenticateTestContext>({
 
 async function authenticateTestError<
   Request extends OAuth2Request<Client, User, Scope>,
+  E extends Error = Error,
 >(
   { success, error, authenticateSuccess, authenticateError }:
     AuthenticateTestContext,
@@ -831,7 +827,8 @@ async function authenticateTestError<
   ) => Promise<string | null>,
   acceptedScope?: Scope,
   expectedToken?: Token<Client, User, Scope>,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -851,7 +848,7 @@ async function authenticateTestError<
   const call = assertSpyCall(authenticateError, 0, { self: server });
   assertEquals(call.args.length, 3);
   assertEquals(call.args.slice(0, 2), [request, response]);
-  assertError(call.args[2], ErrorClass, msgIncludes, msg);
+  assertIsError(call.args[2], ErrorClass, msgIncludes, msg);
   assertSpyCalls(authenticateError, 1);
   assertSpyCalls(error, 1);
 

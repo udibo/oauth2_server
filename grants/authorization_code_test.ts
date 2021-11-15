@@ -12,7 +12,6 @@ import {
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
-  resolves,
   Spy,
   spy,
   SpyCall,
@@ -166,7 +165,7 @@ test(
     const clientServiceGetAuthenticated: Stub<ClientService> = stub(
       clientService,
       "getAuthenticated",
-      resolves(undefined),
+      () => Promise.resolve(),
     );
     try {
       const request = fakeTokenRequest("client_id=1");
@@ -210,7 +209,7 @@ test(
     const clientServiceGetAuthenticated: Stub<ClientService> = stub(
       clientService,
       "getAuthenticated",
-      resolves(undefined),
+      () => Promise.resolve(),
     );
     try {
       const request = fakeTokenRequest();
@@ -253,7 +252,7 @@ test(
     const clientServiceGet = stub(
       clientService,
       "get",
-      resolves(undefined),
+      () => Promise.resolve(),
     );
     const clientServiceGetAuthenticated = spy(
       clientService,

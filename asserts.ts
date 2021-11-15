@@ -1,10 +1,8 @@
 import {
   assert,
   assertEquals,
-  AssertionError,
   assertSpyCall,
   assertStrictEquals,
-  assertThrows,
   Spy,
   SpyCall,
   Stub,
@@ -108,41 +106,4 @@ export function assertClientUserScopeCall<
   assertEquals(call.args.slice(0, 2), [client, user]);
   const actualScope: ScopeInterface | undefined = call.args[2];
   assertScope(actualScope, expectedScope);
-}
-
-// replace with assertError from std if suggestion gets implemented
-// https://github.com/denoland/deno_std/issues/1182
-export interface Constructor {
-  // deno-lint-ignore no-explicit-any
-  new (...args: any[]): any;
-}
-
-export function assertError(
-  error: unknown,
-  ErrorClass?: Constructor,
-  msgIncludes?: string,
-  msg?: string,
-): void;
-export function assertError(
-  error: unknown,
-  errorCallback: (e: Error) => unknown,
-  msg?: string,
-): void;
-export function assertError(
-  error: unknown,
-  errorClassOrCallback?: Constructor | ((e: Error) => unknown),
-  msgIncludesOrMsg?: string,
-  msg?: string,
-): void {
-  if (error instanceof Error === false) {
-    throw new AssertionError(`Expected "error" to be an Error object.`);
-  }
-  assertThrows(
-    () => {
-      throw error;
-    },
-    errorClassOrCallback as Constructor,
-    msgIncludesOrMsg,
-    msg,
-  );
 }

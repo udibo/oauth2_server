@@ -1,9 +1,9 @@
 import {
   assertEquals,
+  assertIsError,
   assertSpyCall,
   assertSpyCalls,
   delay,
-  resolves,
   Spy,
   spy,
   Stub,
@@ -16,12 +16,7 @@ import {
   fakeResponse,
   fakeTokenRequest,
 } from "./test_context.ts";
-import {
-  assertClientUserScopeCall,
-  assertError,
-  assertToken,
-  Constructor,
-} from "./asserts.ts";
+import { assertClientUserScopeCall, assertToken } from "./asserts.ts";
 import {
   AuthorizationCodeService,
   client,
@@ -169,11 +164,12 @@ const tokenTests = new TestSuite<TokenTestContext>({
   },
 });
 
-async function tokenTestError(
+async function tokenTestError<E extends Error = Error>(
   { success, error, tokenSuccess, tokenError }: TokenTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -186,7 +182,7 @@ async function tokenTestError(
   const call = assertSpyCall(tokenError, 0, { self: server });
   assertEquals(call.args.length, 3);
   assertEquals(call.args.slice(0, 2), [request, response]);
-  assertError(call.args[2], ErrorClass, msgIncludes, msg);
+  assertIsError(call.args[2], ErrorClass, msgIncludes, msg);
   assertSpyCalls(tokenError, 1);
   assertSpyCalls(error, 1);
 
@@ -318,7 +314,7 @@ test(
     const getAuthenticatedClient = stub(
       refreshTokenGrant,
       "getAuthenticatedClient",
-      resolves({
+      () => Promise.resolve({
         ...client,
         grants: ["fake"],
       }),
@@ -591,11 +587,12 @@ const authorizeTests = new TestSuite<AuthorizeTestContext>({
   },
 });
 
-async function authorizeTestError(
+async function authorizeTestError<E extends Error = Error>(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -617,7 +614,7 @@ async function authorizeTestError(
   const call = assertSpyCall(authorizeError, 0, { self: server });
   assertEquals(call.args.length, 5);
   assertEquals(call.args.slice(0, 2), [request, response]);
-  assertError(call.args[2], ErrorClass, msgIncludes, msg);
+  assertIsError(call.args[2], ErrorClass, msgIncludes, msg);
   assertEquals(call.args.slice(3), [login, consent]);
   assertSpyCalls(authorizeError, 1);
   assertSpyCalls(error, 1);
@@ -633,11 +630,12 @@ async function authorizeTestError(
   assertSpyCalls(consent, 0);
 }
 
-async function authorizeTestErrorNoRedirect(
+async function authorizeTestErrorNoRedirect<E extends Error = Error>(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -702,7 +700,7 @@ test(
     const clientServiceGet: Stub<ClientService> = stub(
       clientService,
       "get",
-      resolves(undefined),
+      () => Promise.resolve(),
     );
     try {
       const request = fakeAuthorizeRequest();
@@ -727,7 +725,7 @@ test(
     const clientServiceGet: Stub<ClientService> = stub(
       clientService,
       "get",
-      resolves({ ...client, grants: ["refresh_token"] }),
+      () => Promise.resolve({ ...client, grants: ["refresh_token"] }),
     );
     try {
       const request = fakeAuthorizeRequest();
@@ -749,7 +747,7 @@ test(authorizeTests, "no authorized redirect_uri", async (context) => {
   const clientServiceGet: Stub<ClientService> = stub(
     clientService,
     "get",
-    resolves({ ...client, redirectUris: [] }),
+    () => Promise.resolve({ ...client, redirectUris: [] }),
   );
   try {
     const request = fakeAuthorizeRequest();
@@ -779,11 +777,12 @@ test(authorizeTests, "redirect_uri not authorized", async (context) => {
   );
 });
 
-async function authorizeTestErrorRedirect(
+async function authorizeTestErrorRedirect<E extends Error = Error>(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -806,11 +805,12 @@ async function authorizeTestErrorRedirect(
   assertEquals(request.redirectUrl, expectedRedirectUrl);
 }
 
-async function authorizeTestErrorPreAuthorization(
+async function authorizeTestErrorPreAuthorization<E extends Error = Error>(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {
@@ -910,13 +910,14 @@ test(authorizeTests, "unsupported code_challenge_method", async (context) => {
   );
 });
 
-async function authorizeTestErrorAuthorized(
+async function authorizeTestErrorAuthorized<E extends Error = Error>(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
   user?: User,
   authorizedScope?: Scope,
-  ErrorClass?: Constructor,
+  // deno-lint-ignore no-explicit-any
+  ErrorClass?: new (...args: any[]) => E,
   msgIncludes?: string,
   msg?: string,
 ) {

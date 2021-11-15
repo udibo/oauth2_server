@@ -9,7 +9,7 @@ export type { BodyForm } from "https://deno.land/x/oak@v9.0.1/mod.ts";
 
 export {
   encode as encodeBase64,
-} from "https://deno.land/std@0.112.0/encoding/base64.ts";
+} from "https://deno.land/std@0.114.0/encoding/base64.ts";
 
 export {
   AbstractAccessTokenService,
