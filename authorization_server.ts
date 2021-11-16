@@ -349,6 +349,8 @@ export {
   challengeMethods,
   DefaultScope,
   generateCodeVerifier,
+  generateSalt,
+  hashPassword,
   InvalidClientError,
   InvalidGrantError,
   InvalidRequestError,

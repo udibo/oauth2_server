@@ -23,6 +23,8 @@ export {
   challengeMethods,
   ClientCredentialsGrant,
   generateCodeVerifier,
+  generateSalt,
+  hashPassword,
   loginRedirectFactory,
   OAuth2Error,
   RefreshTokenGrant,
