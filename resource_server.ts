@@ -230,7 +230,11 @@ export { AbstractClientService } from "./services/client.ts";
 export type { ClientServiceInterface } from "./services/client.ts";
 
 export type { User } from "./models/user.ts";
-export { AbstractUserService } from "./services/user.ts";
+export {
+  AbstractUserService,
+  generateSalt,
+  hashPassword,
+} from "./services/user.ts";
 export type { UserServiceInterface } from "./services/user.ts";
 
 export { SCOPE, Scope, SCOPE_TOKEN } from "./models/scope.ts";

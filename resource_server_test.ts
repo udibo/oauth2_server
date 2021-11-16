@@ -79,6 +79,8 @@ test("verify exports", () => {
     "camelCase",
     "challengeMethods",
     "generateCodeVerifier",
+    "generateSalt",
+    "hashPassword",
     "loginRedirectFactory",
     "parseBasicAuth",
     "snakeCase",
