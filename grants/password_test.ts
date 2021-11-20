@@ -95,20 +95,6 @@ test(tokenTests, "not implemented for UserService", async () => {
   }
 });
 
-test(tokenTests, "request body required", async () => {
-  const request = fakeTokenRequest();
-  const result = passwordGrant.token(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertRejects(
-    () => result,
-    InvalidRequestError,
-    "request body required",
-  );
-});
-
 test(tokenTests, "invalid scope", async () => {
   let request = fakeTokenRequest("scope=\\");
   const result = passwordGrant.token(

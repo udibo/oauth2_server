@@ -13,11 +13,14 @@ export function fakeTokenRequest(
     url: new URL("https://example.com/token"),
     headers: new Headers(),
     method: "POST",
-    hasBody: !!params,
+    get body() {
+      return Promise.resolve(params ?? new URLSearchParams());
+    },
   };
   request.headers.set("authorization", `basic ${btoa("1:")}`);
-  request.headers.set("Content-Type", "application/x-www-form-urlencoded");
-  if (params) request.body = Promise.resolve(params);
+  if (params) {
+    request.headers.set("Content-Type", "application/x-www-form-urlencoded");
+  }
   return request;
 }
 
@@ -32,14 +35,15 @@ export function fakeResourceRequest(
     url: new URL("https://example.com/resource/1"),
     headers: new Headers(),
     method: params ? "POST" : "GET",
-    hasBody: !!params,
+    get body() {
+      return Promise.resolve(params ?? new URLSearchParams());
+    },
   };
   if (bearerToken) {
     request.headers.set("authorization", `bearer ${bearerToken}`);
   }
   if (params) {
     request.headers.set("Content-Type", "application/x-www-form-urlencoded");
-    request.body = Promise.resolve(params);
   }
   return request;
 }
@@ -63,11 +67,12 @@ export function fakeAuthorizeRequest(
     url,
     headers: new Headers(),
     method: bodyParams ? "POST" : "GET",
-    hasBody: !!bodyParams,
+    get body() {
+      return Promise.resolve(bodyParams ?? new URLSearchParams());
+    },
   };
   if (bodyParams) {
     request.headers.set("Content-Type", "application/x-www-form-urlencoded");
-    request.body = Promise.resolve(bodyParams);
   }
   return request;
 }

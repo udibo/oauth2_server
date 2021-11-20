@@ -1,11 +1,11 @@
 export {
   decode as decodeBase64url,
   encode as encodeBase64url,
-} from "https://deno.land/std@0.114.0/encoding/base64url.ts";
+} from "https://deno.land/std@0.115.1/encoding/base64url.ts";
 export {
   encode as encodeHex,
-} from "https://deno.land/std@0.114.0/encoding/hex.ts";
-export { resolve } from "https://deno.land/std@0.114.0/path/mod.ts";
+} from "https://deno.land/std@0.115.1/encoding/hex.ts";
+export { resolve } from "https://deno.land/std@0.115.1/path/mod.ts";
 export {
   HttpError,
   isHttpError,

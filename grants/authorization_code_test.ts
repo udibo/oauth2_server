@@ -594,20 +594,6 @@ const tokenTests: TestSuite<void> = new TestSuite({
   suite: authorizationCodeGrantTests,
 });
 
-test(tokenTests, "request body required", async () => {
-  const request = fakeTokenRequest();
-  const result = authorizationCodeGrant.token(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertRejects(
-    () => result,
-    InvalidRequestError,
-    "request body required",
-  );
-});
-
 test(tokenTests, "code parameter required", async () => {
   let request = fakeTokenRequest("");
   const result = authorizationCodeGrant.token(

@@ -143,7 +143,7 @@ oauth2Router.post("/token", oauth2.token());
 const setAuthorization = async (
   request: OakOAuth2AuthorizeRequest<Client, User, Scope>,
 ): Promise<void> => {
-  if (request.method === "POST" && request.hasBody) {
+  if (request.method === "POST") {
     const body: URLSearchParams | undefined = await request.body;
     const authorizedScopeText = body?.get("authorized_scope") ?? undefined;
     if (authorizedScopeText) {

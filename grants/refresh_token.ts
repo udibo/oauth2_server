@@ -54,11 +54,7 @@ export class RefreshTokenGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<RefreshToken<Client, User, Scope>> {
-    if (!request.hasBody) {
-      throw new InvalidRequestError("request body required");
-    }
-
-    const body: URLSearchParams = await request.body!;
+    const body: URLSearchParams = await request.body;
     const refreshToken: string | null = body.get("refresh_token");
     if (!refreshToken) {
       throw new InvalidRequestError("refresh_token parameter required");

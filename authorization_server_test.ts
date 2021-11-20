@@ -246,18 +246,6 @@ test(
   },
 );
 
-test(tokenTests, "request body required", async (context) => {
-  const request = fakeTokenRequest();
-  const response = fakeResponse();
-  await tokenTestError(
-    context,
-    request,
-    response,
-    InvalidRequestError,
-    "request body required",
-  );
-});
-
 test(tokenTests, "grant_type parameter required", async (context) => {
   const request = fakeTokenRequest("");
   const response = fakeResponse();
