@@ -235,7 +235,7 @@ export class AuthorizationCodeGrant<
       scope,
       redirectUri: expectedRedirectUri,
     }: AuthorizationCode<Client, User, Scope> = authorizationCode;
-    if (client.id !== authorizationCodeClient.id) {
+    if (client.id.toString() !== authorizationCodeClient.id.toString()) {
       throw new InvalidClientError("code was issued to another client");
     }
 
