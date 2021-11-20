@@ -75,7 +75,7 @@ export class RefreshTokenGrant<
     }
 
     const { client: tokenClient, user, scope, code } = currentToken;
-    if (client.id !== tokenClient.id) {
+    if (client.id.toString() !== tokenClient.id.toString()) {
       throw new InvalidClientError(
         "refresh_token was issued to another client",
       );

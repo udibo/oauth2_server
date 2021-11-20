@@ -1,6 +1,6 @@
 export interface ClientInterface {
   /** A unique identifier. */
-  id: string;
+  id: string | number | BigInt;
   /** Grant types allowed for the client. */
   grants?: string[] | null;
   /** Redirect URIs allowed for the client. Required for the `authorization_code` grant type. */
@@ -11,5 +11,6 @@ export interface ClientInterface {
   refreshTokenLifetime?: number | null;
 }
 
-// deno-lint-ignore no-empty-interface
-export interface Client extends ClientInterface {}
+export interface Client extends ClientInterface {
+  id: string;
+}
