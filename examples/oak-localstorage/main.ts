@@ -91,7 +91,7 @@ router
         cookies,
         new Error(`${sessionId ? "invalid" : "no"} session`),
       );
-    } else if (request.hasBody) {
+    } else {
       try {
         const body: BodyForm = request.body({ type: "form" });
         const form: URLSearchParams = await body.value;
@@ -132,8 +132,6 @@ router
       } catch (error) {
         showLogin(response, cookies, error);
       }
-    } else {
-      showLogin(response, cookies, new Error("no request body"));
     }
   })
   .get("/cb", async ({ request, response, cookies }) => {

@@ -16,7 +16,6 @@ export class OakOAuth2Request<
   Scope extends ScopeInterface,
 > implements OAuth2Request<Client, User, Scope> {
   private context: Context;
-  private _bodyCached: boolean;
   private _body?: Promise<URLSearchParams>;
   authorizedScope?: Scope;
   authorizationCode?: AuthorizationCode<Client, User, Scope>;
@@ -26,7 +25,6 @@ export class OakOAuth2Request<
 
   constructor(context: Context) {
     this.context = context;
-    this._bodyCached = false;
   }
 
   get url(): URL {
@@ -41,21 +39,14 @@ export class OakOAuth2Request<
     return this.context.request.method;
   }
 
-  get hasBody(): boolean {
-    return this.context.request.hasBody;
-  }
-
-  get body(): Promise<URLSearchParams> | undefined {
-    if (!this._bodyCached) {
+  get body(): Promise<URLSearchParams> {
+    if (!this._body) {
       try {
         const body: BodyForm = this.context.request.body({ type: "form" });
-        this._body = body.type === "form"
-          ? body.value.catch(() => new URLSearchParams())
-          : undefined;
+        this._body = body.value;
       } catch {
-        this._body = undefined;
+        this._body = Promise.resolve(new URLSearchParams());
       }
-      this._bodyCached = true;
     }
     return this._body;
   }

@@ -68,11 +68,7 @@ export class AuthorizationServer<
         );
       }
 
-      if (!request.hasBody) {
-        throw new InvalidRequestError("request body required");
-      }
-
-      const body: URLSearchParams = await request.body!;
+      const body: URLSearchParams = await request.body;
       const grantType: string | null = body.get("grant_type");
       if (!grantType) {
         throw new InvalidRequestError("grant_type parameter required");

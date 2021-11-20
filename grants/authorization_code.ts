@@ -113,13 +113,11 @@ export class AuthorizationCodeGrant<
   ): Promise<PKCEClientCredentials> {
     const clientCredentials: PKCEClientCredentials = await super
       .getClientCredentials(request);
-    if (request.hasBody) {
-      const body: URLSearchParams = await request.body!;
-      const codeVerifier: string | null = body.get("code_verifier");
-      if (codeVerifier) {
-        clientCredentials.codeVerifier = codeVerifier;
-        delete clientCredentials.clientSecret;
-      }
+    const body: URLSearchParams = await request.body;
+    const codeVerifier: string | null = body.get("code_verifier");
+    if (codeVerifier) {
+      clientCredentials.codeVerifier = codeVerifier;
+      delete clientCredentials.clientSecret;
     }
     return clientCredentials;
   }
@@ -197,10 +195,6 @@ export class AuthorizationCodeGrant<
     request: OAuth2Request<Client, User, Scope>,
     client: Client,
   ): Promise<Token<Client, User, Scope>> {
-    if (!request.hasBody) {
-      throw new InvalidRequestError("request body required");
-    }
-
     const body: URLSearchParams = await request.body!;
     const code: string | null = body.get("code");
     if (!code) {

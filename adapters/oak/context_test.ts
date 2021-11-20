@@ -1,5 +1,6 @@
 import {
   assertEquals,
+  assertRejects,
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
@@ -13,32 +14,12 @@ import { OakOAuth2Request, OakOAuth2Response } from "./context.ts";
 
 const requestTests = new TestSuite({ name: "OakOAuth2Request" });
 
-test(requestTests, "get", () => {
+test(requestTests, "get", async () => {
+  const expectedBody = new URLSearchParams();
   const original: Request = {
     url: new URL("https://example.com/resource/1"),
     method: "GET",
     headers: new Headers({ authorization: "bearer 123" }),
-    hasBody: false,
-  } as Request;
-  const wrapped = new OakOAuth2Request(
-    { request: original } as Context,
-  );
-  assertStrictEquals(wrapped.url, original.url);
-  assertStrictEquals(wrapped.method, original.method);
-  assertStrictEquals(wrapped.headers, original.headers);
-  assertStrictEquals(wrapped.hasBody, original.hasBody);
-  assertStrictEquals(wrapped.body, undefined);
-});
-
-test(requestTests, "post", async () => {
-  const expectedBody: URLSearchParams = new URLSearchParams({
-    grant_type: "client_credentials",
-  });
-  const original: Request = {
-    url: new URL("https://example.com/token"),
-    method: "POST",
-    headers: new Headers({ authorization: `basic ${btoa("1:")}` }),
-    hasBody: true,
     body: (): BodyForm => ({
       type: "form",
       value: Promise.resolve(expectedBody),
@@ -50,17 +31,38 @@ test(requestTests, "post", async () => {
   assertStrictEquals(wrapped.url, original.url);
   assertStrictEquals(wrapped.method, original.method);
   assertStrictEquals(wrapped.headers, original.headers);
-  assertStrictEquals(wrapped.hasBody, original.hasBody);
   assertStrictEquals(Promise.resolve(wrapped.body), wrapped.body);
   assertStrictEquals(await wrapped.body, expectedBody);
 });
 
-test(requestTests, "post with sync body error", () => {
+test(requestTests, "post", async () => {
+  const expectedBody: URLSearchParams = new URLSearchParams({
+    grant_type: "client_credentials",
+  });
   const original: Request = {
     url: new URL("https://example.com/token"),
     method: "POST",
     headers: new Headers({ authorization: `basic ${btoa("1:")}` }),
-    hasBody: true,
+    body: (): BodyForm => ({
+      type: "form",
+      value: Promise.resolve(expectedBody),
+    }),
+  } as Request;
+  const wrapped = new OakOAuth2Request(
+    { request: original } as Context,
+  );
+  assertStrictEquals(wrapped.url, original.url);
+  assertStrictEquals(wrapped.method, original.method);
+  assertStrictEquals(wrapped.headers, original.headers);
+  assertStrictEquals(Promise.resolve(wrapped.body), wrapped.body);
+  assertStrictEquals(await wrapped.body, expectedBody);
+});
+
+test(requestTests, "post with sync body error", async () => {
+  const original: Request = {
+    url: new URL("https://example.com/token"),
+    method: "POST",
+    headers: new Headers({ authorization: `basic ${btoa("1:")}` }),
     body: (): BodyForm => {
       throw new Error("failed");
     },
@@ -71,8 +73,8 @@ test(requestTests, "post with sync body error", () => {
   assertStrictEquals(wrapped.url, original.url);
   assertStrictEquals(wrapped.method, original.method);
   assertStrictEquals(wrapped.headers, original.headers);
-  assertStrictEquals(wrapped.hasBody, original.hasBody);
-  assertStrictEquals(wrapped.body, undefined);
+  assertStrictEquals(Promise.resolve(wrapped.body), wrapped.body);
+  assertEquals(await wrapped.body, new URLSearchParams());
 });
 
 test(requestTests, "post with async body error", async () => {
@@ -80,7 +82,6 @@ test(requestTests, "post with async body error", async () => {
     url: new URL("https://example.com/token"),
     method: "POST",
     headers: new Headers({ authorization: `basic ${btoa("1:")}` }),
-    hasBody: true,
     body: (): BodyForm => ({
       type: "form",
       value: Promise.reject(new Error("failed")),
@@ -92,9 +93,8 @@ test(requestTests, "post with async body error", async () => {
   assertStrictEquals(wrapped.url, original.url);
   assertStrictEquals(wrapped.method, original.method);
   assertStrictEquals(wrapped.headers, original.headers);
-  assertStrictEquals(wrapped.hasBody, original.hasBody);
   assertStrictEquals(Promise.resolve(wrapped.body), wrapped.body);
-  assertEquals(await wrapped.body, new URLSearchParams());
+  await assertRejects(() => wrapped.body, Error, "failed");
 });
 
 const responseTests = new TestSuite({ name: "OakOAuth2Response" });

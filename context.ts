@@ -11,8 +11,7 @@ export interface OAuth2Request<
   url: URL;
   headers: Headers;
   method: string;
-  hasBody: boolean;
-  body?: Promise<URLSearchParams>;
+  body: Promise<URLSearchParams>;
   token?: Token<Client, User, Scope> | null;
   accessToken?: string | null;
   authorizationCode?: AuthorizationCode<Client, User, Scope> | null;
@@ -100,7 +99,7 @@ export async function authorizeParameters<
   if (request.method === "POST") {
     const contentType: string | null = request.headers.get("content-type");
     if (
-      contentType === "application/x-www-form-urlencoded" && request.hasBody
+      contentType === "application/x-www-form-urlencoded"
     ) {
       const body: URLSearchParams = await request.body!;
       responseType = body.get("response_type");

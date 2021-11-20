@@ -91,20 +91,6 @@ const refreshTokenGrant = new RefreshTokenGrant({
   },
 });
 
-test(tokenTests, "request body required", async () => {
-  const request = fakeTokenRequest();
-  const result = refreshTokenGrant.token(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertRejects(
-    () => result,
-    InvalidRequestError,
-    "request body required",
-  );
-});
-
 test(tokenTests, "refresh_token parameter required", async () => {
   let request = fakeTokenRequest("");
   const result = refreshTokenGrant.token(

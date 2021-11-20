@@ -20,7 +20,6 @@ import {
 } from "../test_deps.ts";
 import {
   InvalidGrantError,
-  InvalidRequestError,
   InvalidScopeError,
   ServerError,
 } from "../errors.ts";
@@ -82,20 +81,6 @@ test(tokenTests, "not implemented for UserService", async () => {
   } finally {
     getUser.restore();
   }
-});
-
-test(tokenTests, "request body required", async () => {
-  const request = fakeTokenRequest();
-  const result = clientCredentialsGrant.token(
-    request,
-    client,
-  );
-  assertStrictEquals(Promise.resolve(result), result);
-  await assertRejects(
-    () => result,
-    InvalidRequestError,
-    "request body required",
-  );
 });
 
 test(tokenTests, "invalid scope", async () => {

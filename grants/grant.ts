@@ -113,8 +113,8 @@ export abstract class AbstractGrant<
       clientId = authorization.name;
       clientSecret = authorization.pass;
     } catch (error) {
-      if (!request.headers.has("authorization") && request.hasBody) {
-        const body: URLSearchParams = await request.body!;
+      if (!request.headers.has("authorization")) {
+        const body: URLSearchParams = await request.body;
         clientId = body.get("client_id");
         clientSecret = body.get("client_secret");
       }
