@@ -1,7 +1,7 @@
 # OAuth2 Server
 
-[![version](https://img.shields.io/badge/release-0.10.0-success)](https://deno.land/x/oauth2_server@0.10.0)
-[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@0.10.0/authorization_server.ts)
+[![version](https://img.shields.io/badge/release-0.11.0-success)](https://deno.land/x/oauth2_server@0.11.0)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/oauth2_server@0.11.0/authorization_server.ts)
 [![CI](https://github.com/udibo/oauth2_server/workflows/CI/badge.svg)](https://github.com/udibo/oauth2_server/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/udibo/oauth2_server/branch/main/graph/badge.svg?token=8Q7TSUFWUY)](https://codecov.io/gh/udibo/oauth2_server)
 [![license](https://img.shields.io/github/license/udibo/oauth2_server)](https://github.com/udibo/oauth2_server/blob/master/LICENSE)
@@ -44,9 +44,9 @@ also acting as an authorization server.
 
 ```ts
 // Import from Deno's third party module registry
-import { ResourceServer } from "https://deno.land/x/oauth2_server@0.10.0/resource_server.ts";
+import { ResourceServer } from "https://deno.land/x/oauth2_server@0.11.0/resource_server.ts";
 // Import from GitHub
-import { ResourceServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.10.0/resource_server.ts";
+import { ResourceServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.11.0/resource_server.ts";
 ```
 
 The AuthorizationServer is an extension of the ResourceServer, adding methods
@@ -54,9 +54,9 @@ used by the authorize and token endpoints.
 
 ```ts
 // Import from Deno's third party module registry
-import { AuthorizationServer } from "https://deno.land/x/oauth2_server@0.10.0/authorization_server.ts";
+import { AuthorizationServer } from "https://deno.land/x/oauth2_server@0.11.0/authorization_server.ts";
 // Import from GitHub
-import { AuthorizationServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.10.0/authorization_server.ts";
+import { AuthorizationServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.11.0/authorization_server.ts";
 ```
 
 ## Usage
@@ -66,7 +66,7 @@ An example of how to use this module can be found
 but it should give you an idea of how to use this module.
 
 See
-[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.10.0/authorization_server.ts)
+[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.11.0/authorization_server.ts)
 for more information.
 
 ### Grants
