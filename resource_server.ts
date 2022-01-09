@@ -3,7 +3,6 @@ import {
   OAuth2AuthenticatedRequest,
   OAuth2Request,
   OAuth2Response,
-  TokenBody,
 } from "./context.ts";
 import {
   AccessDeniedError,
