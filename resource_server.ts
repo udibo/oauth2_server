@@ -285,4 +285,4 @@ export {
   UnsupportedGrantTypeError,
   UnsupportedResponseTypeError,
 } from "./errors.ts";
-export type { OAuth2ErrorInit } from "./errors.ts";
+export type { OAuth2ErrorOptions } from "./errors.ts";

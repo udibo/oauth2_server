@@ -381,7 +381,7 @@ export type {
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2AuthorizeRequest,
-  OAuth2ErrorInit,
+  OAuth2ErrorOptions,
   OAuth2Request,
   OAuth2Response,
   RefreshToken,

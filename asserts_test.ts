@@ -3,18 +3,16 @@ import {
   assertScope,
   assertToken,
 } from "./asserts.ts";
-import { AssertionError, assertThrows, test, TestSuite } from "./test_deps.ts";
+import { AssertionError, assertThrows, describe, it } from "./test_deps.ts";
 import { Client } from "./models/client.ts";
 import { Scope } from "./models/scope.ts";
 import { Token } from "./models/token.ts";
 import { AuthorizationCode } from "./models/authorization_code.ts";
 import { User } from "./models/user.ts";
 
-const assertsTests: TestSuite<void> = new TestSuite({
-  name: "asserts",
-});
+const assertsTests = describe("asserts");
 
-test(assertsTests, "assertScope", () => {
+it(assertsTests, "assertScope", () => {
   assertScope(undefined, undefined);
   assertScope(new Scope(), new Scope());
   assertScope(new Scope("read"), new Scope("read"));
@@ -56,7 +54,7 @@ test(assertsTests, "assertScope", () => {
 const client: Client = { id: "1", grants: [] };
 const user: User = { username: "kyle" };
 
-test(assertsTests, "assertToken", () => {
+it(assertsTests, "assertToken", () => {
   const expectedToken: Token<Client, User, Scope> = {
     accessToken: "x",
     client: { id: "1", grants: [] },
@@ -169,7 +167,7 @@ test(assertsTests, "assertToken", () => {
   );
 });
 
-test(assertsTests, "assertAuthorizationCode", () => {
+it(assertsTests, "assertAuthorizationCode", () => {
   const expiresAt = new Date(Date.now() + 60000);
   const expectedAuthorizationCode: AuthorizationCode<Client, User, Scope> = {
     code: "x",

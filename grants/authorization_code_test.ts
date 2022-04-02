@@ -12,13 +12,12 @@ import {
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   Spy,
   spy,
-  SpyCall,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "../test_deps.ts";
 import {
   InvalidClientError,
@@ -46,7 +45,7 @@ import {
 } from "../services/test_services.ts";
 import { User } from "../models/user.ts";
 
-const authorizationCodeGrantTests: TestSuite<void> = new TestSuite({
+const authorizationCodeGrantTests = describe({
   name: "AuthorizationCodeGrant",
 });
 
@@ -70,12 +69,12 @@ const services: AuthorizationCodeGrantServices<Client, User, Scope> = {
 };
 const authorizationCodeGrant = new AuthorizationCodeGrant({ services });
 
-const getClientCredentialsTests: TestSuite<void> = new TestSuite({
+const getClientCredentialsTests = describe({
   name: "getClientCredentials",
   suite: authorizationCodeGrantTests,
 });
 
-test(
+it(
   getClientCredentialsTests,
   "from request body without secret",
   async () => {
@@ -88,7 +87,7 @@ test(
   },
 );
 
-test(getClientCredentialsTests, "from request body with secret", async () => {
+it(getClientCredentialsTests, "from request body with secret", async () => {
   const request = fakeTokenRequest(
     "client_id=1&client_secret=2",
   );
@@ -99,7 +98,7 @@ test(getClientCredentialsTests, "from request body with secret", async () => {
   assertEquals(await result, { clientId: "1", clientSecret: "2" });
 });
 
-test(
+it(
   getClientCredentialsTests,
   "from request body with code verifier",
   async () => {
@@ -114,12 +113,12 @@ test(
   },
 );
 
-const getAuthenticatedClientTests: TestSuite<void> = new TestSuite({
+const getAuthenticatedClientTests = describe({
   name: "getAuthenticatedClient",
   suite: authorizationCodeGrantTests,
 });
 
-test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
+it(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   const getClientCredentials = spy(
     authorizationCodeGrant,
     "getClientCredentials",
@@ -153,7 +152,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   }
 });
 
-test(
+it(
   getAuthenticatedClientTests,
   "client authentication failed without secret",
   async () => {
@@ -197,7 +196,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "client authentication failed with secret",
   async () => {
@@ -241,7 +240,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "client authentication failed with PKCE",
   async () => {
@@ -291,7 +290,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "returns client authenticated without secret",
   async () => {
@@ -320,10 +319,11 @@ test(
 
       assertSpyCalls(clientServiceGet, 0);
 
-      const call: SpyCall = assertSpyCall(clientServiceGetAuthenticated, 0, {
+      assertSpyCall(clientServiceGetAuthenticated, 0, {
         self: clientService,
         args: ["1"],
       });
+      const call = clientServiceGetAuthenticated.calls[0];
       assertSpyCalls(clientServiceGetAuthenticated, 1);
 
       assertEquals(client, await call.returned);
@@ -335,7 +335,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "returns client authenticated with secret",
   async () => {
@@ -364,10 +364,11 @@ test(
 
       assertSpyCalls(clientServiceGet, 0);
 
-      const call: SpyCall = assertSpyCall(clientServiceGetAuthenticated, 0, {
+      assertSpyCall(clientServiceGetAuthenticated, 0, {
         self: clientService,
         args: ["1", "2"],
       });
+      const call = clientServiceGetAuthenticated.calls[0];
       assertSpyCalls(clientServiceGetAuthenticated, 1);
 
       assertEquals(client, await call.returned);
@@ -379,7 +380,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "returns client authenticated with PKCE",
   async () => {
@@ -408,10 +409,11 @@ test(
       });
       assertSpyCalls(getClientCredentials, 1);
 
-      const call = assertSpyCall(clientServiceGet, 0, {
+      assertSpyCall(clientServiceGet, 0, {
         self: clientService,
         args: ["1"],
       });
+      const call = clientServiceGet.calls[0];
       assertSpyCalls(clientServiceGet, 1);
 
       assertSpyCalls(clientServiceGetAuthenticated, 0);
@@ -425,12 +427,12 @@ test(
   },
 );
 
-const getChallengeMethodTests: TestSuite<void> = new TestSuite({
+const getChallengeMethodTests = describe({
   name: "getChallengeMethod",
   suite: authorizationCodeGrantTests,
 });
 
-test(getChallengeMethodTests, "with default challenge methods", () => {
+it(getChallengeMethodTests, "with default challenge methods", () => {
   assertStrictEquals(authorizationCodeGrant.getChallengeMethod(), undefined);
   assertStrictEquals(
     authorizationCodeGrant.getChallengeMethod("plain"),
@@ -450,7 +452,7 @@ test(getChallengeMethodTests, "with default challenge methods", () => {
   );
 });
 
-test(getChallengeMethodTests, "with custom challenge methods", () => {
+it(getChallengeMethodTests, "with custom challenge methods", () => {
   const plain: ChallengeMethod = (verifier: string) =>
     Promise.resolve(verifier);
   const other: ChallengeMethod = (verifier: string) =>
@@ -469,12 +471,12 @@ test(getChallengeMethodTests, "with custom challenge methods", () => {
   );
 });
 
-const validateChallengeMethodTests: TestSuite<void> = new TestSuite({
+const validateChallengeMethodTests = describe({
   name: "validateChallengeMethod",
   suite: authorizationCodeGrantTests,
 });
 
-test(validateChallengeMethodTests, "with default challenge methods", () => {
+it(validateChallengeMethodTests, "with default challenge methods", () => {
   assertStrictEquals(authorizationCodeGrant.validateChallengeMethod(), false);
   assertStrictEquals(
     authorizationCodeGrant.validateChallengeMethod("plain"),
@@ -494,7 +496,7 @@ test(validateChallengeMethodTests, "with default challenge methods", () => {
   );
 });
 
-test(validateChallengeMethodTests, "with custom challenge methods", () => {
+it(validateChallengeMethodTests, "with custom challenge methods", () => {
   const plain: ChallengeMethod = (verifier: string) =>
     Promise.resolve(verifier);
   const other: ChallengeMethod = (verifier: string) =>
@@ -516,12 +518,12 @@ interface VerifyCodeContext {
   authorizationCode: AuthorizationCode<Client, User, Scope>;
 }
 
-const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
+const verifyCodeTests = describe<VerifyCodeContext>({
   name: "verifyCode",
   suite: authorizationCodeGrantTests,
-  async beforeEach(context: VerifyCodeContext) {
-    context.codeVerifier = generateCodeVerifier();
-    context.authorizationCode = {
+  async beforeEach() {
+    this.codeVerifier = generateCodeVerifier();
+    this.authorizationCode = {
       code: "123",
       expiresAt: new Date(Date.now() + 60000),
       redirectUri: "https://client.example.com/cb",
@@ -529,15 +531,16 @@ const verifyCodeTests: TestSuite<VerifyCodeContext> = new TestSuite({
       user,
       scope,
       challengeMethod: "S256",
-      challenge: await challengeMethods["S256"](context.codeVerifier),
+      challenge: await challengeMethods["S256"](this.codeVerifier),
     };
   },
 });
 
-test(
+it(
   verifyCodeTests,
   "returns false if code has no challenge",
-  async ({ codeVerifier, authorizationCode }) => {
+  async function () {
+    const { codeVerifier, authorizationCode } = this;
     delete authorizationCode.challenge;
     delete authorizationCode.challengeMethod;
     assertStrictEquals(
@@ -547,22 +550,26 @@ test(
   },
 );
 
-test(
+it(
   verifyCodeTests,
   "returns false if verifier is incorrect",
-  async ({ authorizationCode }) => {
+  async function () {
     const codeVerifier: string = generateCodeVerifier();
     assertStrictEquals(
-      await authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
+      await authorizationCodeGrant.verifyCode(
+        this.authorizationCode,
+        codeVerifier,
+      ),
       false,
     );
   },
 );
 
-test(
+it(
   verifyCodeTests,
   "returns true if verifier is correct",
-  async ({ codeVerifier, authorizationCode }) => {
+  async function () {
+    const { codeVerifier, authorizationCode } = this;
     assertStrictEquals(
       await authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
       true,
@@ -570,10 +577,11 @@ test(
   },
 );
 
-test(
+it(
   verifyCodeTests,
   "throws if challenge method is not implemented",
-  async ({ codeVerifier, authorizationCode }) => {
+  async function () {
+    const { codeVerifier, authorizationCode } = this;
     delete authorizationCode.challengeMethod;
     await assertRejects(
       () => authorizationCodeGrant.verifyCode(authorizationCode, codeVerifier),
@@ -589,12 +597,12 @@ test(
   },
 );
 
-const tokenTests: TestSuite<void> = new TestSuite({
+const tokenTests = describe({
   name: "token",
   suite: authorizationCodeGrantTests,
 });
 
-test(tokenTests, "code parameter required", async () => {
+it(tokenTests, "code parameter required", async () => {
   let request = fakeTokenRequest("");
   const result = authorizationCodeGrant.token(
     request,
@@ -615,7 +623,7 @@ test(tokenTests, "code parameter required", async () => {
   );
 });
 
-test(tokenTests, "code already used", async () => {
+it(tokenTests, "code already used", async () => {
   const revokeCode: Stub<RefreshTokenService> = stub(
     tokenService,
     "revokeCode",
@@ -644,7 +652,7 @@ test(tokenTests, "code already used", async () => {
   }
 });
 
-test(tokenTests, "invalid code", async () => {
+it(tokenTests, "invalid code", async () => {
   const get: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
     "get",
@@ -673,7 +681,7 @@ test(tokenTests, "invalid code", async () => {
   }
 });
 
-test(tokenTests, "expired code", async () => {
+it(tokenTests, "expired code", async () => {
   const originalGet = authorizationCodeService.get;
   const get: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
@@ -706,7 +714,7 @@ test(tokenTests, "expired code", async () => {
   }
 });
 
-test(tokenTests, "code was issued to another client", async () => {
+it(tokenTests, "code was issued to another client", async () => {
   const originalGet = authorizationCodeService.get;
   const get: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
@@ -739,7 +747,7 @@ test(tokenTests, "code was issued to another client", async () => {
   }
 });
 
-test(tokenTests, "redirect_uri parameter required", async () => {
+it(tokenTests, "redirect_uri parameter required", async () => {
   const get: Spy<AuthorizationCodeService> = spy(
     authorizationCodeService,
     "get",
@@ -780,7 +788,7 @@ test(tokenTests, "redirect_uri parameter required", async () => {
   }
 });
 
-test(tokenTests, "incorrect redirect_uri", async () => {
+it(tokenTests, "incorrect redirect_uri", async () => {
   const get: Spy<AuthorizationCodeService> = spy(
     authorizationCodeService,
     "get",
@@ -829,7 +837,7 @@ test(tokenTests, "incorrect redirect_uri", async () => {
   }
 });
 
-test(tokenTests, "did not expect redirect_uri parameter", async () => {
+it(tokenTests, "did not expect redirect_uri parameter", async () => {
   const originalGet = authorizationCodeService.get;
   const get: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
@@ -866,7 +874,7 @@ test(tokenTests, "did not expect redirect_uri parameter", async () => {
   }
 });
 
-test(
+it(
   tokenTests,
   "client authentication failed with PKCE because of incorrect code_verifier",
   async () => {
@@ -916,7 +924,7 @@ test(
   },
 );
 
-test(
+it(
   tokenTests,
   "client authentication failed with PKCE because of missing code_verifier",
   async () => {
@@ -964,7 +972,7 @@ test(
   },
 );
 
-test(tokenTests, "returns token", async () => {
+it(tokenTests, "returns token", async () => {
   const get = spy(
     authorizationCodeService,
     "get",
@@ -999,13 +1007,14 @@ test(tokenTests, "returns token", async () => {
     assertStrictEquals(Promise.resolve(result), result);
     const token = await result;
 
-    const call: SpyCall = assertSpyCall(get, 0, {
+    assertSpyCall(get, 0, {
       self: authorizationCodeService,
       args: ["1"],
     });
+    const call = get.calls[0];
     assertSpyCalls(get, 1);
-    const { user, scope }: AuthorizationCode<Client, User, Scope> = await call
-      .returned;
+    const { user, scope } = await call
+      .returned as AuthorizationCode<Client, User, Scope>;
 
     assertClientUserScopeCall(
       generateToken,
@@ -1041,7 +1050,7 @@ test(tokenTests, "returns token", async () => {
   }
 });
 
-test(
+it(
   tokenTests,
   "returns token using client authenticated with PKCE",
   async () => {
@@ -1090,13 +1099,14 @@ test(
       assertStrictEquals(Promise.resolve(result), result);
       const token = await result;
 
-      const call: SpyCall = assertSpyCall(get, 0, {
+      assertSpyCall(get, 0, {
         self: authorizationCodeService,
         args: ["1"],
       });
+      const call = get.calls[0];
       assertSpyCalls(get, 1);
-      const { user, scope }: AuthorizationCode<Client, User, Scope> = await call
-        .returned;
+      const { user, scope } = await call
+        .returned as AuthorizationCode<Client, User, Scope>;
 
       assertClientUserScopeCall(
         generateToken,
@@ -1133,12 +1143,12 @@ test(
   },
 );
 
-const generateAuthorizationCodeTests: TestSuite<void> = new TestSuite({
+const generateAuthorizationCodeTests = describe({
   name: "generateAuthorizationCode",
   suite: authorizationCodeGrantTests,
 });
 
-test(generateAuthorizationCodeTests, "generateCode error", async () => {
+it(generateAuthorizationCodeTests, "generateCode error", async () => {
   const generateCode: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
     "generateCode",
@@ -1179,7 +1189,7 @@ test(generateAuthorizationCodeTests, "generateCode error", async () => {
   }
 });
 
-test(generateAuthorizationCodeTests, "expiresAt error", async () => {
+it(generateAuthorizationCodeTests, "expiresAt error", async () => {
   const generateCode: Spy<AuthorizationCodeService> = spy(
     authorizationCodeService,
     "generateCode",
@@ -1227,7 +1237,7 @@ test(generateAuthorizationCodeTests, "expiresAt error", async () => {
   }
 });
 
-test(generateAuthorizationCodeTests, "save error", async () => {
+it(generateAuthorizationCodeTests, "save error", async () => {
   const generateCode: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
     "generateCode",
@@ -1270,9 +1280,10 @@ test(generateAuthorizationCodeTests, "save error", async () => {
       user,
     );
     assertSpyCalls(expiresAt, 1);
-    const call: SpyCall = assertSpyCall(save, 0, {
+    assertSpyCall(save, 0, {
       self: authorizationCodeService,
     });
+    const call = save.calls[0];
     assertEquals(call.args.length, 1);
     assertAuthorizationCode(call.args[0], {
       code: "1",
@@ -1288,7 +1299,7 @@ test(generateAuthorizationCodeTests, "save error", async () => {
   }
 });
 
-test(
+it(
   generateAuthorizationCodeTests,
   "without optional properties",
   async () => {
@@ -1337,9 +1348,10 @@ test(
         user,
       );
       assertSpyCalls(expiresAt, 1);
-      const call: SpyCall = assertSpyCall(save, 0, {
+      assertSpyCall(save, 0, {
         self: authorizationCodeService,
       });
+      const call = save.calls[0];
       assertEquals(call.args.length, 1);
       assertAuthorizationCode(call.args[0], expectedAuthorizationCode);
       assertSpyCalls(save, 1);
@@ -1351,7 +1363,7 @@ test(
   },
 );
 
-test(generateAuthorizationCodeTests, "with optional properties", async () => {
+it(generateAuthorizationCodeTests, "with optional properties", async () => {
   const generateCode: Stub<AuthorizationCodeService> = stub(
     authorizationCodeService,
     "generateCode",
@@ -1409,9 +1421,10 @@ test(generateAuthorizationCodeTests, "with optional properties", async () => {
       scope,
     );
     assertSpyCalls(expiresAt, 1);
-    const call: SpyCall = assertSpyCall(save, 0, {
+    assertSpyCall(save, 0, {
       self: authorizationCodeService,
     });
+    const call = save.calls[0];
     assertEquals(call.args.length, 1);
     assertAuthorizationCode(call.args[0], expectedAuthorizationCode);
     assertSpyCalls(save, 1);

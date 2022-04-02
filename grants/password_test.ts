@@ -7,13 +7,12 @@ import {
   assertRejects,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   Spy,
   spy,
-  SpyCall,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "../test_deps.ts";
 import {
   InvalidGrantError,
@@ -31,11 +30,11 @@ import {
 } from "../services/test_services.ts";
 import { User } from "../models/user.ts";
 
-const passwordGrantTests: TestSuite<void> = new TestSuite({
+const passwordGrantTests = describe({
   name: "PasswordGrant",
 });
 
-const tokenTests: TestSuite<void> = new TestSuite({
+const tokenTests = describe({
   name: "token",
   suite: passwordGrantTests,
 });
@@ -56,7 +55,7 @@ const services: PasswordGrantServices<Client, User, Scope> = {
 };
 const passwordGrant = new PasswordGrant({ services });
 
-test(tokenTests, "not implemented for UserService", async () => {
+it(tokenTests, "not implemented for UserService", async () => {
   const getAuthenticated: Spy<UserService> = spy(
     userService,
     "getAuthenticated",
@@ -76,7 +75,7 @@ test(tokenTests, "not implemented for UserService", async () => {
       "userService.getAuthenticated not implemented",
     );
     assertStrictEquals(getAuthenticated.calls.length, 1);
-    let call: SpyCall = getAuthenticated.calls[0];
+    let call = getAuthenticated.calls[0];
     assertStrictEquals(call.self, userService);
     assertEquals(call.args, ["kyle", "hunter2"]);
 
@@ -95,7 +94,7 @@ test(tokenTests, "not implemented for UserService", async () => {
   }
 });
 
-test(tokenTests, "invalid scope", async () => {
+it(tokenTests, "invalid scope", async () => {
   let request = fakeTokenRequest("scope=\\");
   const result = passwordGrant.token(
     request,
@@ -116,7 +115,7 @@ test(tokenTests, "invalid scope", async () => {
   );
 });
 
-test(tokenTests, "username parameter required", async () => {
+it(tokenTests, "username parameter required", async () => {
   let request = fakeTokenRequest("");
   const result = passwordGrant.token(
     request,
@@ -137,7 +136,7 @@ test(tokenTests, "username parameter required", async () => {
   );
 });
 
-test(tokenTests, "password parameter required", async () => {
+it(tokenTests, "password parameter required", async () => {
   let request = fakeTokenRequest("username=kyle");
   const result = passwordGrant.token(
     request,
@@ -158,7 +157,7 @@ test(tokenTests, "password parameter required", async () => {
   );
 });
 
-test(tokenTests, "user authentication failed", async () => {
+it(tokenTests, "user authentication failed", async () => {
   const getAuthenticated: Stub<UserService> = stub(
     userService,
     "getAuthenticated",
@@ -179,7 +178,7 @@ test(tokenTests, "user authentication failed", async () => {
       "user authentication failed",
     );
     assertStrictEquals(getAuthenticated.calls.length, 1);
-    const call: SpyCall = getAuthenticated.calls[0];
+    const call = getAuthenticated.calls[0];
     assertStrictEquals(call.self, userService);
     assertEquals(call.args, ["Kyle", "Hunter2"]);
   } finally {
@@ -187,7 +186,7 @@ test(tokenTests, "user authentication failed", async () => {
   }
 });
 
-test(tokenTests, "scope not accepted", async () => {
+it(tokenTests, "scope not accepted", async () => {
   const user = { username: "Kyle" };
   const getAuthenticated: Stub<UserService> = stub(
     userService,
@@ -229,7 +228,7 @@ test(tokenTests, "scope not accepted", async () => {
   }
 });
 
-test(tokenTests, "returns token", async () => {
+it(tokenTests, "returns token", async () => {
   const getAuthenticated = stub(
     userService,
     "getAuthenticated",
@@ -270,10 +269,10 @@ test(tokenTests, "returns token", async () => {
     const token = await result;
 
     assertStrictEquals(getAuthenticated.calls.length, 1);
-    let call: SpyCall = getAuthenticated.calls[0];
-    assertStrictEquals(call.self, userService);
-    assertEquals(call.args, ["Kyle", "Hunter2"]);
-    const user: User = await call.returned;
+    const getCall = getAuthenticated.calls[0];
+    assertStrictEquals(getCall.self, userService);
+    assertEquals(getCall.args, ["Kyle", "Hunter2"]);
+    const user = await getCall.returned;
 
     assertClientUserScopeCall(
       acceptedScope,
@@ -301,13 +300,13 @@ test(tokenTests, "returns token", async () => {
       accessTokenExpiresAt,
       refreshTokenExpiresAt,
       client,
-      user,
+      user: user!,
       scope: expectedScope,
     };
     assertStrictEquals(save.calls.length, 1);
-    call = save.calls[0];
-    assertStrictEquals(call.args.length, 1);
-    assertToken(call.args[0], expectedToken);
+    const saveCall = save.calls[0];
+    assertStrictEquals(saveCall.args.length, 1);
+    assertToken(saveCall.args[0], expectedToken);
     assertToken(token, expectedToken);
   } finally {
     getAuthenticated.restore();

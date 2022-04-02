@@ -1,12 +1,10 @@
 import { BasicAuth, parseBasicAuth } from "./basic_auth.ts";
-import { assertEquals, assertThrows, test, TestSuite } from "./test_deps.ts";
+import { assertEquals, assertThrows, describe, it } from "./test_deps.ts";
 import { InvalidClientError } from "./errors.ts";
 
-const parseBasicAuthTests: TestSuite<void> = new TestSuite({
-  name: "parseBasicAuth",
-});
+const parseBasicAuthTests = describe("parseBasicAuth");
 
-test(parseBasicAuthTests, "authorization header required", () => {
+it(parseBasicAuthTests, "authorization header required", () => {
   assertThrows(
     () => parseBasicAuth(null),
     InvalidClientError,
@@ -19,7 +17,7 @@ test(parseBasicAuthTests, "authorization header required", () => {
   );
 });
 
-test(parseBasicAuthTests, "unsupported authorization header", () => {
+it(parseBasicAuthTests, "unsupported authorization header", () => {
   assertThrows(
     () => parseBasicAuth("x"),
     InvalidClientError,
@@ -37,7 +35,7 @@ test(parseBasicAuthTests, "unsupported authorization header", () => {
   );
 });
 
-test(
+it(
   parseBasicAuthTests,
   "authorization header is not correctly encoded",
   () => {
@@ -54,7 +52,7 @@ test(
   },
 );
 
-test(parseBasicAuthTests, "authorization header is malformed", () => {
+it(parseBasicAuthTests, "authorization header is malformed", () => {
   assertThrows(
     () => parseBasicAuth(`basic ${btoa("kyle")}`),
     InvalidClientError,
@@ -72,7 +70,7 @@ test(parseBasicAuthTests, "authorization header is malformed", () => {
   );
 });
 
-test(parseBasicAuthTests, "returns correct name and pass", () => {
+it(parseBasicAuthTests, "returns correct name and pass", () => {
   let basicAuth: BasicAuth = parseBasicAuth(`basic ${btoa("kyle:")}`);
   assertEquals(basicAuth, { name: "kyle", pass: "" });
   basicAuth = parseBasicAuth(`BASIC ${btoa("kyle:hunter2")}`);

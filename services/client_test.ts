@@ -1,14 +1,12 @@
-import { assertRejects, test, TestSuite } from "../test_deps.ts";
+import { assertRejects, describe, it } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 import { client, ClientService } from "./test_services.ts";
 
 const clientService = new ClientService();
 
-const clientServiceTests: TestSuite<void> = new TestSuite({
-  name: "ClientService",
-});
+const clientServiceTests = describe("ClientService");
 
-test(clientServiceTests, "getUser", async () => {
+it(clientServiceTests, "getUser", async () => {
   await assertRejects(
     () => clientService.getUser(client),
     ServerError,

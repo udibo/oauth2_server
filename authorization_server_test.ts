@@ -4,12 +4,12 @@ import {
   assertSpyCall,
   assertSpyCalls,
   delay,
+  describe,
+  it,
   Spy,
   spy,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "./test_deps.ts";
 import {
   fakeAuthorizeRequest,
@@ -56,7 +56,7 @@ import {
   User,
 } from "./authorization_server.ts";
 
-test("verify exports", () => {
+it("verify exports", () => {
   const moduleKeys = Object.keys(authorizationServerModule).sort();
   const moduleKeySet = new Set(moduleKeys);
   const missingKeys = [];
@@ -132,37 +132,35 @@ const server = new AuthorizationServer({
   services: { tokenService },
 });
 
-const serverTests = new TestSuite({
-  name: "AuthorizationServer",
-});
+const serverTests = describe("AuthorizationServer");
 
 interface TokenTestContext {
-  success: Spy<void>;
-  error: Spy<void>;
-  tokenSuccess: Stub<AuthorizationServer<Client, User, Scope>>;
-  tokenError: Stub<AuthorizationServer<Client, User, Scope>>;
+  success: Spy;
+  error: Spy;
+  tokenSuccess: Stub;
+  tokenError: Stub;
 }
 
-const tokenTests = new TestSuite<TokenTestContext>({
+const tokenTests = describe<TokenTestContext>({
   name: "token",
   suite: serverTests,
-  beforeEach(context: TokenTestContext) {
-    context.success = spy();
-    context.error = spy();
-    context.tokenSuccess = stub(
+  beforeEach() {
+    this.success = spy();
+    this.error = spy();
+    this.tokenSuccess = stub(
       server,
       "tokenSuccess",
-      () => delay(0).then(context.success),
+      () => delay(0).then(this.success),
     );
-    context.tokenError = stub(
+    this.tokenError = stub(
       server,
       "tokenError",
-      () => delay(0).then(context.error),
+      () => delay(0).then(this.error),
     );
   },
-  afterEach({ tokenSuccess, tokenError }) {
-    tokenSuccess.restore();
-    tokenError.restore();
+  afterEach() {
+    this.tokenSuccess.restore();
+    this.tokenError.restore();
   },
 });
 
@@ -181,7 +179,8 @@ async function tokenTestError<E extends Error = Error>(
   assertSpyCalls(tokenSuccess, 0);
   assertSpyCalls(success, 0);
 
-  const call = assertSpyCall(tokenError, 0, { self: server });
+  assertSpyCall(tokenError, 0, { self: server });
+  const call = tokenError.calls[0];
   assertEquals(call.args.length, 3);
   assertEquals(call.args.slice(0, 2), [request, response]);
   assertIsError(call.args[2], ErrorClass, msgIncludes, msg);
@@ -194,15 +193,15 @@ async function tokenTestError<E extends Error = Error>(
   assertSpyCalls(redirect, 0);
 }
 
-test(
+it(
   tokenTests,
   "method must be post",
-  async (context) => {
+  async function () {
     const request = fakeTokenRequest();
     request.method = "GET";
     const response = fakeResponse();
     await tokenTestError(
-      context,
+      this,
       request,
       response,
       InvalidRequestError,
@@ -211,15 +210,15 @@ test(
   },
 );
 
-test(
+it(
   tokenTests,
   "content-type header required",
-  async (context) => {
+  async function () {
     const request = fakeTokenRequest();
     const response = fakeResponse();
     request.headers.delete("Content-Type");
     await tokenTestError(
-      context,
+      this,
       request,
       response,
       InvalidRequestError,
@@ -228,16 +227,16 @@ test(
   },
 );
 
-test(
+it(
   tokenTests,
   "content-type header must be application/x-www-form-urlencoded",
-  async (context) => {
+  async function () {
     const request = fakeTokenRequest();
     request.headers.set("Content-Type", "application/json");
     const response = fakeResponse();
     request.headers.delete("Content-Type");
     await tokenTestError(
-      context,
+      this,
       request,
       response,
       InvalidRequestError,
@@ -246,11 +245,11 @@ test(
   },
 );
 
-test(tokenTests, "grant_type parameter required", async (context) => {
+it(tokenTests, "grant_type parameter required", async function () {
   const request = fakeTokenRequest("");
   const response = fakeResponse();
   await tokenTestError(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -258,11 +257,11 @@ test(tokenTests, "grant_type parameter required", async (context) => {
   );
 });
 
-test(tokenTests, "invalid grant_type", async (context) => {
+it(tokenTests, "invalid grant_type", async function () {
   const request = fakeTokenRequest("grant_type=fake");
   const response = fakeResponse();
   await tokenTestError(
-    context,
+    this,
     request,
     response,
     UnsupportedGrantTypeError,
@@ -270,7 +269,7 @@ test(tokenTests, "invalid grant_type", async (context) => {
   );
 });
 
-test(tokenTests, "client authentication failed", async (context) => {
+it(tokenTests, "client authentication failed", async function () {
   const getAuthenticatedClient = stub(
     refreshTokenGrant,
     "getAuthenticatedClient",
@@ -281,7 +280,7 @@ test(tokenTests, "client authentication failed", async (context) => {
     const request = fakeTokenRequest("grant_type=refresh_token");
     const response = fakeResponse();
     await tokenTestError(
-      context,
+      this,
       request,
       response,
       InvalidClientError,
@@ -297,10 +296,10 @@ test(tokenTests, "client authentication failed", async (context) => {
   }
 });
 
-test(
+it(
   tokenTests,
   "client is not authorized to use this grant_type",
-  async (context) => {
+  async function () {
     const getAuthenticatedClient = stub(
       refreshTokenGrant,
       "getAuthenticatedClient",
@@ -316,7 +315,7 @@ test(
       );
       const response = fakeResponse();
       await tokenTestError(
-        context,
+        this,
         request,
         response,
         UnauthorizedClientError,
@@ -333,7 +332,7 @@ test(
   },
 );
 
-test(tokenTests, "grant token error", async (context) => {
+it(tokenTests, "grant token error", async function () {
   const token = stub(
     refreshTokenGrant,
     "token",
@@ -343,7 +342,7 @@ test(tokenTests, "grant token error", async (context) => {
     const request = fakeTokenRequest("grant_type=refresh_token");
     const response = fakeResponse();
     await tokenTestError(
-      context,
+      this,
       request,
       response,
       InvalidGrantError,
@@ -359,10 +358,11 @@ test(tokenTests, "grant token error", async (context) => {
   }
 });
 
-test(
+it(
   tokenTests,
   "returns refresh token",
-  async ({ success, error, tokenSuccess, tokenError }) => {
+  async function () {
+    const { success, error, tokenSuccess, tokenError } = this;
     const refreshToken: RefreshToken<Client, User, Scope> = {
       accessToken: "foo",
       refreshToken: "bar",
@@ -401,12 +401,12 @@ test(
   },
 );
 
-const bearerTokenTests = new TestSuite({
+const bearerTokenTests = describe({
   name: "bearerToken",
   suite: serverTests,
 });
 
-test(bearerTokenTests, "without optional token properties", () => {
+it(bearerTokenTests, "without optional token properties", () => {
   const accessToken: AccessToken<Client, User, Scope> = {
     accessToken: "foo",
     client,
@@ -419,7 +419,7 @@ test(bearerTokenTests, "without optional token properties", () => {
   });
 });
 
-test(bearerTokenTests, "with optional token properties", () => {
+it(bearerTokenTests, "with optional token properties", () => {
   const refreshToken: RefreshToken<Client, User, Scope> = {
     accessToken: "foo",
     refreshToken: "bar",
@@ -436,7 +436,7 @@ test(bearerTokenTests, "with optional token properties", () => {
   });
 });
 
-test(serverTests, "tokenResponse", async () => {
+it(serverTests, "tokenResponse", async () => {
   const request = fakeTokenRequest();
   const response = fakeResponse();
   const redirect = spy(response, "redirect");
@@ -451,7 +451,7 @@ test(serverTests, "tokenResponse", async () => {
   assertSpyCalls(redirect, 0);
 });
 
-test(serverTests, "tokenSuccess", async () => {
+it(serverTests, "tokenSuccess", async () => {
   const tokenResponseAwait = spy();
   const tokenResponse = stub(
     server,
@@ -480,9 +480,10 @@ test(serverTests, "tokenSuccess", async () => {
     assertSpyCalls(tokenResponse, 1);
     assertSpyCalls(tokenResponseAwait, 1);
 
-    const call = assertSpyCall(bearerToken, 0, {
+    assertSpyCall(bearerToken, 0, {
       args: [request.token],
     });
+    const call = bearerToken.calls[0];
     assertSpyCalls(bearerToken, 1);
 
     assertEquals(response.status, 200);
@@ -493,7 +494,7 @@ test(serverTests, "tokenSuccess", async () => {
   }
 });
 
-test(serverTests, "tokenError handles error", async () => {
+it(serverTests, "tokenError handles error", async () => {
   const tokenResponseAwait = spy();
   const tokenResponse = stub(
     server,
@@ -547,34 +548,34 @@ interface AuthorizeTestContext {
   consent: Spy<void>;
 }
 
-const authorizeTests = new TestSuite<AuthorizeTestContext>({
+const authorizeTests = describe<AuthorizeTestContext>({
   name: "authorize",
   suite: serverTests,
-  beforeEach(context: AuthorizeTestContext) {
-    context.success = spy();
-    context.error = spy();
-    context.authorizeSuccess = stub(
+  beforeEach() {
+    this.success = spy();
+    this.error = spy();
+    this.authorizeSuccess = stub(
       server,
       "authorizeSuccess",
-      () => delay(0).then(context.success),
+      () => delay(0).then(this.success),
     );
-    context.authorizeError = stub(
+    this.authorizeError = stub(
       server,
       "authorizeError",
-      () => delay(0).then(context.error),
+      () => delay(0).then(this.error),
     );
 
-    context.setAuthorizationAwait = spy();
-    context.setAuthorization = spy(() =>
-      delay(0).then(context.setAuthorizationAwait)
+    this.setAuthorizationAwait = spy();
+    this.setAuthorization = spy(() =>
+      delay(0).then(this.setAuthorizationAwait)
     );
 
-    context.login = spy();
-    context.consent = spy();
+    this.login = spy();
+    this.consent = spy();
   },
-  afterEach({ authorizeSuccess, authorizeError }) {
-    authorizeSuccess.restore();
-    authorizeError.restore();
+  afterEach() {
+    this.authorizeSuccess.restore();
+    this.authorizeError.restore();
   },
 });
 
@@ -602,7 +603,8 @@ async function authorizeTestError<E extends Error = Error>(
   assertSpyCalls(authorizeSuccess, 0);
   assertSpyCalls(success, 0);
 
-  const call = assertSpyCall(authorizeError, 0, { self: server });
+  assertSpyCall(authorizeError, 0, { self: server });
+  const call = authorizeError.calls[0];
   assertEquals(call.args.length, 5);
   assertEquals(call.args.slice(0, 2), [request, response]);
   assertIsError(call.args[2], ErrorClass, msgIncludes, msg);
@@ -645,17 +647,17 @@ async function authorizeTestErrorNoRedirect<E extends Error = Error>(
   assertSpyCalls(setAuthorization, 0);
 }
 
-test(
+it(
   authorizeTests,
   "missing authorization code grant",
-  async (context) => {
+  async function () {
     const { grants } = server;
     try {
       server.grants = { "refresh_token": refreshTokenGrant };
       const request = fakeAuthorizeRequest();
       const response = fakeResponse();
       await authorizeTestErrorNoRedirect(
-        context,
+        this,
         request,
         response,
         ServerError,
@@ -667,15 +669,15 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "client_id parameter required",
-  async (context) => {
+  async function () {
     const request = fakeAuthorizeRequest();
     request.url.searchParams.delete("client_id");
     const response = fakeResponse();
     await authorizeTestErrorNoRedirect(
-      context,
+      this,
       request,
       response,
       InvalidRequestError,
@@ -684,10 +686,10 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "client not found",
-  async (context) => {
+  async function () {
     const clientServiceGet: Stub<ClientService> = stub(
       clientService,
       "get",
@@ -697,7 +699,7 @@ test(
       const request = fakeAuthorizeRequest();
       const response = fakeResponse();
       await authorizeTestErrorNoRedirect(
-        context,
+        this,
         request,
         response,
         InvalidClientError,
@@ -709,10 +711,10 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "client is not authorized to use the authorization code grant type",
-  async (context) => {
+  async function () {
     const clientServiceGet: Stub<ClientService> = stub(
       clientService,
       "get",
@@ -722,7 +724,7 @@ test(
       const request = fakeAuthorizeRequest();
       const response = fakeResponse();
       await authorizeTestErrorNoRedirect(
-        context,
+        this,
         request,
         response,
         UnauthorizedClientError,
@@ -734,7 +736,7 @@ test(
   },
 );
 
-test(authorizeTests, "no authorized redirect_uri", async (context) => {
+it(authorizeTests, "no authorized redirect_uri", async function () {
   const clientServiceGet: Stub<ClientService> = stub(
     clientService,
     "get",
@@ -744,7 +746,7 @@ test(authorizeTests, "no authorized redirect_uri", async (context) => {
     const request = fakeAuthorizeRequest();
     const response = fakeResponse();
     await authorizeTestErrorNoRedirect(
-      context,
+      this,
       request,
       response,
       UnauthorizedClientError,
@@ -755,12 +757,12 @@ test(authorizeTests, "no authorized redirect_uri", async (context) => {
   }
 });
 
-test(authorizeTests, "redirect_uri not authorized", async (context) => {
+it(authorizeTests, "redirect_uri not authorized", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("redirect_uri", "http://client.example.com/cb");
   const response = fakeResponse();
   await authorizeTestErrorNoRedirect(
-    context,
+    this,
     request,
     response,
     UnauthorizedClientError,
@@ -818,12 +820,12 @@ async function authorizeTestErrorPreAuthorization<E extends Error = Error>(
   assertSpyCalls(setAuthorization, 0);
 }
 
-test(authorizeTests, "state required", async (context) => {
+it(authorizeTests, "state required", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.delete("state");
   const response = fakeResponse();
   await authorizeTestErrorPreAuthorization(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -831,12 +833,12 @@ test(authorizeTests, "state required", async (context) => {
   );
 });
 
-test(authorizeTests, "response_type required", async (context) => {
+it(authorizeTests, "response_type required", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.delete("response_type");
   const response = fakeResponse();
   await authorizeTestErrorPreAuthorization(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -844,12 +846,12 @@ test(authorizeTests, "response_type required", async (context) => {
   );
 });
 
-test(authorizeTests, "response_type not supported", async (context) => {
+it(authorizeTests, "response_type not supported", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("response_type", "token");
   const response = fakeResponse();
   await authorizeTestErrorPreAuthorization(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -857,15 +859,15 @@ test(authorizeTests, "response_type not supported", async (context) => {
   );
 });
 
-test(
+it(
   authorizeTests,
   "code_challenge required when code_challenge_method is set",
-  async (context) => {
+  async function () {
     const request = fakeAuthorizeRequest();
     request.url.searchParams.set("code_challenge_method", "S256");
     const response = fakeResponse();
     await authorizeTestErrorPreAuthorization(
-      context,
+      this,
       request,
       response,
       InvalidRequestError,
@@ -874,12 +876,12 @@ test(
   },
 );
 
-test(authorizeTests, "code_challenge_method required", async (context) => {
+it(authorizeTests, "code_challenge_method required", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("code_challenge", "abc");
   const response = fakeResponse();
   await authorizeTestErrorPreAuthorization(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -887,13 +889,13 @@ test(authorizeTests, "code_challenge_method required", async (context) => {
   );
 });
 
-test(authorizeTests, "unsupported code_challenge_method", async (context) => {
+it(authorizeTests, "unsupported code_challenge_method", async function () {
   const request = fakeAuthorizeRequest();
   request.url.searchParams.set("code_challenge", "abc");
   request.url.searchParams.set("code_challenge_method", "plain");
   const response = fakeResponse();
   await authorizeTestErrorPreAuthorization(
-    context,
+    this,
     request,
     response,
     InvalidRequestError,
@@ -936,7 +938,7 @@ async function authorizeTestErrorAuthorized<E extends Error = Error>(
   assertSpyCalls(setAuthorizationAwait, 1);
 }
 
-test(authorizeTests, "authentication required with PKCE", async (context) => {
+it(authorizeTests, "authentication required with PKCE", async function () {
   const request = fakeAuthorizeRequest();
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
@@ -944,7 +946,7 @@ test(authorizeTests, "authentication required with PKCE", async (context) => {
   request.url.searchParams.set("code_challenge_method", "S256");
   const response = fakeResponse();
   await authorizeTestErrorAuthorized(
-    context,
+    this,
     request,
     response,
     undefined,
@@ -954,14 +956,14 @@ test(authorizeTests, "authentication required with PKCE", async (context) => {
   );
 });
 
-test(
+it(
   authorizeTests,
   "authentication required without PKCE",
-  async (context) => {
+  async function () {
     const request = fakeAuthorizeRequest();
     const response = fakeResponse();
     await authorizeTestErrorAuthorized(
-      context,
+      this,
       request,
       response,
       undefined,
@@ -972,10 +974,10 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "scope not accepted",
-  async (context) => {
+  async function () {
     const acceptedScope = stub(
       authorizationCodeGrant,
       "acceptedScope",
@@ -985,7 +987,7 @@ test(
       const request = fakeAuthorizeRequest();
       const response = fakeResponse();
       await authorizeTestErrorAuthorized(
-        context,
+        this,
         request,
         response,
         user,
@@ -999,14 +1001,14 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "not authorized",
-  async (context) => {
+  async function () {
     const request = fakeAuthorizeRequest();
     const response = fakeResponse();
     await authorizeTestErrorAuthorized(
-      context,
+      this,
       request,
       response,
       user,
@@ -1017,14 +1019,14 @@ test(
   },
 );
 
-test(
+it(
   authorizeTests,
   "not fully authorized",
-  async (context) => {
+  async function () {
     const request = fakeAuthorizeRequest();
     const response = fakeResponse();
     await authorizeTestErrorAuthorized(
-      context,
+      this,
       request,
       response,
       user,
@@ -1035,7 +1037,7 @@ test(
   },
 );
 
-test(authorizeTests, "generateAuthorizationCode error", async (context) => {
+it(authorizeTests, "generateAuthorizationCode error", async function () {
   const generateAuthorizationCode = stub(
     authorizationCodeGrant,
     "generateAuthorizationCode",
@@ -1045,7 +1047,7 @@ test(authorizeTests, "generateAuthorizationCode error", async (context) => {
     const request = fakeAuthorizeRequest();
     const response = fakeResponse();
     await authorizeTestErrorAuthorized(
-      context,
+      this,
       request,
       response,
       user,
@@ -1058,7 +1060,7 @@ test(authorizeTests, "generateAuthorizationCode error", async (context) => {
   }
 });
 
-async function authorizeTest(
+async function authorizeit(
   context: AuthorizeTestContext,
   request: OAuth2Request<Client, User, Scope>,
   response: OAuth2Response,
@@ -1174,11 +1176,11 @@ async function authorizeTest(
   assertSpyCalls(setAuthorizationAwait, 1);
 }
 
-test(authorizeTests, "success without PKCE", async (context) => {
+it(authorizeTests, "success without PKCE", async function () {
   const request = fakeAuthorizeRequest();
   const response = fakeResponse();
-  await authorizeTest(
-    context,
+  await authorizeit(
+    this,
     request,
     response,
     "123",
@@ -1187,15 +1189,15 @@ test(authorizeTests, "success without PKCE", async (context) => {
   );
 });
 
-test(authorizeTests, "success with PKCE", async (context) => {
+it(authorizeTests, "success with PKCE", async function () {
   const request = fakeAuthorizeRequest();
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
   request.url.searchParams.set("code_challenge", challenge);
   request.url.searchParams.set("code_challenge_method", "S256");
   const response = fakeResponse();
-  await authorizeTest(
-    context,
+  await authorizeit(
+    this,
     request,
     response,
     "123",
@@ -1206,7 +1208,7 @@ test(authorizeTests, "success with PKCE", async (context) => {
   );
 });
 
-test(serverTests, "authorizeSuccess", async () => {
+it(serverTests, "authorizeSuccess", async () => {
   const request = fakeAuthorizeRequest();
   const expectedRedirectUrl = new URL(
     "https://client.example.com/cb?state=xyz&code=123",
@@ -1247,83 +1249,89 @@ interface AuthorizeTestContext {
   errorHandlerAwait: Spy<void>;
 }
 
-const authorizeErrorTests = new TestSuite<AuthorizeTestContext>({
+const authorizeErrorTests = describe<AuthorizeTestContext>({
   name: "authorizeError",
   suite: serverTests,
-  async beforeEach(context: AuthorizeTestContext) {
-    context.request = fakeAuthorizeRequest();
-    context.request.authorizeParameters = await authorizeParameters(
-      context.request,
+  async beforeEach() {
+    this.request = fakeAuthorizeRequest();
+    this.request.authorizeParameters = await authorizeParameters(
+      this.request,
     );
-    context.request.redirectUrl = new URL(
+    this.request.redirectUrl = new URL(
       "https://client.example.com/cb?state=xyz",
     );
-    context.response = fakeResponse();
-    context.redirectAwait = spy();
-    context.redirect = stub(
-      context.response,
+    this.response = fakeResponse();
+    this.redirectAwait = spy();
+    this.redirect = stub(
+      this.response,
       "redirect",
-      () => delay(0).then(context.redirectAwait),
+      () => delay(0).then(this.redirectAwait),
     );
-    context.loginAwait = spy();
-    context.login = spy(() => delay(0).then(context.loginAwait));
-    context.consentAwait = spy();
-    context.consent = spy(() => delay(0).then(context.consentAwait));
-    context.errorHandlerAwait = spy();
-    context.errorHandler = stub(
+    this.loginAwait = spy();
+    this.login = spy(() => delay(0).then(this.loginAwait));
+    this.consentAwait = spy();
+    this.consent = spy(() => delay(0).then(this.consentAwait));
+    this.errorHandlerAwait = spy();
+    this.errorHandler = stub(
       server,
       "errorHandler",
-      () => delay(0).then(context.errorHandlerAwait),
+      () => delay(0).then(this.errorHandlerAwait),
     );
   },
-  afterEach({ errorHandler }) {
-    errorHandler.restore();
+  afterEach() {
+    this.errorHandler.restore();
   },
 });
 
-test(authorizeErrorTests, "non access_denied error with redirectUrl", async ({
-  request,
-  response,
-  redirect,
-  redirectAwait,
-  login,
-  consent,
-  errorHandler,
-}) => {
-  const expectedRedirectUrl = new URL(request.redirectUrl!.toString());
-  expectedRedirectUrl.searchParams.set("error", "invalid_request");
-  expectedRedirectUrl.searchParams.set("error_description", "not valid");
+it(
+  authorizeErrorTests,
+  "non access_denied error with redirectUrl",
+  async function () {
+    const {
+      request,
+      response,
+      redirect,
+      redirectAwait,
+      login,
+      consent,
+      errorHandler,
+    } = this;
+    const expectedRedirectUrl = new URL(request.redirectUrl!.toString());
+    expectedRedirectUrl.searchParams.set("error", "invalid_request");
+    expectedRedirectUrl.searchParams.set("error_description", "not valid");
 
-  const error = new InvalidRequestError("not valid");
-  await server.authorizeError(request, response, error, login, consent);
+    const error = new InvalidRequestError("not valid");
+    await server.authorizeError(request, response, error, login, consent);
 
-  assertEquals([...response.headers.entries()], []);
-  assertEquals(response.status, undefined);
-  assertEquals(response.body, undefined);
-  assertSpyCall(redirect, 0, {
-    self: response,
-    args: [expectedRedirectUrl],
-  });
-  assertSpyCalls(redirect, 1);
-  assertSpyCalls(redirectAwait, 1);
+    assertEquals([...response.headers.entries()], []);
+    assertEquals(response.status, undefined);
+    assertEquals(response.body, undefined);
+    assertSpyCall(redirect, 0, {
+      self: response,
+      args: [expectedRedirectUrl],
+    });
+    assertSpyCalls(redirect, 1);
+    assertSpyCalls(redirectAwait, 1);
 
-  assertSpyCalls(login, 0);
-  assertSpyCalls(consent, 0);
-  assertSpyCalls(errorHandler, 0);
-});
+    assertSpyCalls(login, 0);
+    assertSpyCalls(consent, 0);
+    assertSpyCalls(errorHandler, 0);
+  },
+);
 
-test(
+it(
   authorizeErrorTests,
   "non access_denied error without redirectUrl",
-  async ({
-    request,
-    response,
-    redirect,
-    login,
-    consent,
-    errorHandler,
-    errorHandlerAwait,
-  }) => {
+  async function () {
+    const {
+      request,
+      response,
+      redirect,
+      login,
+      consent,
+      errorHandler,
+      errorHandlerAwait,
+    } = this;
     delete request.redirectUrl;
     const error = new InvalidRequestError("not valid");
     await server.authorizeError(request, response, error, login, consent);
@@ -1345,18 +1353,19 @@ test(
   },
 );
 
-test(
+it(
   authorizeErrorTests,
   "calls login for access_denied error without user",
-  async ({
-    request,
-    response,
-    redirect,
-    login,
-    loginAwait,
-    consent,
-    errorHandler,
-  }) => {
+  async function () {
+    const {
+      request,
+      response,
+      redirect,
+      login,
+      loginAwait,
+      consent,
+      errorHandler,
+    } = this;
     const error = new AccessDeniedError("authentication required");
     await server.authorizeError(request, response, error, login, consent);
 
@@ -1377,18 +1386,19 @@ test(
   },
 );
 
-test(
+it(
   authorizeErrorTests,
   "calls consent for access_denied error without consent for requested scope",
-  async ({
-    request,
-    response,
-    redirect,
-    login,
-    consent,
-    consentAwait,
-    errorHandler,
-  }) => {
+  async function () {
+    const {
+      request,
+      response,
+      redirect,
+      login,
+      consent,
+      consentAwait,
+      errorHandler,
+    } = this;
     request.user = user;
     const error = new AccessDeniedError("not authorized");
     await server.authorizeError(request, response, error, login, consent);

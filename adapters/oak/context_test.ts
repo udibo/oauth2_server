@@ -4,17 +4,17 @@ import {
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   Spy,
   spy,
-  test,
-  TestSuite,
 } from "../../test_deps.ts";
 import { BodyForm, Context, Request, Response } from "./deps.ts";
 import { OakOAuth2Request, OakOAuth2Response } from "./context.ts";
 
-const requestTests = new TestSuite({ name: "OakOAuth2Request" });
+const requestTests = describe("OakOAuth2Request");
 
-test(requestTests, "get", async () => {
+it(requestTests, "get", async () => {
   const expectedBody = new URLSearchParams();
   const original: Request = {
     url: new URL("https://example.com/resource/1"),
@@ -35,7 +35,7 @@ test(requestTests, "get", async () => {
   assertStrictEquals(await wrapped.body, expectedBody);
 });
 
-test(requestTests, "post", async () => {
+it(requestTests, "post", async () => {
   const expectedBody: URLSearchParams = new URLSearchParams({
     grant_type: "client_credentials",
   });
@@ -58,7 +58,7 @@ test(requestTests, "post", async () => {
   assertStrictEquals(await wrapped.body, expectedBody);
 });
 
-test(requestTests, "post with sync body error", async () => {
+it(requestTests, "post with sync body error", async () => {
   const original: Request = {
     url: new URL("https://example.com/token"),
     method: "POST",
@@ -77,7 +77,7 @@ test(requestTests, "post with sync body error", async () => {
   assertEquals(await wrapped.body, new URLSearchParams());
 });
 
-test(requestTests, "post with async body error", async () => {
+it(requestTests, "post with async body error", async () => {
   const original: Request = {
     url: new URL("https://example.com/token"),
     method: "POST",
@@ -97,9 +97,9 @@ test(requestTests, "post with async body error", async () => {
   await assertRejects(() => wrapped.body, Error, "failed");
 });
 
-const responseTests = new TestSuite({ name: "OakOAuth2Response" });
+const responseTests = describe("OakOAuth2Response");
 
-test(responseTests, "redirect", () => {
+it(responseTests, "redirect", () => {
   const original: Response = {
     redirect: (_url: string | URL) => undefined,
   } as Response;
@@ -123,7 +123,7 @@ test(responseTests, "redirect", () => {
   assertSpyCalls(redirect, 2);
 });
 
-test(responseTests, "without body", () => {
+it(responseTests, "without body", () => {
   const headers: Headers = new Headers({ "Content-Type": `application/json` });
   const original: Response = {
     status: 404,
@@ -149,7 +149,7 @@ test(responseTests, "without body", () => {
   assertStrictEquals(original.body, undefined);
 });
 
-test(responseTests, "with sync body value", () => {
+it(responseTests, "with sync body value", () => {
   const headers: Headers = new Headers({ "Content-Type": `application/json` });
   const original: Response = {
     status: 200,
@@ -168,7 +168,7 @@ test(responseTests, "with sync body value", () => {
   assertStrictEquals(original.body, body);
 });
 
-test(responseTests, "with async body value", () => {
+it(responseTests, "with async body value", () => {
   const headers: Headers = new Headers({ "Content-Type": `application/json` });
   const original: Response = {
     status: 200,
@@ -189,7 +189,7 @@ test(responseTests, "with async body value", () => {
   assertStrictEquals(result, body);
 });
 
-test(responseTests, "with body function", () => {
+it(responseTests, "with body function", () => {
   const headers: Headers = new Headers({ "Content-Type": `application/json` });
   const original: Response = {
     status: 200,

@@ -2,9 +2,9 @@ import {
   assert,
   assertEquals,
   assertStrictEquals,
+  describe,
   FakeTime,
-  test,
-  TestSuite,
+  it,
   v4,
 } from "../test_deps.ts";
 import {
@@ -16,11 +16,9 @@ import {
 
 const authorizationCodeService = new AuthorizationCodeService();
 
-const authorizationCodeServiceTests: TestSuite<void> = new TestSuite({
-  name: "AuthorizationCodeService",
-});
+const authorizationCodeServiceTests = describe("AuthorizationCodeService");
 
-test(authorizationCodeServiceTests, "generateAuthorizationCode", async () => {
+it(authorizationCodeServiceTests, "generateAuthorizationCode", async () => {
   const result = authorizationCodeService.generateCode(
     client,
     user,
@@ -35,7 +33,7 @@ test(authorizationCodeServiceTests, "generateAuthorizationCode", async () => {
   );
 });
 
-test(authorizationCodeServiceTests, "accessTokenExpiresAt", async () => {
+it(authorizationCodeServiceTests, "accessTokenExpiresAt", async () => {
   const time: FakeTime = new FakeTime();
   try {
     const fiveMinutes: number = 5 * 60 * 1000;

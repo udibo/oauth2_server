@@ -4,9 +4,9 @@ import {
   assertEquals,
   assertRejects,
   assertStrictEquals,
+  describe,
   FakeTime,
-  test,
-  TestSuite,
+  it,
   v4,
 } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
@@ -20,11 +20,9 @@ import {
 
 const accessTokenService = new AccessTokenService();
 
-const accessTokenServiceTests: TestSuite<void> = new TestSuite({
-  name: "AccessTokenService",
-});
+const accessTokenServiceTests = describe("AccessTokenService");
 
-test(accessTokenServiceTests, "generateAccessToken", async () => {
+it(accessTokenServiceTests, "generateAccessToken", async () => {
   const result = accessTokenService.generateAccessToken(
     client,
     user,
@@ -39,7 +37,7 @@ test(accessTokenServiceTests, "generateAccessToken", async () => {
   );
 });
 
-test(
+it(
   accessTokenServiceTests,
   "generateRefreshToken not implemented",
   async () => {
@@ -59,7 +57,7 @@ test(
   },
 );
 
-test(accessTokenServiceTests, "accessTokenExpiresAt", async () => {
+it(accessTokenServiceTests, "accessTokenExpiresAt", async () => {
   const time: FakeTime = new FakeTime();
   try {
     const hour: number = 60 * 60 * 1000;
@@ -80,7 +78,7 @@ test(accessTokenServiceTests, "accessTokenExpiresAt", async () => {
   }
 });
 
-test(
+it(
   accessTokenServiceTests,
   "accessTokenExpiresAt with client.accessTokenLifetime",
   async () => {
@@ -114,7 +112,7 @@ test(
   },
 );
 
-test(
+it(
   accessTokenServiceTests,
   "refreshTokenExpiresAt not implemented",
   async () => {
@@ -134,7 +132,7 @@ test(
   },
 );
 
-test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
+it(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
   const result = accessTokenService.getRefreshToken("fake");
   assertStrictEquals(Promise.resolve(result), result);
   await assertRejects(
@@ -149,7 +147,7 @@ test(accessTokenServiceTests, "getRefreshToken not implemented", async () => {
   );
 });
 
-test(
+it(
   accessTokenServiceTests,
   "acceptedScope defaults to always passing",
   async () => {
@@ -164,11 +162,9 @@ test(
 
 const refreshTokenService = new RefreshTokenService();
 
-const refreshTokenServiceTests: TestSuite<void> = new TestSuite({
-  name: "RefreshTokenService",
-});
+const refreshTokenServiceTests = describe("RefreshTokenService");
 
-test(refreshTokenServiceTests, "generateAccessToken", async () => {
+it(refreshTokenServiceTests, "generateAccessToken", async () => {
   const result = refreshTokenService.generateAccessToken(
     client,
     user,
@@ -183,7 +179,7 @@ test(refreshTokenServiceTests, "generateAccessToken", async () => {
   );
 });
 
-test(refreshTokenServiceTests, "accessTokenExpiresAt", async () => {
+it(refreshTokenServiceTests, "accessTokenExpiresAt", async () => {
   const time = new FakeTime();
   try {
     const hour = 60 * 60 * 1000;
@@ -205,7 +201,7 @@ test(refreshTokenServiceTests, "accessTokenExpiresAt", async () => {
   }
 });
 
-test(
+it(
   refreshTokenServiceTests,
   "accessTokenExpiresAt with client.accessTokenLifetime",
   async () => {
@@ -237,7 +233,7 @@ test(
   },
 );
 
-test(refreshTokenServiceTests, "generateRefreshToken", async () => {
+it(refreshTokenServiceTests, "generateRefreshToken", async () => {
   const result = refreshTokenService
     .generateRefreshToken(client, user, scope);
   assertStrictEquals(Promise.resolve(result), result);
@@ -253,7 +249,7 @@ test(refreshTokenServiceTests, "generateRefreshToken", async () => {
   );
 });
 
-test(refreshTokenServiceTests, "refreshTokenExpiresAt", async () => {
+it(refreshTokenServiceTests, "refreshTokenExpiresAt", async () => {
   const time = new FakeTime();
   try {
     const twoWeeks = 14 * 24 * 60 * 60 * 1000;
@@ -275,7 +271,7 @@ test(refreshTokenServiceTests, "refreshTokenExpiresAt", async () => {
   }
 });
 
-test(
+it(
   refreshTokenServiceTests,
   "refreshTokenExpiresAt with client.refreshTokenLifetime",
   async () => {

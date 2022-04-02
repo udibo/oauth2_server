@@ -10,13 +10,12 @@ import {
   assertRejects,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   Spy,
   spy,
-  SpyCall,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "../test_deps.ts";
 import {
   InvalidGrantError,
@@ -33,11 +32,9 @@ import {
 } from "../services/test_services.ts";
 import { User } from "../models/user.ts";
 
-const clientCredentialsGrantTests: TestSuite<void> = new TestSuite({
-  name: "ClientCredentialsGrant",
-});
+const clientCredentialsGrantTests = describe("ClientCredentialsGrant");
 
-const tokenTests: TestSuite<void> = new TestSuite({
+const tokenTests = describe({
   name: "token",
   suite: clientCredentialsGrantTests,
 });
@@ -56,7 +53,7 @@ const services: ClientCredentialsGrantServices<Client, User, Scope> = {
 };
 const clientCredentialsGrant = new ClientCredentialsGrant({ services });
 
-test(tokenTests, "not implemented for UserService", async () => {
+it(tokenTests, "not implemented for UserService", async () => {
   const getUser: Spy<ClientService> = spy(
     clientService,
     "getUser",
@@ -74,7 +71,7 @@ test(tokenTests, "not implemented for UserService", async () => {
       "clientService.getUser not implemented",
     );
     assertStrictEquals(getUser.calls.length, 1);
-    const call: SpyCall = getUser.calls[0];
+    const call = getUser.calls[0];
     assertStrictEquals(call.self, clientService);
     assertEquals(call.args.length, 1);
     assertStrictEquals(call.args[0], client);
@@ -83,7 +80,7 @@ test(tokenTests, "not implemented for UserService", async () => {
   }
 });
 
-test(tokenTests, "invalid scope", async () => {
+it(tokenTests, "invalid scope", async () => {
   const acceptedScope = spy(clientCredentialsGrant, "acceptedScope");
   try {
     let request = fakeTokenRequest("scope=\\");
@@ -109,7 +106,7 @@ test(tokenTests, "invalid scope", async () => {
   }
 });
 
-test(tokenTests, "no user for client", async () => {
+it(tokenTests, "no user for client", async () => {
   const getUser: Stub<ClientService> = stub(
     clientService,
     "getUser",
@@ -128,7 +125,7 @@ test(tokenTests, "no user for client", async () => {
       "no user for client",
     );
     assertStrictEquals(getUser.calls.length, 1);
-    const call: SpyCall = getUser.calls[0];
+    const call = getUser.calls[0];
     assertStrictEquals(call.self, clientService);
     assertEquals(call.args.length, 1);
     assertStrictEquals(call.args[0], client);
@@ -137,7 +134,7 @@ test(tokenTests, "no user for client", async () => {
   }
 });
 
-test(tokenTests, "scope not accepted", async () => {
+it(tokenTests, "scope not accepted", async () => {
   const user = { username: "kyle" };
   const getUser = stub(
     clientService,
@@ -177,7 +174,7 @@ test(tokenTests, "scope not accepted", async () => {
   }
 });
 
-test(tokenTests, "returns accessToken", async () => {
+it(tokenTests, "returns accessToken", async () => {
   const username = "kyle";
   const getUser = stub(
     clientService,
@@ -215,11 +212,11 @@ test(tokenTests, "returns accessToken", async () => {
     const token = await result;
 
     assertStrictEquals(getUser.calls.length, 1);
-    let call: SpyCall = getUser.calls[0];
-    assertStrictEquals(call.self, clientService);
-    assertEquals(call.args.length, 1);
-    assertStrictEquals(call.args[0], client);
-    const user: User = await call.returned;
+    const getCall = getUser.calls[0];
+    assertStrictEquals(getCall.self, clientService);
+    assertEquals(getCall.args.length, 1);
+    assertStrictEquals(getCall.args[0], client);
+    const user = await getCall.returned;
 
     assertClientUserScopeCall(
       acceptedScope,
@@ -245,13 +242,13 @@ test(tokenTests, "returns accessToken", async () => {
       accessToken: "x",
       accessTokenExpiresAt,
       client,
-      user,
+      user: user!,
       scope: expectedScope,
     };
     assertStrictEquals(save.calls.length, 1);
-    call = save.calls[0];
-    assertStrictEquals(call.args.length, 1);
-    assertToken(call.args[0], expectedToken);
+    const saveCall = save.calls[0];
+    assertStrictEquals(saveCall.args.length, 1);
+    assertToken(saveCall.args[0], expectedToken);
     assertToken(token, expectedToken);
   } finally {
     getUser.restore();

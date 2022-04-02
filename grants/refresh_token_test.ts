@@ -8,12 +8,11 @@ import {
   assertSpyCall,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   spy,
-  SpyCall,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "../test_deps.ts";
 import {
   AccessTokenService,
@@ -31,18 +30,16 @@ import { fakeTokenRequest } from "../test_context.ts";
 import { assertClientUserScopeCall, assertToken } from "../asserts.ts";
 import { User } from "../models/user.ts";
 
-const refreshTokenGrantTests: TestSuite<void> = new TestSuite({
-  name: "RefreshTokenGrant",
-});
+const refreshTokenGrantTests = describe("RefreshTokenGrant");
 
-const tokenTests: TestSuite<void> = new TestSuite({
+const tokenTests = describe({
   name: "token",
   suite: refreshTokenGrantTests,
 });
 
 const clientService = new ClientService();
 
-test(tokenTests, "not implemented for AccessTokenService", async () => {
+it(tokenTests, "not implemented for AccessTokenService", async () => {
   const tokenService: AccessTokenService = new AccessTokenService();
   const getRefreshToken = spy(tokenService, "getRefreshToken");
   const refreshTokenGrant = new RefreshTokenGrant({
@@ -64,7 +61,7 @@ test(tokenTests, "not implemented for AccessTokenService", async () => {
       "getRefreshToken not implemented",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
-    let call: SpyCall = getRefreshToken.calls[0];
+    let call = getRefreshToken.calls[0];
     assertStrictEquals(call.self, tokenService);
     assertEquals(call.args, ["example1"]);
 
@@ -91,7 +88,7 @@ const refreshTokenGrant = new RefreshTokenGrant({
   },
 });
 
-test(tokenTests, "refresh_token parameter required", async () => {
+it(tokenTests, "refresh_token parameter required", async () => {
   let request = fakeTokenRequest("");
   const result = refreshTokenGrant.token(
     request,
@@ -115,7 +112,7 @@ test(tokenTests, "refresh_token parameter required", async () => {
 const user: User = { username: "kyle" };
 const scope: Scope = new Scope("read");
 
-test(tokenTests, "invalid refresh_token", async () => {
+it(tokenTests, "invalid refresh_token", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
@@ -134,7 +131,7 @@ test(tokenTests, "invalid refresh_token", async () => {
       "invalid refresh_token",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
-    let call: SpyCall = getRefreshToken.calls[0];
+    let call = getRefreshToken.calls[0];
     assertStrictEquals(call.self, tokenService);
     assertEquals(call.args, ["example1"]);
 
@@ -153,7 +150,7 @@ test(tokenTests, "invalid refresh_token", async () => {
   }
 });
 
-test(tokenTests, "expired refresh_token", async () => {
+it(tokenTests, "expired refresh_token", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
@@ -189,7 +186,7 @@ test(tokenTests, "expired refresh_token", async () => {
   }
 });
 
-test(tokenTests, "refresh_token was issued to another client", async () => {
+it(tokenTests, "refresh_token was issued to another client", async () => {
   const getRefreshToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "getRefreshToken",
@@ -215,7 +212,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
       "refresh_token was issued to another client",
     );
     assertStrictEquals(getRefreshToken.calls.length, 1);
-    let call: SpyCall = getRefreshToken.calls[0];
+    let call = getRefreshToken.calls[0];
     assertStrictEquals(call.self, tokenService);
     assertEquals(call.args, ["example1"]);
 
@@ -234,7 +231,7 @@ test(tokenTests, "refresh_token was issued to another client", async () => {
   }
 });
 
-test(tokenTests, "returns new token and revokes old", async () => {
+it(tokenTests, "returns new token and revokes old", async () => {
   const getRefreshToken = stub(
     tokenService,
     "getRefreshToken",
@@ -276,9 +273,9 @@ test(tokenTests, "returns new token and revokes old", async () => {
     const token = await result;
 
     assertStrictEquals(getRefreshToken.calls.length, 1);
-    let call: SpyCall = getRefreshToken.calls[0];
-    assertStrictEquals(call.self, tokenService);
-    assertEquals(call.args, ["example"]);
+    const getCall = getRefreshToken.calls[0];
+    assertStrictEquals(getCall.self, tokenService);
+    assertEquals(getCall.args, ["example"]);
 
     assertClientUserScopeCall(
       generateToken,
@@ -291,9 +288,9 @@ test(tokenTests, "returns new token and revokes old", async () => {
     assertSpyCalls(generateToken, 1);
 
     assertStrictEquals(revoke.calls.length, 1);
-    call = revoke.calls[0];
-    assertStrictEquals(call.args.length, 1);
-    assertToken(call.args[0], {
+    const revokeCall = revoke.calls[0];
+    assertStrictEquals(revokeCall.args.length, 1);
+    assertToken(revokeCall.args[0], {
       accessToken: "fake",
       refreshToken: "example",
       client,
@@ -311,9 +308,9 @@ test(tokenTests, "returns new token and revokes old", async () => {
       scope,
     };
     assertStrictEquals(save.calls.length, 1);
-    call = save.calls[0];
-    assertStrictEquals(call.args.length, 1);
-    assertToken(call.args[0], expectedToken);
+    const saveCall = save.calls[0];
+    assertStrictEquals(saveCall.args.length, 1);
+    assertToken(saveCall.args[0], expectedToken);
     assertToken(token, expectedToken);
   } finally {
     getRefreshToken.restore();
@@ -323,7 +320,7 @@ test(tokenTests, "returns new token and revokes old", async () => {
   }
 });
 
-test(
+it(
   tokenTests,
   "returns new token with same refresh token and revokes old",
   async () => {
@@ -364,9 +361,9 @@ test(
       const token = await result;
 
       assertStrictEquals(getRefreshToken.calls.length, 1);
-      let call: SpyCall = getRefreshToken.calls[0];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, ["example"]);
+      const getCall = getRefreshToken.calls[0];
+      assertStrictEquals(getCall.self, tokenService);
+      assertEquals(getCall.args, ["example"]);
 
       assertClientUserScopeCall(
         generateToken,
@@ -379,9 +376,9 @@ test(
       assertSpyCalls(generateToken, 1);
 
       assertStrictEquals(revoke.calls.length, 1);
-      call = revoke.calls[0];
-      assertStrictEquals(call.args.length, 1);
-      assertToken(call.args[0], {
+      const revokeCall = revoke.calls[0];
+      assertStrictEquals(revokeCall.args.length, 1);
+      assertToken(revokeCall.args[0], {
         accessToken: "fake",
         refreshToken: "example",
         refreshTokenExpiresAt,
@@ -400,9 +397,9 @@ test(
         scope,
       };
       assertStrictEquals(save.calls.length, 1);
-      call = save.calls[0];
-      assertStrictEquals(call.args.length, 1);
-      assertToken(call.args[0], expectedToken);
+      const saveCall = save.calls[0];
+      assertStrictEquals(saveCall.args.length, 1);
+      assertToken(saveCall.args[0], expectedToken);
       assertToken(token, expectedToken);
     } finally {
       getRefreshToken.restore();
@@ -413,7 +410,7 @@ test(
   },
 );
 
-test(
+it(
   tokenTests,
   "returns new token with same code and revokes old",
   async () => {
@@ -456,9 +453,9 @@ test(
       const token = await result;
 
       assertStrictEquals(getRefreshToken.calls.length, 1);
-      let call: SpyCall = getRefreshToken.calls[0];
-      assertStrictEquals(call.self, tokenService);
-      assertEquals(call.args, ["example"]);
+      const getCall = getRefreshToken.calls[0];
+      assertStrictEquals(getCall.self, tokenService);
+      assertEquals(getCall.args, ["example"]);
 
       assertClientUserScopeCall(
         generateToken,
@@ -471,9 +468,9 @@ test(
       assertSpyCalls(generateToken, 1);
 
       assertStrictEquals(revoke.calls.length, 1);
-      call = revoke.calls[0];
-      assertStrictEquals(call.args.length, 1);
-      assertToken(call.args[0], {
+      const revokeCall = revoke.calls[0];
+      assertStrictEquals(revokeCall.args.length, 1);
+      assertToken(revokeCall.args[0], {
         accessToken: "fake",
         refreshToken: "example",
         client,
@@ -493,9 +490,9 @@ test(
         code: "z",
       };
       assertStrictEquals(save.calls.length, 1);
-      call = save.calls[0];
-      assertStrictEquals(call.args.length, 1);
-      assertToken(call.args[0], expectedToken);
+      const saveCall = save.calls[0];
+      assertStrictEquals(saveCall.args.length, 1);
+      assertToken(saveCall.args[0], expectedToken);
       assertToken(token, expectedToken);
     } finally {
       getRefreshToken.restore();

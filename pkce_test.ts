@@ -1,11 +1,11 @@
 import { decodeBase64url } from "./deps.ts";
 import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
-import { assertEquals, test, TestSuite } from "./test_deps.ts";
+import { assertEquals, describe, it } from "./test_deps.ts";
 
-const pkceTests: TestSuite<void> = new TestSuite({ name: "PKCE" });
+const pkceTests = describe("PKCE");
 
 // https://datatracker.ietf.org/doc/html/rfc7636#appendix-B
-test(pkceTests, "S256 challenge method", async () => {
+it(pkceTests, "S256 challenge method", async () => {
   const { S256 } = challengeMethods;
   assertEquals(
     await S256("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
@@ -13,7 +13,7 @@ test(pkceTests, "S256 challenge method", async () => {
   );
 });
 
-test(pkceTests, "generateCodeVerifier", () => {
+it(pkceTests, "generateCodeVerifier", () => {
   const encoder = new TextEncoder();
   const encoded = encoder.encode(generateCodeVerifier());
   assertEquals(encoded.length, 43);

@@ -3,12 +3,12 @@ import {
   assertEquals,
   assertStrictEquals,
   assertThrows,
-  test,
-  TestSuite,
+  describe,
+  it,
 } from "../test_deps.ts";
 import { InvalidScopeError } from "../errors.ts";
 
-test("SCOPE", () => {
+it("SCOPE", () => {
   assertStrictEquals(SCOPE.test(""), true);
   assertStrictEquals(SCOPE.test("a"), true);
   assertStrictEquals(SCOPE.test(" "), false);
@@ -25,7 +25,7 @@ test("SCOPE", () => {
   assertStrictEquals(SCOPE.test("a b\\c a d"), false);
 });
 
-test("SCOPE_TOKEN", () => {
+it("SCOPE_TOKEN", () => {
   assertEquals("".match(SCOPE_TOKEN), null);
   assertEquals("a".match(SCOPE_TOKEN), ["a"]);
   assertEquals("a b a c".match(SCOPE_TOKEN), ["a", "b", "a", "c"]);
@@ -37,9 +37,9 @@ test("SCOPE_TOKEN", () => {
   ]);
 });
 
-const scopeTests: TestSuite<void> = new TestSuite({ name: "Scope" });
+const scopeTests = describe("Scope");
 
-test(scopeTests, "constructor validation", () => {
+it(scopeTests, "constructor validation", () => {
   new Scope("a");
   assertThrows(() => new Scope(" "), InvalidScopeError, "invalid scope");
   assertThrows(() => new Scope(" a"), InvalidScopeError, "invalid scope");
@@ -59,7 +59,7 @@ test(scopeTests, "constructor validation", () => {
   );
 });
 
-test(scopeTests, "toString", () => {
+it(scopeTests, "toString", () => {
   let scope = new Scope("a");
   assertStrictEquals(scope.toString(), "a");
   assertStrictEquals(scope.toString(), "a");
@@ -71,7 +71,7 @@ test(scopeTests, "toString", () => {
   assertStrictEquals(scope.toString(), "!#0A[]a~ !#1B[]b~ !#2C[]c~");
 });
 
-test(scopeTests, "toJSON", () => {
+it(scopeTests, "toJSON", () => {
   let scope = new Scope("a");
   assertStrictEquals(scope.toJSON(), "a");
   assertStrictEquals(scope.toJSON(), "a");
@@ -83,7 +83,7 @@ test(scopeTests, "toJSON", () => {
   assertStrictEquals(scope.toJSON(), "!#0A[]a~ !#1B[]b~ !#2C[]c~");
 });
 
-test(scopeTests, "from", () => {
+it(scopeTests, "from", () => {
   assertStrictEquals(Scope.from("a").toString(), "a");
   let scope: Scope = new Scope("a");
   assertStrictEquals(Scope.from(scope).toString(), "a");
@@ -106,7 +106,7 @@ test(scopeTests, "from", () => {
   assertStrictEquals(scope.toString(), "!#0A[]a~ !#1B[]b~ !#2C[]c~");
 });
 
-test(scopeTests, "has", () => {
+it(scopeTests, "has", () => {
   let scope = new Scope("a");
   assertStrictEquals(scope.has("a"), true);
   assertStrictEquals(scope.has(new Scope("a")), true);
@@ -155,7 +155,7 @@ test(scopeTests, "has", () => {
   );
 });
 
-test(scopeTests, "add", () => {
+it(scopeTests, "add", () => {
   const scope: Scope = new Scope();
   assertStrictEquals(scope.add("a"), scope);
   assertStrictEquals(scope.toString(), "a");
@@ -167,7 +167,7 @@ test(scopeTests, "add", () => {
   assertStrictEquals(scope.toString(), "a b c d e f g");
 });
 
-test(scopeTests, "remove", () => {
+it(scopeTests, "remove", () => {
   const scope: Scope = new Scope("a b c d e f g");
   assertStrictEquals(scope.remove("a"), scope);
   assertStrictEquals(scope.toString(), "b c d e f g");
@@ -179,7 +179,7 @@ test(scopeTests, "remove", () => {
   assertStrictEquals(scope.toString(), "");
 });
 
-test(scopeTests, "equals", () => {
+it(scopeTests, "equals", () => {
   let scope = new Scope("a");
   assertStrictEquals(scope.equals("a"), true);
   assertStrictEquals(scope.equals(new Scope("a")), true);
@@ -203,7 +203,7 @@ test(scopeTests, "equals", () => {
   assertStrictEquals(scope.equals(new Scope("a b c d")), false);
 });
 
-test(scopeTests, "clear", () => {
+it(scopeTests, "clear", () => {
   const scope: Scope = new Scope("a b c");
   scope.add("d");
   assertStrictEquals(scope.toString(), "a b c d");
@@ -215,7 +215,7 @@ test(scopeTests, "clear", () => {
   assertStrictEquals(scope.toString(), "");
 });
 
-test(scopeTests, "union", () => {
+it(scopeTests, "union", () => {
   const scopes: [Scope, Scope] = [
     new Scope("a b c e"),
     new Scope("b d e f"),
@@ -226,7 +226,7 @@ test(scopeTests, "union", () => {
   assertStrictEquals(scopes[1].toString(), "b d e f");
 });
 
-test(scopeTests, "intersection", () => {
+it(scopeTests, "intersection", () => {
   const scopes: [Scope, Scope] = [
     new Scope("a b c e"),
     new Scope("b d e f"),
@@ -237,6 +237,6 @@ test(scopeTests, "intersection", () => {
   assertStrictEquals(scopes[1].toString(), "b d e f");
 });
 
-test(scopeTests, "iterator", () => {
+it(scopeTests, "iterator", () => {
   assertEquals([...(new Scope("a c b d"))].sort(), ["a", "b", "c", "d"]);
 });
