@@ -51,7 +51,7 @@ export class AccessTokenService
   }
 
   /** Revokes a token. */
-  async revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
+  async revoke(_token: string | Token<Client, User, Scope>): Promise<boolean> {
     return await Promise.resolve(true);
   }
 
@@ -103,7 +103,7 @@ export class RefreshTokenService
   }
 
   /** Revokes a token. */
-  async revoke(_token: Token<Client, User, Scope>): Promise<boolean> {
+  async revoke(_token: string | Token<Client, User, Scope>): Promise<boolean> {
     return await Promise.resolve(true);
   }
 

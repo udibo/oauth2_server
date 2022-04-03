@@ -7,7 +7,4 @@ export interface Session {
   state?: string | null;
   redirectUri?: string | null;
   codeVerifier?: string | null;
-  accessToken?: string | null;
-  refreshToken?: string | null;
-  accessTokenExpiresAt?: Date | null;
 }

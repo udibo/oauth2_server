@@ -30,6 +30,7 @@ export {
   RefreshTokenGrant,
   Scope,
   ServerError,
+  UnsupportedTokenTypeError,
 } from "../../authorization_server.ts";
 export type {
   AccessToken,

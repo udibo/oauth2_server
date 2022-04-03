@@ -22,4 +22,4 @@ export {
 export type { Spy, Stub } from "https://deno.land/std@0.133.0/testing/mock.ts";
 export { FakeTime } from "https://deno.land/x/mock@0.15.0/time.ts";
 
-export { describe, it } from "https://deno.land/x/test_suite@0.14.0/mod.ts";
+export { describe, it } from "https://deno.land/x/test_suite@0.16.0/mod.ts";

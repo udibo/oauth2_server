@@ -52,9 +52,10 @@ export interface TokenServiceInterface<
   ): Promise<RefreshToken<Client, User, Scope> | undefined>;
   /** Saves a token. */
   save(token: Token<Client, User, Scope>): Promise<Token<Client, User, Scope>>;
-  /** Revokes a token. Resolves true if a token was revoked. */
+  /** Revokes a token. Resolves true if a token was revoked or invalid. */
   revoke(token: Token<Client, User, Scope>): Promise<boolean>;
-  /** Revokes all tokens for an authorization code. Resolves true if a token was revoked. */
+  revoke(token: string, hint?: string | null): Promise<boolean>;
+  /** Revokes all tokens for an authorization code. Resolves true if a authorization code was revoked or invalid. */
   revokeCode(code: string): Promise<boolean>;
 }
 
@@ -140,10 +141,11 @@ export abstract class AbstractAccessTokenService<
     token: AccessToken<Client, User, Scope>,
   ): Promise<AccessToken<Client, User, Scope>>;
 
-  /** Revokes a token. Resolves true if a token was revoked. */
+  /** Revokes a token. Resolves true if a token was revoked or invalid. */
   abstract revoke(token: AccessToken<Client, User, Scope>): Promise<boolean>;
+  abstract revoke(token: string, hint?: string | null): Promise<boolean>;
 
-  /** Revokes all tokens for an authorization code. Resolves true if a token was revoked. */
+  /** Revokes all tokens for an authorization code. Resolves true if a authorization code was revoked or invalid. */
   abstract revokeCode(code: string): Promise<boolean>;
 }
 
@@ -193,6 +195,7 @@ export abstract class AbstractRefreshTokenService<
     token: Token<Client, User, Scope>,
   ): Promise<Token<Client, User, Scope>>;
 
-  /** Revokes a token. Resolves true if a token was revoked. */
-  abstract revoke(token: Token<Client, User, Scope> | string): Promise<boolean>;
+  /** Revokes a token. Resolves true if a token was revoked or invalid. */
+  abstract revoke(token: Token<Client, User, Scope>): Promise<boolean>;
+  abstract revoke(token: string, hint?: string | null): Promise<boolean>;
 }

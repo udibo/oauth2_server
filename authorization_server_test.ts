@@ -97,6 +97,7 @@ it("verify exports", () => {
     "UnauthorizedClientError",
     "UnsupportedGrantTypeError",
     "UnsupportedResponseTypeError",
+    "UnsupportedTokenTypeError",
     "VSCHAR",
     "authorizeParameters",
     "authorizeUrl",

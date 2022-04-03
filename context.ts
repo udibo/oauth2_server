@@ -175,6 +175,7 @@ export interface LoginRedirectOptions {
   loginRedirectKey?: string;
 }
 
+/** Used for redirecting to login page for the authorization code flow. */
 export function loginRedirectFactory<
   Client extends ClientInterface,
   User,

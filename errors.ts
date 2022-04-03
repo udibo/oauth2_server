@@ -106,6 +106,19 @@ export class UnauthorizedClientError extends OAuth2Error {
   }
 }
 
+/** The token type is not supported by the authorization server. */
+export class UnsupportedTokenTypeError extends OAuth2Error {
+  constructor(message?: string, options?: ErrorOptions) {
+    super({
+      message,
+      name: "UnsupportedTokenTypeError",
+      code: "unsupported_token_type",
+      status: 400,
+      cause: options?.cause,
+    });
+  }
+}
+
 /** The authorization grant type is not supported by the authorization server. */
 export class UnsupportedGrantTypeError extends OAuth2Error {
   constructor(message?: string, options?: ErrorOptions) {

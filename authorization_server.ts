@@ -366,6 +366,7 @@ export {
   UNICODECHARNOCRLF,
   UnsupportedGrantTypeError,
   UnsupportedResponseTypeError,
+  UnsupportedTokenTypeError,
   VSCHAR,
 } from "./resource_server.ts";
 export type {
