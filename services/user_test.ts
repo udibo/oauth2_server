@@ -3,8 +3,8 @@ import {
   assertNotEquals,
   assertRejects,
   assertStrictEquals,
-  test,
-  TestSuite,
+  describe,
+  it,
 } from "../test_deps.ts";
 import { ServerError } from "../errors.ts";
 import { UserService } from "./test_services.ts";
@@ -12,11 +12,9 @@ import { generateSalt, hashPassword } from "./user.ts";
 
 const userService = new UserService();
 
-const userServiceTests: TestSuite<void> = new TestSuite({
-  name: "UserService",
-});
+const userServiceTests = describe("UserService");
 
-test(userServiceTests, "getAuthenticated not implemented", async () => {
+it(userServiceTests, "getAuthenticated not implemented", async () => {
   const result = userService.getAuthenticated(
     "Kyle",
     "hunter2",
@@ -30,7 +28,7 @@ test(userServiceTests, "getAuthenticated not implemented", async () => {
   );
 });
 
-test("generateSalt", () => {
+it("generateSalt", () => {
   const salts = [
     generateSalt(),
     generateSalt(),
@@ -40,7 +38,7 @@ test("generateSalt", () => {
   assertEquals(salts[1].length, 32);
 });
 
-test("hashPassword", async () => {
+it("hashPassword", async () => {
   const passwords = ["hunter1", "hunter2"];
   const salts = [
     "ba387b742a3e1917d084d067e3a65b63",

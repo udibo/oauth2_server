@@ -4,12 +4,12 @@ export {
   Cookies,
   Response,
   Router,
-} from "https://deno.land/x/oak@v10.1.0/mod.ts";
-export type { BodyForm } from "https://deno.land/x/oak@v10.1.0/mod.ts";
+} from "https://deno.land/x/oak@v10.5.1/mod.ts";
+export type { BodyForm } from "https://deno.land/x/oak@v10.5.1/mod.ts";
 
 export {
   encode as encodeBase64,
-} from "https://deno.land/std@0.120.0/encoding/base64.ts";
+} from "https://deno.land/std@0.133.0/encoding/base64.ts";
 
 export {
   AbstractAccessTokenService,
@@ -30,6 +30,7 @@ export {
   RefreshTokenGrant,
   Scope,
   ServerError,
+  UnsupportedTokenTypeError,
 } from "../../authorization_server.ts";
 export type {
   AccessToken,

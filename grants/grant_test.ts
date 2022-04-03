@@ -13,13 +13,12 @@ import {
   assertRejects,
   assertSpyCalls,
   assertStrictEquals,
+  describe,
+  it,
   Spy,
   spy,
-  SpyCall,
   Stub,
   stub,
-  test,
-  TestSuite,
 } from "../test_deps.ts";
 import { fakeTokenRequest } from "../test_context.ts";
 import { InvalidClientError, InvalidScopeError } from "../errors.ts";
@@ -30,7 +29,7 @@ import {
 } from "../services/test_services.ts";
 import { User } from "../models/user.ts";
 
-const grantTests: TestSuite<void> = new TestSuite({ name: "Grant" });
+const grantTests = describe("Grant");
 
 const clientService = new ClientService();
 const client: Client = (clientService as ClientService).client;
@@ -53,7 +52,7 @@ const refreshTokenGrant: ExampleGrant = new ExampleGrant({
   allowRefreshToken: true,
 });
 
-test(grantTests, "parseScope", () => {
+it(grantTests, "parseScope", () => {
   assertScope(grant.parseScope(undefined), undefined);
   assertScope(grant.parseScope(null), undefined);
   assertScope(grant.parseScope(""), undefined);
@@ -61,12 +60,12 @@ test(grantTests, "parseScope", () => {
   assertScope(grant.parseScope("read write"), new Scope("read write"));
 });
 
-const acceptedScopeTests: TestSuite<void> = new TestSuite({
+const acceptedScopeTests = describe({
   name: "acceptedScope",
   suite: grantTests,
 });
 
-test(
+it(
   acceptedScopeTests,
   "returns undefined if token service accepts no scope",
   async () => {
@@ -93,7 +92,7 @@ test(
   },
 );
 
-test(
+it(
   acceptedScopeTests,
   "returns scope accepted by token service without requesting scope",
   async () => {
@@ -114,7 +113,7 @@ test(
   },
 );
 
-test(
+it(
   acceptedScopeTests,
   "returns scope accepted by token service instead of requested scope",
   async () => {
@@ -145,7 +144,7 @@ test(
   },
 );
 
-test(acceptedScopeTests, "invalid scope", async () => {
+it(acceptedScopeTests, "invalid scope", async () => {
   const acceptedScope = stub(
     tokenService,
     "acceptedScope",
@@ -172,7 +171,7 @@ test(acceptedScopeTests, "invalid scope", async () => {
   }
 });
 
-test(acceptedScopeTests, "scope required", async () => {
+it(acceptedScopeTests, "scope required", async () => {
   const acceptedScope = stub(
     tokenService,
     "acceptedScope",
@@ -192,12 +191,12 @@ test(acceptedScopeTests, "scope required", async () => {
   }
 });
 
-const getClientCredentialsTests: TestSuite<void> = new TestSuite({
+const getClientCredentialsTests = describe({
   name: "getClientCredentials",
   suite: grantTests,
 });
 
-test(
+it(
   getClientCredentialsTests,
   "authorization header required if credentials not in body",
   async () => {
@@ -211,7 +210,7 @@ test(
   },
 );
 
-test(
+it(
   getClientCredentialsTests,
   "from request body without secret",
   async () => {
@@ -223,7 +222,7 @@ test(
   },
 );
 
-test(getClientCredentialsTests, "from request body with secret", async () => {
+it(getClientCredentialsTests, "from request body with secret", async () => {
   const request = fakeTokenRequest(
     "client_id=1&client_secret=2",
   );
@@ -233,7 +232,7 @@ test(getClientCredentialsTests, "from request body with secret", async () => {
   assertEquals(await result, { clientId: "1", clientSecret: "2" });
 });
 
-test(
+it(
   getClientCredentialsTests,
   "from authorization header without secret",
   async () => {
@@ -245,7 +244,7 @@ test(
   },
 );
 
-test(
+it(
   getClientCredentialsTests,
   "from authorization header with secret",
   async () => {
@@ -257,7 +256,7 @@ test(
   },
 );
 
-test(
+it(
   getClientCredentialsTests,
   "ignores request body when authorization header is present",
   async () => {
@@ -271,12 +270,12 @@ test(
   },
 );
 
-const getAuthenticatedClientTests: TestSuite<void> = new TestSuite({
+const getAuthenticatedClientTests = describe({
   name: "getAuthenticatedClient",
   suite: grantTests,
 });
 
-test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
+it(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   const getClientCredentials: Spy<ExampleGrant> = spy(
     grant,
     "getClientCredentials",
@@ -296,7 +295,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
     );
 
     assertEquals(getClientCredentials.calls.length, 1);
-    const call: SpyCall = getClientCredentials.calls[0];
+    const call = getClientCredentials.calls[0];
     assertEquals(call.args.length, 1);
     assertStrictEquals(call.args[0], request);
     assertStrictEquals(call.self, grant);
@@ -308,7 +307,7 @@ test(getAuthenticatedClientTests, "getClientCredentials failed", async () => {
   }
 });
 
-test(
+it(
   getAuthenticatedClientTests,
   "client authentication failed without secret",
   async () => {
@@ -331,15 +330,15 @@ test(
       );
 
       assertEquals(getClientCredentials.calls.length, 1);
-      let call: SpyCall = getClientCredentials.calls[0];
-      assertEquals(call.args.length, 1);
-      assertStrictEquals(call.args[0], request);
-      assertStrictEquals(call.self, grant);
+      const getClientCredentialsCall = getClientCredentials.calls[0];
+      assertEquals(getClientCredentialsCall.args.length, 1);
+      assertStrictEquals(getClientCredentialsCall.args[0], request);
+      assertStrictEquals(getClientCredentialsCall.self, grant);
 
       assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      call = clientServiceGetAuthenticated.calls[0];
-      assertEquals(call.args, ["1"]);
-      assertStrictEquals(call.self, clientService);
+      const getAuthenticatedCall = clientServiceGetAuthenticated.calls[0];
+      assertEquals(getAuthenticatedCall.args, ["1"]);
+      assertStrictEquals(getAuthenticatedCall.self, clientService);
     } finally {
       getClientCredentials.restore();
       clientServiceGetAuthenticated.restore();
@@ -347,7 +346,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "client authentication failed with secret",
   async () => {
@@ -370,15 +369,15 @@ test(
       );
 
       assertEquals(getClientCredentials.calls.length, 1);
-      let call: SpyCall = getClientCredentials.calls[0];
-      assertEquals(call.args.length, 1);
-      assertStrictEquals(call.args[0], request);
-      assertStrictEquals(call.self, grant);
+      const getClientCredentialsCall = getClientCredentials.calls[0];
+      assertEquals(getClientCredentialsCall.args.length, 1);
+      assertStrictEquals(getClientCredentialsCall.args[0], request);
+      assertStrictEquals(getClientCredentialsCall.self, grant);
 
       assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      call = clientServiceGetAuthenticated.calls[0];
-      assertEquals(call.args, ["1", "2"]);
-      assertStrictEquals(call.self, clientService);
+      const getAuthenticatedCall = clientServiceGetAuthenticated.calls[0];
+      assertEquals(getAuthenticatedCall.args, ["1", "2"]);
+      assertStrictEquals(getAuthenticatedCall.self, clientService);
     } finally {
       getClientCredentials.restore();
       clientServiceGetAuthenticated.restore();
@@ -386,7 +385,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "returns client authenticated without secret",
   async () => {
@@ -406,17 +405,17 @@ test(
       const client = await result;
 
       assertEquals(getClientCredentials.calls.length, 1);
-      let call: SpyCall = getClientCredentials.calls[0];
-      assertEquals(call.args.length, 1);
-      assertStrictEquals(call.args[0], request);
-      assertStrictEquals(call.self, grant);
+      const getClientCredentialsCall = getClientCredentials.calls[0];
+      assertEquals(getClientCredentialsCall.args.length, 1);
+      assertStrictEquals(getClientCredentialsCall.args[0], request);
+      assertStrictEquals(getClientCredentialsCall.self, grant);
 
       assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      call = clientServiceGetAuthenticated.calls[0];
-      assertEquals(call.args, ["1"]);
-      assertStrictEquals(call.self, clientService);
+      const getAuthenticatedCall = clientServiceGetAuthenticated.calls[0];
+      assertEquals(getAuthenticatedCall.args, ["1"]);
+      assertStrictEquals(getAuthenticatedCall.self, clientService);
 
-      assertEquals(client, await call.returned);
+      assertEquals(client, await getAuthenticatedCall.returned);
     } finally {
       getClientCredentials.restore();
       clientServiceGetAuthenticated.restore();
@@ -424,7 +423,7 @@ test(
   },
 );
 
-test(
+it(
   getAuthenticatedClientTests,
   "returns client authenticated with secret",
   async () => {
@@ -444,17 +443,17 @@ test(
       const client = await result;
 
       assertEquals(getClientCredentials.calls.length, 1);
-      let call: SpyCall = getClientCredentials.calls[0];
-      assertEquals(call.args.length, 1);
-      assertStrictEquals(call.args[0], request);
-      assertStrictEquals(call.self, grant);
+      const getClientCredentialsCall = getClientCredentials.calls[0];
+      assertEquals(getClientCredentialsCall.args.length, 1);
+      assertStrictEquals(getClientCredentialsCall.args[0], request);
+      assertStrictEquals(getClientCredentialsCall.self, grant);
 
       assertEquals(clientServiceGetAuthenticated.calls.length, 1);
-      call = clientServiceGetAuthenticated.calls[0];
-      assertEquals(call.args, ["1", "2"]);
-      assertStrictEquals(call.self, clientService);
+      const getAuthenticatedCall = clientServiceGetAuthenticated.calls[0];
+      assertEquals(getAuthenticatedCall.args, ["1", "2"]);
+      assertStrictEquals(getAuthenticatedCall.self, clientService);
 
-      assertEquals(client, await call.returned);
+      assertEquals(client, await getAuthenticatedCall.returned);
     } finally {
       getClientCredentials.restore();
       clientServiceGetAuthenticated.restore();
@@ -462,14 +461,14 @@ test(
   },
 );
 
-const generateTokenTests: TestSuite<void> = new TestSuite({
+const generateTokenTests = describe({
   name: "generateToken",
   suite: grantTests,
 });
 
 const user: User = { username: "kyle" };
 
-test(
+it(
   generateTokenTests,
   "access token without optional properties",
   async () => {
@@ -509,7 +508,7 @@ test(
   },
 );
 
-test(generateTokenTests, "access token with optional properties", async () => {
+it(generateTokenTests, "access token with optional properties", async () => {
   const generateAccessToken: Stub<RefreshTokenService> = stub(
     tokenService,
     "generateAccessToken",
@@ -549,7 +548,7 @@ test(generateTokenTests, "access token with optional properties", async () => {
   }
 });
 
-test(
+it(
   generateTokenTests,
   "refresh token allowed without optional properties",
   async () => {
@@ -601,7 +600,7 @@ test(
   },
 );
 
-test(
+it(
   generateTokenTests,
   "refresh token allowed with optional properties",
   async () => {

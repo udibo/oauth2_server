@@ -8,13 +8,11 @@ import { Scope } from "./models/scope.ts";
 import { User } from "./models/user.ts";
 import { challengeMethods, generateCodeVerifier } from "./pkce.ts";
 import { fakeAuthorizeRequest } from "./test_context.ts";
-import { assertEquals, test, TestSuite } from "./test_deps.ts";
+import { assertEquals, describe, it } from "./test_deps.ts";
 
-const authorizeParametersTests = new TestSuite({
-  name: "authorizeParameters",
-});
+const authorizeParametersTests = describe("authorizeParameters");
 
-test(authorizeParametersTests, "from search parameters", async () => {
+it(authorizeParametersTests, "from search parameters", async () => {
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest();
@@ -31,7 +29,7 @@ test(authorizeParametersTests, "from search parameters", async () => {
   });
 });
 
-test(authorizeParametersTests, "from body", async () => {
+it(authorizeParametersTests, "from body", async () => {
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest({
@@ -55,7 +53,7 @@ test(authorizeParametersTests, "from body", async () => {
   });
 });
 
-test(authorizeParametersTests, "from search parameters and body", async () => {
+it(authorizeParametersTests, "from search parameters and body", async () => {
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest({
@@ -79,7 +77,7 @@ test(authorizeParametersTests, "from search parameters and body", async () => {
   });
 });
 
-test(
+it(
   authorizeParametersTests,
   "prefer body over search parameters",
   async () => {
@@ -121,11 +119,9 @@ test(
   },
 );
 
-const authorizeUrlTests = new TestSuite({
-  name: "authorizeUrl",
-});
+const authorizeUrlTests = describe("authorizeUrl");
 
-test(authorizeUrlTests, "without PKCE", async () => {
+it(authorizeUrlTests, "without PKCE", async () => {
   const request = fakeAuthorizeRequest();
   const expectedUrl = new URL("https://example.com/authorize");
   expectedUrl.searchParams.set("response_type", "code");
@@ -141,7 +137,7 @@ test(authorizeUrlTests, "without PKCE", async () => {
   );
 });
 
-test(authorizeUrlTests, "with PKCE", async () => {
+it(authorizeUrlTests, "with PKCE", async () => {
   const verifier: string = generateCodeVerifier();
   const challenge: string = await challengeMethods.S256(verifier);
   const request = fakeAuthorizeRequest();

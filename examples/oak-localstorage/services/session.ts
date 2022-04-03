@@ -9,9 +9,6 @@ interface SessionInternal {
   state?: string;
   redirectUri?: string;
   codeVerifier?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  accessTokenExpiresAt?: number;
 }
 
 export function saveSession(sessionId: string, session: Session): void {
@@ -32,20 +29,12 @@ export class SessionService {
       state,
       redirectUri,
       codeVerifier,
-      accessToken,
-      refreshToken,
-      accessTokenExpiresAt,
       csrf,
     } = session;
     const next: SessionInternal = { id, csrf };
     if (state) next.state = state;
     if (redirectUri) next.redirectUri = redirectUri;
     if (codeVerifier) next.codeVerifier = codeVerifier;
-    if (accessToken) next.accessToken = accessToken;
-    if (accessTokenExpiresAt) {
-      next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
-    }
-    if (refreshToken) next.refreshToken = refreshToken;
     if (user) next.userId = user.id;
     localStorage.setItem(`session:${id}`, JSON.stringify(next));
     return await Promise.resolve();
@@ -58,9 +47,6 @@ export class SessionService {
       state,
       redirectUri,
       codeVerifier,
-      accessToken,
-      refreshToken,
-      accessTokenExpiresAt,
       csrf,
     } = session;
     const current = await this.getInternal(id);
@@ -78,16 +64,6 @@ export class SessionService {
 
     if (codeVerifier) next.codeVerifier = codeVerifier;
     else if (codeVerifier === null) delete next.codeVerifier;
-
-    if (accessToken) next.accessToken = accessToken;
-    else if (accessToken === null) delete next.accessToken;
-
-    if (accessTokenExpiresAt) {
-      next.accessTokenExpiresAt = accessTokenExpiresAt?.valueOf();
-    } else if (accessTokenExpiresAt === null) delete next.accessTokenExpiresAt;
-
-    if (refreshToken) next.refreshToken = refreshToken;
-    else if (refreshToken === null) delete next.refreshToken;
 
     if (csrf) next.csrf = csrf;
 
@@ -116,9 +92,6 @@ export class SessionService {
       state,
       redirectUri,
       codeVerifier,
-      accessToken,
-      refreshToken,
-      accessTokenExpiresAt,
       csrf,
       userId,
     } = internal;
@@ -127,13 +100,8 @@ export class SessionService {
       state,
       redirectUri,
       codeVerifier,
-      accessToken,
-      refreshToken,
       csrf,
     };
-    if (accessTokenExpiresAt) {
-      external.accessTokenExpiresAt = new Date(accessTokenExpiresAt);
-    }
     if (userId) external.user = await this.userService.get(userId);
     return external;
   }

@@ -3,6 +3,7 @@ import {
   RefreshToken,
   Scope,
   Token,
+  UnsupportedTokenTypeError,
 } from "../deps.ts";
 import { Client } from "../models/client.ts";
 import { User } from "../models/user.ts";
@@ -184,11 +185,17 @@ export class TokenService
   }
 
   async delete(
-    token: Token<Client, User, Scope> | TokenInternal,
+    token: string | Token<Client, User, Scope> | TokenInternal,
   ): Promise<boolean> {
-    let existed = await this.deleteAccessToken(token.accessToken);
-    if (token.refreshToken) {
-      existed = await this.deleteRefreshToken(token.refreshToken) || existed;
+    let existed = false;
+    if (typeof token === "string") {
+      existed = await this.deleteAccessToken(token);
+      existed = await this.deleteRefreshToken(token) || existed;
+    } else {
+      existed = await this.deleteAccessToken(token.accessToken);
+      if (token.refreshToken) {
+        existed = await this.deleteRefreshToken(token.refreshToken) || existed;
+      }
     }
     return existed;
   }
@@ -267,7 +274,21 @@ export class TokenService
     return (await this.getToken(token.accessToken))!;
   }
 
-  async revoke(token: Token<Client, User, Scope>): Promise<boolean> {
+  async revoke(token: Token<Client, User, Scope>): Promise<boolean>;
+  async revoke(token: string, hint?: string | null): Promise<boolean>;
+  async revoke(
+    token: string | Token<Client, User, Scope>,
+    hint?: string | null,
+  ): Promise<boolean> {
+    if (typeof token === "string") {
+      if (hint === "access_token") {
+        await this.deleteAccessToken(token);
+      } else if (hint === "refresh_token") {
+        await this.deleteRefreshToken(token);
+      } else {
+        throw new UnsupportedTokenTypeError("invalid token_type_hint");
+      }
+    }
     return await this.delete(token);
   }
 

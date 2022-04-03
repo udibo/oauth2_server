@@ -126,7 +126,6 @@ export class ResourceServer<
     request: Request,
     getAccessToken: (
       request: Request,
-      requireRefresh?: boolean,
     ) => Promise<string | null>,
   ): Promise<Token<Client, User, Scope>> {
     let { token, accessToken } = request;
@@ -135,15 +134,6 @@ export class ResourceServer<
       request.accessToken = null;
       accessToken = await getAccessToken(request);
       request.accessToken = accessToken;
-      if (accessToken) {
-        try {
-          token = await this.getToken(accessToken);
-        } catch (error) {
-          if (error.code !== "access_denied") throw error;
-          accessToken = await getAccessToken(request, true);
-          request.accessToken = accessToken;
-        }
-      }
       if (!accessToken) {
         accessToken = await this.getAccessToken(request);
         request.accessToken = accessToken;
@@ -166,7 +156,6 @@ export class ResourceServer<
     next: () => Promise<unknown>,
     getAccessToken: (
       request: Request,
-      requireRefresh?: boolean,
     ) => Promise<string | null>,
     acceptedScope?: Scope,
   ): Promise<void> {
@@ -284,5 +273,6 @@ export {
   UnauthorizedClientError,
   UnsupportedGrantTypeError,
   UnsupportedResponseTypeError,
+  UnsupportedTokenTypeError,
 } from "./errors.ts";
-export type { OAuth2ErrorInit } from "./errors.ts";
+export type { OAuth2ErrorOptions } from "./errors.ts";

@@ -1,4 +1,4 @@
-import { assertEquals, assertObjectMatch, test } from "./test_deps.ts";
+import { assertEquals, assertObjectMatch, it } from "./test_deps.ts";
 import {
   AccessDeniedError,
   InvalidClientError,
@@ -13,7 +13,7 @@ import {
   UnsupportedResponseTypeError,
 } from "./errors.ts";
 
-test("OAuth2Error", () => {
+it("OAuth2Error", () => {
   class CustomError extends OAuth2Error {}
   assertObjectMatch(new CustomError(), {
     name: "OAuth2Error",
@@ -46,7 +46,7 @@ test("OAuth2Error", () => {
   );
 });
 
-test("InvalidRequestError", () => {
+it("InvalidRequestError", () => {
   assertObjectMatch(new InvalidRequestError(), {
     name: "InvalidRequestError",
     status: 400,
@@ -72,7 +72,7 @@ test("InvalidRequestError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("InvalidClientError", () => {
+it("InvalidClientError", () => {
   assertObjectMatch(new InvalidClientError(), {
     name: "InvalidClientError",
     status: 401,
@@ -98,7 +98,7 @@ test("InvalidClientError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("InvalidGrantError", () => {
+it("InvalidGrantError", () => {
   assertObjectMatch(new InvalidGrantError(), {
     name: "InvalidGrantError",
     status: 400,
@@ -124,7 +124,7 @@ test("InvalidGrantError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("UnauthorizedClientError", () => {
+it("UnauthorizedClientError", () => {
   assertObjectMatch(new UnauthorizedClientError(), {
     name: "UnauthorizedClientError",
     status: 401,
@@ -150,7 +150,7 @@ test("UnauthorizedClientError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("UnsupportedGrantTypeError", () => {
+it("UnsupportedGrantTypeError", () => {
   assertObjectMatch(new UnsupportedGrantTypeError(), {
     name: "UnsupportedGrantTypeError",
     status: 400,
@@ -176,7 +176,7 @@ test("UnsupportedGrantTypeError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("AccessDeniedError", () => {
+it("AccessDeniedError", () => {
   assertObjectMatch(new AccessDeniedError(), {
     name: "AccessDeniedError",
     status: 401,
@@ -202,7 +202,7 @@ test("AccessDeniedError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("UnsupportedResponseTypeError", () => {
+it("UnsupportedResponseTypeError", () => {
   assertObjectMatch(new UnsupportedResponseTypeError(), {
     name: "UnsupportedResponseTypeError",
     status: 400,
@@ -228,7 +228,7 @@ test("UnsupportedResponseTypeError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("InvalidScopeError", () => {
+it("InvalidScopeError", () => {
   assertObjectMatch(new InvalidScopeError(), {
     name: "InvalidScopeError",
     status: 400,
@@ -254,7 +254,7 @@ test("InvalidScopeError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("ServerError", () => {
+it("ServerError", () => {
   assertObjectMatch(new ServerError(), {
     name: "ServerError",
     status: 500,
@@ -280,7 +280,7 @@ test("ServerError", () => {
   assertEquals(error.cause, cause);
 });
 
-test("TemporarilyUnavailableError", () => {
+it("TemporarilyUnavailableError", () => {
   assertObjectMatch(new TemporarilyUnavailableError(), {
     name: "TemporarilyUnavailableError",
     status: 503,

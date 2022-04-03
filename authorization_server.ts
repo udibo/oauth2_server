@@ -366,6 +366,7 @@ export {
   UNICODECHARNOCRLF,
   UnsupportedGrantTypeError,
   UnsupportedResponseTypeError,
+  UnsupportedTokenTypeError,
   VSCHAR,
 } from "./resource_server.ts";
 export type {
@@ -381,7 +382,7 @@ export type {
   OAuth2AuthenticatedRequest,
   OAuth2AuthorizedRequest,
   OAuth2AuthorizeRequest,
-  OAuth2ErrorInit,
+  OAuth2ErrorOptions,
   OAuth2Request,
   OAuth2Response,
   RefreshToken,

@@ -37,7 +37,6 @@ export class OakResourceServer<
   private stateKey: string;
   private getAccessToken: (
     request: OakOAuth2Request<Client, User, Scope>,
-    requireRefresh?: boolean,
   ) => Promise<string | null>;
 
   constructor(options: OakResourceServerOptions<Client, User, Scope>) {
@@ -59,16 +58,19 @@ export class OakResourceServer<
     return state;
   }
 
+  async getToken(accessToken: string): Promise<Token<Client, User, Scope>> {
+    return await this.server.getToken(accessToken);
+  }
+
   async getTokenForRequest(
     request: OakOAuth2Request<Client, User, Scope>,
-  ): Promise<Token<Client, User, Scope> | undefined> {
-    return await this.server.getTokenForRequest(request, this.getAccessToken)
-      .catch(() => undefined);
+  ): Promise<Token<Client, User, Scope>> {
+    return await this.server.getTokenForRequest(request, this.getAccessToken);
   }
 
   async getTokenForContext(
     context: Context,
-  ): Promise<Token<Client, User, Scope> | undefined> {
+  ): Promise<Token<Client, User, Scope>> {
     const state = this.getState(context);
     const { request } = state;
     return await this.getTokenForRequest(request);

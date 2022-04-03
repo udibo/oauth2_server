@@ -4,8 +4,6 @@ import {
   assertSpyCall,
   assertStrictEquals,
   Spy,
-  SpyCall,
-  Stub,
 } from "./test_deps.ts";
 import { ClientInterface } from "./models/client.ts";
 import { ScopeInterface } from "./models/scope.ts";
@@ -13,18 +11,18 @@ import { Token } from "./models/token.ts";
 import { AuthorizationCode } from "./models/authorization_code.ts";
 
 export function assertScope<Scope extends ScopeInterface>(
-  actual: Scope | null | undefined,
+  actual: unknown,
   expected: Scope | null | undefined,
 ): void {
   try {
     if (expected && actual) {
-      assert(expected.equals(actual));
+      assert(expected.equals(actual as Scope));
     } else {
       assertEquals(actual, expected);
     }
   } catch {
     assertEquals(
-      actual ? [...actual].sort() : actual,
+      actual ? [...actual as Scope].sort() : actual,
       expected ? [...expected].sort() : expected,
     );
   }
@@ -35,14 +33,17 @@ function assertWithoutScope<
   User,
   Scope extends ScopeInterface,
 >(
-  actual:
-    | Partial<AuthorizationCode<Client, User, Scope>>
-    | Partial<Token<Client, User, Scope>>,
+  actual: unknown,
   expected:
     | Partial<AuthorizationCode<Client, User, Scope>>
     | Partial<Token<Client, User, Scope>>,
 ): void {
-  const actualWithoutScope = { ...actual };
+  const actualWithoutScope = {
+    ...(actual as (
+      | Partial<AuthorizationCode<Client, User, Scope>>
+      | Partial<Token<Client, User, Scope>>
+    )),
+  };
   delete actualWithoutScope.scope;
   const expectedWithoutScope = { ...expected };
   delete expectedWithoutScope.scope;
@@ -54,7 +55,7 @@ export function assertToken<
   User,
   Scope extends ScopeInterface,
 >(
-  actual: Partial<Token<Client, User, Scope>> | null | undefined,
+  actual: unknown,
   expected: Partial<Token<Client, User, Scope>> | null | undefined,
 ): void {
   assert(
@@ -62,7 +63,10 @@ export function assertToken<
     actual ? "did not expect token" : "expected token",
   );
   if (actual && expected) {
-    assertScope(actual.scope, expected.scope);
+    assertScope(
+      (actual as Partial<Token<Client, User, Scope>>).scope,
+      expected.scope,
+    );
     assertWithoutScope(actual, expected);
   }
 }
@@ -72,7 +76,7 @@ export function assertAuthorizationCode<
   User,
   Scope extends ScopeInterface,
 >(
-  actual: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
+  actual: unknown,
   expected: Partial<AuthorizationCode<Client, User, Scope>> | null | undefined,
 ): void {
   assert(
@@ -82,7 +86,10 @@ export function assertAuthorizationCode<
       : "expected authorization code",
   );
   if (actual && expected) {
-    assertScope(actual.scope, expected.scope);
+    assertScope(
+      (actual as Partial<AuthorizationCode<Client, User, Scope>>).scope,
+      expected.scope,
+    );
     assertWithoutScope(actual, expected);
   }
 }
@@ -92,18 +99,17 @@ export function assertClientUserScopeCall<
   User,
   Scope extends ScopeInterface,
 >(
-  // deno-lint-ignore no-explicit-any
-  spy: Spy<any> | Stub<any>,
+  spy: Spy,
   callIndex: number,
-  // deno-lint-ignore no-explicit-any
-  self: any,
+  self: unknown,
   client: Client,
   user: User,
-  expectedScope?: Scope | null,
+  scope?: Scope | null,
 ): void {
-  const call: SpyCall = assertSpyCall(spy, callIndex);
+  assertSpyCall(spy, callIndex);
+  const call = spy.calls[callIndex];
   assertStrictEquals(call.self, self);
   assertEquals(call.args.slice(0, 2), [client, user]);
   const actualScope: ScopeInterface | undefined = call.args[2];
-  assertScope(actualScope, expectedScope);
+  assertScope(actualScope, scope);
 }

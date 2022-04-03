@@ -20,9 +20,9 @@ also acting as an authorization server.
 
 ```ts
 // Import from Deno's third party module registry
-import { OakResourceServer } from "https://deno.land/x/oauth2_server@0.11.1/adapters/oak/resource_server.ts";
+import { OakResourceServer } from "https://deno.land/x/oauth2_server@0.12.0/adapters/oak/resource_server.ts";
 // Import from GitHub
-import { OakResourceServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.11.1/adapters/oak/resource_server.ts";
+import { OakResourceServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.12.0/adapters/oak/resource_server.ts";
 ```
 
 The AuthorizationServer is an extension of the ResourceServer, adding methods
@@ -30,9 +30,9 @@ used by the authorize and token endpoints.
 
 ```ts
 // Import from Deno's third party module registry
-import { OakAuthorizationServer } from "https://deno.land/x/oauth2_server@0.11.1/adapters/oak/authorization_server.ts";
+import { OakAuthorizationServer } from "https://deno.land/x/oauth2_server@0.12.0/adapters/oak/authorization_server.ts";
 // Import from GitHub
-import { OakAuthorizationServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.11.1/adapters/oak/authorization_server.ts";
+import { OakAuthorizationServer } from "https://raw.githubusercontent.com/udibo/oauth2_server/0.12.0/adapters/oak/authorization_server.ts";
 ```
 
 ## Usage
@@ -42,5 +42,5 @@ An example of how to use this adapter module can be found
 but it should give you an idea of how to use this module.
 
 See
-[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.11.1/adapters/oak/authorization_server.ts)
+[deno docs](https://doc.deno.land/https/deno.land/x/oauth2_server@0.12.0/adapters/oak/authorization_server.ts)
 for more information.
